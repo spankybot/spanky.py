@@ -7,8 +7,8 @@ from time import time
 from sqlalchemy import Table, Column, String, Integer, PrimaryKeyConstraint, desc, Boolean
 from sqlalchemy.sql import select
 
-from spanky import hook
-from spanky.event import EventType
+from spanky.plugin import hook
+from spanky.plugin.event import EventType
 from spanky import database
 
 duck_tail = "・゜゜・。。・゜゜"
