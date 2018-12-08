@@ -54,8 +54,8 @@ class Hook:
         return "{}:{}".format(self.plugin.title, self.function_name)
 
     def __repr__(self):
-        return "type: {}, plugin: {}, permissions: {}, single_thread: {}, threaded: {}".format(
-            self.type, self.plugin.title, self.permissions, self.single_thread, self.threaded
+        return "type: {}, plugin: {}".format(
+            self.type, self.plugin.name
         )
 
 

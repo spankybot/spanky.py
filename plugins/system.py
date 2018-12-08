@@ -3,7 +3,7 @@ import time
 import platform
 from datetime import timedelta
 
-from spanky import hook
+from spanky.plugin import hook
 
 import time
 i = 0
