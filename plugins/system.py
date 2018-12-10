@@ -23,7 +23,7 @@ def checker2(bot):
 
 @hook.on_start()
 def checker3():
-    print("123")
+    print("121")
 
 @hook.command()
 def system(reply, message):

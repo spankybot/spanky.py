@@ -1,4 +1,7 @@
-from spanky.plugin.plugin_loader import PluginLoader
-from spanky.plugin.plugin_manager import PluginManager
+from spanky.bot import Bot
 
-bot = PluginManager(["plugins"])
+bot = Bot()
+
+while True:
+    import time
+    time.sleep(1)
