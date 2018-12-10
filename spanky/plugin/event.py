@@ -15,7 +15,7 @@ class EventType(enum.Enum):
     chan_del        = 5
     chan_add        = 6
     chan_upd        = 7
-
+    
     other           = 99
     action          = 100
 

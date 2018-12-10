@@ -1,0 +1,1 @@
+from spanky.plugin import hook

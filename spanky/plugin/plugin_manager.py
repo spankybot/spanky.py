@@ -1,10 +1,12 @@
 import logging
-import json
 import asyncio
+import glob
+import os
+import importlib
 
 from spanky.plugin.event import Event
-from spanky.database.db import db_data
-from spanky.plugin.plugin_loader import PluginLoader
+from spanky.plugin.reloader import PluginReloader
+from spanky.plugin.hook_logic import find_hooks, find_tables
 
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
@@ -16,25 +18,25 @@ logger.addHandler(ch)
 
 
 class PluginManager():
-    def __init__(self, path_list):
+    def __init__(self, path_list, db):
+        self.modules = []
         self.plugins = {}
         self.commands = {}
         self.event_type_hooks = {}
         self.regex_hooks = []
         self.sieves = []
+        self.db = db
         
-        with open('bot_config.json') as data_file:
-            self.config = json.load(data_file)
-
         self.loop = asyncio.get_event_loop()
-
-        db_path = self.config.get('database', 'sqlite:///cloudbot.db')
         
-        # Open the database first
-        self.db = db_data(db_path)
+        # Load each path
+        for path in path_list:
+            self.plugins.update(self.load_plugins(path))
         
-        loader = PluginLoader(path_list)
-        self.plugins = loader.plugins
+        self.reloader = {}
+        for path in path_list:
+            self.reloader[path] = PluginReloader(self)
+            self.reloader[path].start([path])
         
         for plugin in self.plugins.values():
             self.finalize_plugin(plugin)
@@ -94,7 +96,14 @@ class PluginManager():
                 self.regex_hooks.append((regex_match, regex_hook))
             logger.debug("Loaded {}".format(repr(regex_hook)))
             
-    
+        # register sieves
+        for sieve_hook in plugin.sieves:
+            self.sieves.append(sieve_hook)
+            self._log_hook(sieve_hook)
+
+        # sort sieve hooks by priority
+        self.sieves.sort(key=lambda x: x.priority)
+            
     def _prepare_parameters(self, hook, event):
         """
         Prepares arguments for the given hook
@@ -155,11 +164,184 @@ class PluginManager():
     def launch(self, event):
         """
         Dispatch a given event to a given hook using a given bot object.
-
         Returns False if the hook didn't run successfully, and True if it ran successfully.
-
         :type event: cloudbot.event.Event | cloudbot.event.CommandEvent
+        :type hook: cloudbot.plugin.Hook | cloudbot.plugin.CommandHook
         :rtype: bool
         """
-        # Run the plugin with the message, and wait for it to finish
-        return self._execute_hook(event.hook, event)
+        
+        hook = event.hook
+
+        if hook.type not in ("on_start", "periodic"):  # we don't need sieves on on_start hooks.
+            for sieve in self.bot.plugin_manager.sieves:
+                event = self._sieve(sieve, event, hook)
+                if event is None:
+                    return False
+
+        if hook.type == "command" and hook.auto_help and not event.text and hook.doc is not None:
+            event.notice_doc()
+            return False
+
+        if hook.single_thread:
+            # TODO
+            pass
+        else:
+            # Run the plugin with the message, and wait for it to finish
+            result = self._execute_hook(hook, event)
+
+        # Return the result
+        return result
+    
+    def unload_plugin(self, path):
+        """
+        Unloads the plugin from the given path, unregistering all hooks from the plugin.
+
+        Returns True if the plugin was unloaded, False if the plugin wasn't loaded in the first place.
+
+        :type path: str
+        :rtype: bool
+        """
+
+        # make sure this plugin is actually loaded
+        if not path in self.plugins:
+            return False
+
+        # get the loaded plugin
+        plugin = self.plugins[path]
+
+        # unregister commands
+        for command_hook in plugin.commands:
+            for alias in command_hook.aliases:
+                if alias in self.commands and self.commands[alias] == command_hook:
+                    # we need to make sure that there wasn't a conflict, so we don't delete another plugin's command
+                    del self.commands[alias]
+
+        # unregister raw hooks
+        for raw_hook in plugin.raw_hooks:
+            if raw_hook.is_catch_all():
+                self.catch_all_triggers.remove(raw_hook)
+            else:
+                for trigger in raw_hook.triggers:
+                    assert trigger in self.raw_triggers  # this can't be not true
+                    self.raw_triggers[trigger].remove(raw_hook)
+                    if not self.raw_triggers[trigger]:  # if that was the last hook for this trigger
+                        del self.raw_triggers[trigger]
+
+        # unregister events
+        for event_hook in plugin.events:
+            for event_type in event_hook.types:
+                assert event_type in self.event_type_hooks  # this can't be not true
+                self.event_type_hooks[event_type].remove(event_hook)
+                if not self.event_type_hooks[event_type]:  # if that was the last hook for this event type
+                    del self.event_type_hooks[event_type]
+
+        # unregister regexps
+        for regex_hook in plugin.regexes:
+            for regex_match in regex_hook.regexes:
+                self.regex_hooks.remove((regex_match, regex_hook))
+
+        # unregister sieves
+        for sieve_hook in plugin.sieves:
+            self.sieves.remove(sieve_hook)
+
+        # unregister databases
+        plugin.unregister_tables(self.db)
+
+        # remove last reference to plugin
+        del self.plugins[plugin.name]
+
+        logger.info("Unloaded all plugins from {}.py".format(plugin.name))
+
+        return True
+    
+    def load_plugin(self, fname):
+        """
+        Load a whole plugin file
+        :param fname: file name to load
+        """
+
+        # Try unloading the file first
+        self.unload_plugin(fname)
+        plugin = self._load_plugin(fname)
+        
+        if plugin:
+            self.plugins[fname] = Plugin(fname, plugin)
+            self.finalize_plugin(self.plugins[fname])
+
+    def _load_plugin(self, fname):
+        """
+        Load a plugin.
+        """
+        logger.debug("Loading %s" % fname)
+        basename = os.path.basename(fname)
+
+        # Build file name
+        plugin_name = "%s.%s" % (os.path.basename(os.path.dirname(fname)), basename)
+        plugin_name = plugin_name.replace(".py", "")
+
+        try:
+            # Import the file
+            plugin_module = importlib.import_module(plugin_name)
+
+            # If file was previously imported, reload
+            if plugin_module in self.modules:
+                plugin_module = importlib.reload(plugin_module)
+            
+            self.modules.append(plugin_module)
+
+            # Return the imported file
+            return plugin_module
+        except Exception as e:
+            import traceback
+            logger.debug("Error loading %s:\n\t%s" %(fname, e))
+            traceback.print_exc()
+            return None
+        
+    def load_plugins(self, path):
+        """
+        Load plugins from a specified path.
+        """
+        plugins = glob.iglob(os.path.join(path, '*.py'))
+        plugin_dict = {}
+        for file in plugins:
+            plugin_data = self._load_plugin(file)
+            
+            if plugin_data:
+                plugin_dict[file] = Plugin(file, plugin_data)
+
+        return plugin_dict
+    
+class Plugin():
+    def __init__(self, name, module):
+        self.name = name
+        
+        self.commands, \
+            self.regexes, \
+            self.raw_hooks, \
+            self.sieves, \
+            self.events, \
+            self.periodic, \
+            self.run_on_start = find_hooks(self, module)
+            
+        self.tables = find_tables(module)
+
+    def create_tables(self, db_data):
+
+        if self.tables:
+            logger.info("Registering tables for {}".format(self.name))
+
+            for table in self.tables:
+                if not (table.exists(db_data.db_engine)):
+                    table.create(db_data.db_engine)
+                    
+    def unregister_tables(self, db_data):
+        """
+        Unregisters all sqlalchemy Tables registered to the global metadata by this plugin
+        :type bot: cloudbot.bot.CloudBot
+        """
+        if self.tables:
+            # if there are any tables
+            logger.info("Unregistering tables for {}".format(self.title))
+
+            for table in self.tables:
+                db_data.db_metadata.remove(table)
