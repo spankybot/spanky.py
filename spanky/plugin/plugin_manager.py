@@ -165,22 +165,15 @@ class PluginManager():
         """
         Dispatch a given event to a given hook using a given bot object.
         Returns False if the hook didn't run successfully, and True if it ran successfully.
-        :type event: cloudbot.event.Event | cloudbot.event.CommandEvent
-        :type hook: cloudbot.plugin.Hook | cloudbot.plugin.CommandHook
-        :rtype: bool
         """
         
         hook = event.hook
 
         if hook.type not in ("on_start", "periodic"):  # we don't need sieves on on_start hooks.
-            for sieve in self.bot.plugin_manager.sieves:
+            for sieve in self.sieves:
                 event = self._sieve(sieve, event, hook)
                 if event is None:
                     return False
-
-        if hook.type == "command" and hook.auto_help and not event.text and hook.doc is not None:
-            event.notice_doc()
-            return False
 
         if hook.single_thread:
             # TODO
@@ -337,7 +330,6 @@ class Plugin():
     def unregister_tables(self, db_data):
         """
         Unregisters all sqlalchemy Tables registered to the global metadata by this plugin
-        :type bot: cloudbot.bot.CloudBot
         """
         if self.tables:
             # if there are any tables

@@ -7,7 +7,9 @@ class dummy_msg():
 
 msg = dummy_msg()
 msg.text = ".system"
+bot.on_message(msg)
 
+msg.text = ".fake"
 bot.on_message(msg)
 
 while True:

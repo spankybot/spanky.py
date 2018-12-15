@@ -1,4 +1,3 @@
-import asyncio
 import enum
 import logging
 import concurrent.futures
@@ -215,48 +214,61 @@ class Event:
                 return True
 
         return False
-class CommandEvent(Event):
-    """
-    :type hook: cloudbot.plugin.CommandHook
-    :type text: str
-    :type triggered_command: str
-    """
 
-    def __init__(self, *, bot=None, hook, text, triggered_command, conn=None, base_event=None, event_type=None,
-                 content=None, target=None, channel=None, nick=None, user=None, host=None, mask=None, msg_raw=None,
-                 irc_prefix=None, irc_command=None, irc_paramlist=None):
+class BaseEvent():
+    def __init__(self, db):
+        self.db = db
+    
+    def notice(self, message, target=None):
+        print(message)
+        
+    def reply(self, message):
+        self.conn.message(self.chan, message)
+    
+    def message(self, message, target=None):
+        """sends a message to a specific or current channel/user
+        :type message: str
+        :type target: str
+        """
+        if target is None:
+            if self.chan is None:
+                raise ValueError("Target must be specified when chan is not assigned")
+            target = self.chan
+        self.conn.message(target, message)
+    
+    def prepare(self):
+        """
+        Initializes this event to be run through it's hook
+        """
+
+        if self.hook is None:
+            raise ValueError("event.hook is required to prepare an event")
+
+        if "db" in self.hook.required_args:
+            logger.debug("Opening database session for {}:threaded=True".format(self.hook.description))
+
+            self.db = self.bot.db_session()
+
+class TextEvent(BaseEvent):
+    def __init__(self, hook, text, triggered_command, event, bot=None):
         """
         :param text: The arguments for the command
         :param triggered_command: The command that was triggered
         :type text: str
         :type triggered_command: str
         """
-        super().__init__(bot=bot, hook=hook, conn=conn, base_event=base_event, event_type=event_type, content=content,
-                         target=target, channel=channel, nick=nick, user=user, host=host, mask=mask, msg_raw=msg_raw,
-                         irc_prefix=irc_prefix, irc_command=irc_command, irc_paramlist=irc_paramlist)
         self.hook = hook
         self.text = text
-        self.doc = self.hook.doc
         self.triggered_command = triggered_command
+        self.event = event
+        
+        self.doc = self.hook.doc
 
     def notice_doc(self, target=None):
         """sends a notice containing this command's docstring to the current channel/user or a specific channel/user
         :type target: str
         """
-        if self.triggered_command is None:
-            raise ValueError("Triggered command not set on this event")
-        if self.hook.doc is None:
-            message = "{}{} requires additional arguments.".format(self.conn.config["command_prefix"][0],
-                                                                   self.triggered_command)
-        else:
-            if self.hook.doc.split()[0].isalpha():
-                # this is using the old format of `name <args> - doc`
-                message = "{}{}".format(self.conn.config["command_prefix"][0], self.hook.doc)
-            else:
-                # this is using the new format of `<args> - doc`
-                message = "{}{} {}".format(self.conn.config["command_prefix"][0], self.triggered_command, self.hook.doc)
-
-        self.notice(message, target=target)
+        self.notice("unimplemented docstring", target=target)
 
 
 class RegexEvent(Event):
