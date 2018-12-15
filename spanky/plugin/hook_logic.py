@@ -2,8 +2,11 @@ import time
 import inspect
 import asyncio
 import sqlalchemy
+import logging
 
 from spanky import database
+
+logger = logging.getLogger("spanky")
 
 class Hook:
     """
@@ -51,7 +54,7 @@ class Hook:
 
     @property
     def description(self):
-        return "{}:{}".format(self.plugin.title, self.function_name)
+        return "{}:{}".format(self.plugin.name, self.function_name)
 
     def __repr__(self):
         return "type: {}, plugin: {}".format(

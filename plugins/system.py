@@ -26,7 +26,7 @@ def checker3():
     print("121")
 
 @hook.command()
-def system(reply, message):
+def system(message):
     """-- Retrieves information about the host system."""
 
     # Get general system info
@@ -36,7 +36,7 @@ def system(reply, message):
     sys_architecture = '-'.join(platform.architecture())
     sys_cpu_count = platform.machine()
 
-    reply(
+    message(
         "OS: \x02{}\x02, "
         "Python: \x02{} {}\x02, "
         "Architecture: \x02{}\x02 (\x02{}\x02)"
