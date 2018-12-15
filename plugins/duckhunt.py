@@ -1,6 +1,5 @@
 import operator
 import random
-import discord
 from collections import defaultdict
 from time import time
 

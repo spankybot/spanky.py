@@ -15,26 +15,24 @@ class EventType(enum.Enum):
     chan_del        = 5
     chan_add        = 6
     chan_upd        = 7
-    
+
     other           = 99
     action          = 100
 
-
-
 class EventContainer:
-    def __init__(self, bot, event_type):
-        self.bot = bot
+    def __init__(self, event_type, prop_dict):
         self.type = event_type
-        
+        self.__dict__.update(prop_dict)
+
 class Event:
     def __init__(self, bot=None, hook=None, base_event=None):
-       
+
         self.db = None
         self.db_executor = None
         self.bot = bot
         self.hook_type = hook
         self.server = None
-    
+
     @property
     def hook(self):
         return self.hook_type
