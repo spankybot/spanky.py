@@ -18,11 +18,6 @@ class EventType(enum.Enum):
     other           = 99
     action          = 100
 
-class EventContainer:
-    def __init__(self, event_type, prop_dict):
-        self.type = event_type
-        self.__dict__.update(prop_dict)
-
 class Event:
     def __init__(self, bot=None, hook=None, base_event=None):
 
@@ -216,25 +211,8 @@ class Event:
         return False
 
 class BaseEvent():
-    def __init__(self, db):
-        self.db = db
-    
-    def notice(self, message, target=None):
-        print(message)
-        
-    def reply(self, message):
-        self.conn.message(self.chan, message)
-    
-    def message(self, message, target=None):
-        """sends a message to a specific or current channel/user
-        :type message: str
-        :type target: str
-        """
-        if target is None:
-            if self.chan is None:
-                raise ValueError("Target must be specified when chan is not assigned")
-            target = self.chan
-        self.conn.message(target, message)
+    def __init__(self, bot):
+        self.db = bot.db
     
     def prepare(self):
         """
@@ -247,7 +225,25 @@ class BaseEvent():
         if "db" in self.hook.required_args:
             logger.debug("Opening database session for {}:threaded=True".format(self.hook.description))
 
-            self.db = self.bot.db_session()
+            self.db = self.db.db_session()
+            
+    def close(self):
+        """
+        Closes this event after running it through it's hook.
+
+        Mainly, closes the database connection attached to this event (if any).
+
+        This method is for when the hook is *not* threaded (event.hook.threaded is False).
+        If you need to add a db to a threaded hook, use close_threaded.
+        """
+        if self.hook is None:
+            raise ValueError("event.hook is required to close an event")
+
+        if "db" in self.hook.required_args:
+            #logger.debug("Closing database session for {}:threaded=False".format(self.hook.description))
+            # be sure the close the database in the database executor, as it is only accessable in that one thread
+            self.db.close()
+            self.db = None
 
 class TextEvent(BaseEvent):
     def __init__(self, hook, text, triggered_command, event, bot=None):
@@ -257,6 +253,7 @@ class TextEvent(BaseEvent):
         :type text: str
         :type triggered_command: str
         """
+        super().__init__(bot)
         self.hook = hook
         self.text = text
         self.triggered_command = triggered_command
@@ -270,6 +267,16 @@ class TextEvent(BaseEvent):
         """
         self.notice("unimplemented docstring", target=target)
 
+class TimeEvent(BaseEvent):
+    def __init__(self, hook, bot=None):
+        """
+        :param text: The arguments for the command
+        :param triggered_command: The command that was triggered
+        :type text: str
+        :type triggered_command: str
+        """
+        super().__init__(bot)
+        self.hook = hook
 
 class RegexEvent(Event):
     """
