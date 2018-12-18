@@ -25,6 +25,10 @@ def checker2(bot):
 def checker3():
     print("121")
 
+@hook.command
+def test2(message, text, nick):
+    message("asdadasadsadsas")
+
 @hook.command()
 def system(message):
     """-- Retrieves information about the host system."""
@@ -37,9 +41,9 @@ def system(message):
     sys_cpu_count = platform.machine()
 
     message(
-        "OS: \x02{}\x02, "
-        "Python: \x02{} {}\x02, "
-        "Architecture: \x02{}\x02 (\x02{}\x02)"
+        "OS: {}, "
+        "Python: {} {}, "
+        "Architecture: {} ({})"
         .format(
             sys_os,
             python_implementation,

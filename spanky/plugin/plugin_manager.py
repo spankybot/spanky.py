@@ -114,14 +114,18 @@ class PluginManager():
         """
         
         parameters = []
+        available_params = {}
+        available_params.update(event.__dict__)
+        if hasattr(event, "event"):
+            available_params.update(event.event.__dict__)
+            
         for required_arg in hook.required_args:
-            if hasattr(event, required_arg):
-                value = getattr(event, required_arg)
+            if required_arg in available_params:
+                value = getattr(event.event, required_arg)
                 parameters.append(value)
             else:
                 logger.error("Plugin {} asked for invalid argument '{}', cancelling execution!"
                              .format(hook.description, required_arg))
-                logger.debug("Valid arguments are: {} ({})".format(dir(event), event))
                 return None
         return parameters
     
