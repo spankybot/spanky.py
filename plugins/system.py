@@ -5,21 +5,21 @@ from datetime import timedelta
 
 from spanky.plugin import hook
 
-import time
-i = 0
-@hook.periodic(1)
-def checker(bot):
-    global i
-    i += 1
-    x = i
-    print("" + str(x))
-    time.sleep(1)
-    print("        " + str(x))
-    
-    
-@hook.periodic(1)
-def checker2(bot):
-    print("xxx")
+# import time
+# i = 0
+# @hook.periodic(1)
+# def checker(bot):
+#     global i
+#     i += 1
+#     x = i
+#     print("" + str(x))
+#     time.sleep(1)
+#     print("        " + str(x))
+#     
+#     
+# @hook.periodic(1)
+# def checker2(bot):
+#     print("xxx")
 
 @hook.on_start()
 def checker3():
