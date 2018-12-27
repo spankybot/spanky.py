@@ -4,9 +4,9 @@ import glob
 import os
 import importlib
 
-from spanky.plugin.event import Event
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
+from spanky.plugin.event import OnStartEvent
 
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
@@ -18,13 +18,14 @@ logger.addHandler(ch)
 
 
 class PluginManager():
-    def __init__(self, path_list, db):
+    def __init__(self, path_list, bot, db):
         self.modules = []
         self.plugins = {}
         self.commands = {}
         self.event_type_hooks = {}
         self.regex_hooks = []
         self.sieves = []
+        self.bot = bot
         self.db = db
         
         self.loop = asyncio.get_event_loop()
@@ -46,7 +47,7 @@ class PluginManager():
         
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
-            success = self.launch(Event(hook=on_start_hook))
+            success = self.launch(OnStartEvent(bot=self.bot, hook=on_start_hook))
             if not success:
                 logger.warning("Not registering hooks from plugin {}: on_start hook errored".format(plugin.name))
 
@@ -112,20 +113,19 @@ class PluginManager():
         :type event: cloudbot.event.Event
         :rtype: list
         """
-        
         parameters = []
-        available_params = {}
-        available_params.update(event.__dict__)
-        if hasattr(event, "event"):
-            available_params.update(event.event.__dict__)
-            
         for required_arg in hook.required_args:
-            if required_arg in available_params:
+            if hasattr(event.event, required_arg):
                 value = getattr(event.event, required_arg)
+                parameters.append(value)
+            elif hasattr(event, required_arg):
+                value = getattr(event, required_arg)
                 parameters.append(value)
             else:
                 logger.error("Plugin {} asked for invalid argument '{}', cancelling execution!"
                              .format(hook.description, required_arg))
+                print(dir(event))
+                print(dir(event.event))
                 return None
         return parameters
     

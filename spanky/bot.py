@@ -6,13 +6,10 @@ import importlib
 import time
 
 from spanky.plugin.plugin_manager import PluginManager
-from spanky.plugin.event import EventType, TextEvent
+from spanky.plugin.event import EventType, TextEvent, TimeEvent, RegexEvent
 from spanky.database.db import db_data
 
 logger = logging.getLogger("spanky")
-
-EventMessage = None
-EventPeriodic = None
 
 class Bot():
     def __init__(self, input_type):
@@ -24,13 +21,11 @@ class Bot():
         self.db = db_data(db_path)
 
         self.plugin_manager = PluginManager(
-            self.config.get("plugin_paths", ""), self.db)
+            self.config.get("plugin_paths", ""), self, self.db)
         
         try:
-            global EventMessage
             module = importlib.import_module("spanky.inputs.%s" % input_type)
-            EventMessage = module.EventMessage
-            EventPeriodic = module.EventPeriodic
+            self.input = module
         except:
             import traceback
             import sys
@@ -39,13 +34,13 @@ class Bot():
 
     def on_message_edit(self, before, after):
         """On message edit external hook"""
-        cont = EventMessage(EventType.message, before, after)
+        cont = self.input.EventMessage(EventType.message, before, after)
         
         self.do_text_event(cont)
 
     def on_message(self, message):
         """On message external hook"""
-        evt = EventMessage(EventType.message, message)
+        evt = self.input.EventMessage(EventType.message, message)
         
         self.do_text_event(evt)
         
@@ -74,12 +69,21 @@ class Bot():
                 thread = threading.Thread(target=self.plugin_manager.launch, args=(text_event,))
                 thread.start()
                 
+        # Regex hooks
+        for regex, regex_hook in self.plugin_manager.regex_hooks:
+            regex_match = regex.search(event.msg.text)
+            if regex_match:
+                regex_event = RegexEvent(bot=self, hook=regex_hook, match=regex_match, event=event)
+                thread = threading.Thread(target=self.plugin_manager.launch, args=(regex_event,))
+                thread.start()
+            
     def on_periodic(self):
         for _, plugin in self.plugin_manager.plugins.items():
             for periodic in plugin.periodic:
                 if time.time() - periodic.last_time > periodic.interval:
                     periodic.last_time = time.time()
-                    event = EventPeriodic(bot=self, hook=periodic)
+                    t_event = self.input.EventPeriodic()
+                    event = TimeEvent(bot=self, hook=periodic, event=t_event)
     
                     # TODO account for these
                     thread = threading.Thread(target=self.plugin_manager.launch, args=(event,))

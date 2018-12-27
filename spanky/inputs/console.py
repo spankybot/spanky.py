@@ -1,9 +1,14 @@
-
-class EventPeriodic:
+class EventPeriodic():
     def __init__(self):
         pass
     
-class EventMessage:
+    def message(self, text, target=None):
+        if target == None:
+            target = self.source
+            
+        print("Send to %s: %s" % (target.name, text))
+    
+class EventMessage():
     def __init__(self, event_type, message):
         self.type = event_type
         
@@ -11,6 +16,7 @@ class EventMessage:
         self.channel = Channel(message.channel)
         self.nick = Author(message.author)
         self.text = message.text
+        self.server = Server(message)
         
         self.source = self.channel
         
@@ -21,6 +27,7 @@ class EventMessage:
             target = self.source
             
         print("Send to %s: %s" % (target.name, text))
+
 
 class Message():
     def __init__(self, object):
