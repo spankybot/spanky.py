@@ -4,11 +4,11 @@ Chat-bot overlay framework that can run on top of any python-based bot and call 
 
 ### High level schematic:
 
-
-\=====================================
+```
+=====================================
 | Backend that communicates with    |
 | Discord, Slack, IRC servers, etc. |
-\=====================================
+=====================================
                   ||
                   ||
         events are decapsulated and 
@@ -23,4 +23,4 @@ Chat-bot overlay framework that can run on top of any python-based bot and call 
                                                                              | -> | periodic events   |
                                                                                   | for announcements |
                                                                                   ---------------------
-
+```
