@@ -1,0 +1,5 @@
+watchdog
+sqlalchemy
+
+praw
+discord

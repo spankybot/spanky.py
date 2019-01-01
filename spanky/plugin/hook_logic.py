@@ -46,6 +46,7 @@ class Hook:
             self.threaded = True
 
         self.permissions = func_hook.kwargs.pop("permissions", [])
+        self.format = func_hook.kwargs.pop("format", None)
         self.single_thread = func_hook.kwargs.pop("singlethread", False)
 
         if func_hook.kwargs:
@@ -216,6 +217,17 @@ class OnStartHook(Hook):
     def __str__(self):
         return "on_start {} from {}".format(self.function_name, self.plugin.file_name)
 
+
+class OnReadyHook(Hook):
+    def __init__(self, plugin, on_ready_hook):
+        super().__init__("on_ready", plugin, on_ready_hook)
+
+    def __repr__(self):
+        return "On_ready[{}]".format(Hook.__repr__(self))
+
+    def __str__(self):
+        return "on_ready {} from {}".format(self.function_name, self.plugin.file_name)
+
 def find_hooks(parent, module):
     """
     :type parent: Plugin
@@ -231,8 +243,9 @@ def find_hooks(parent, module):
     event = []
     periodic = []
     on_start = []
+    on_ready = []
     type_lists = {"command": command, "regex": regex, "msg_raw": raw, "sieve": sieve, "event": event,
-                  "periodic": periodic, "on_start": on_start}
+                  "periodic": periodic, "on_start": on_start, "on_ready": on_ready}
     for name, func in module.__dict__.items():
         if hasattr(func, "_cloudbot_hook"):
             # if it has cloudbot hook
@@ -244,7 +257,7 @@ def find_hooks(parent, module):
             # delete the hook to free memory
             del func._cloudbot_hook
 
-    return command, regex, raw, sieve, event, periodic, on_start
+    return command, regex, raw, sieve, event, periodic, on_start, on_ready
 
 def find_tables(code):
     """
@@ -266,5 +279,6 @@ _hook_name_to_plugin = {
     "sieve": SieveHook,
     "event": EventHook,
     "periodic": PeriodicHook,
-    "on_start": OnStartHook
+    "on_start": OnStartHook,
+    "on_ready": OnReadyHook
 }

@@ -3,6 +3,7 @@ import asyncio
 import glob
 import os
 import importlib
+import asyncio
 
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
@@ -25,6 +26,8 @@ class PluginManager():
         self.event_type_hooks = {}
         self.regex_hooks = []
         self.sieves = []
+        self.catch_all_triggers = []
+        self.run_on_ready = []
         self.bot = bot
         self.db = db
         
@@ -54,7 +57,6 @@ class PluginManager():
                 # unregister databases
                 plugin.unregister_tables(self.db)
                 return
-            
         
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
@@ -100,7 +102,10 @@ class PluginManager():
         # register sieves
         for sieve_hook in plugin.sieves:
             self.sieves.append(sieve_hook)
-            self._log_hook(sieve_hook)
+            
+        # register sieves
+        for on_ready_hook in plugin.run_on_ready:
+            self.run_on_ready.append(on_ready_hook)
 
         # sort sieve hooks by priority
         self.sieves.sort(key=lambda x: x.priority)
@@ -114,12 +119,17 @@ class PluginManager():
         :rtype: list
         """
         parameters = []
+        
+        if "storage" in hook.required_args:
+            stor_name = hook.plugin.name.replace(".py", "").replace("/","_")
+            event.storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
+        
         for required_arg in hook.required_args:
-            if hasattr(event.event, required_arg):
-                value = getattr(event.event, required_arg)
-                parameters.append(value)
-            elif hasattr(event, required_arg):
+            if hasattr(event, required_arg):
                 value = getattr(event, required_arg)
+                parameters.append(value)
+            elif hasattr(event.event, required_arg):
+                value = getattr(event.event, required_arg)
                 parameters.append(value)
             else:
                 logger.error("Plugin {} asked for invalid argument '{}', cancelling execution!"
@@ -129,11 +139,7 @@ class PluginManager():
                 return None
         return parameters
     
-    def _execute_hook_sync(self, hook, event):
-        """
-        :type hook: Hook
-        :type event: cloudbot.event.Event
-        """
+    def _execute_hook(self, hook, event):
         event.prepare()
 
         parameters = self._prepare_parameters(hook, event)
@@ -141,28 +147,30 @@ class PluginManager():
             return None
 
         try:
-            return hook.function(*parameters)
+            if not asyncio.iscoroutinefunction(hook.function):
+                return hook.function(*parameters)
+            else:
+                asyncio.run_coroutine_threadsafe(hook.function(*parameters), self.bot.loop)
+                return None
         finally:
             event.close()
             
-    def _execute_hook(self, hook, event):
+    def execute_hook(self, hook, event):
         """
         Runs the specific hook with the given bot and event.
 
         Returns False if the hook errored, True otherwise.
-
-        :type hook: cloudbot.plugin.Hook
-        :type event: cloudbot.event.Event
-        :rtype: bool
         """
-        out = self._execute_hook_sync(hook, event)
+        
+        out = self._execute_hook(hook, event)
+
         if out is not None:
             if isinstance(out, (list, tuple)):
                 # if there are multiple items in the response, return them on multiple lines
                 event.reply(*out)
             else:
-                out = "".join(i for i in out)
                 event.reply(str(out))
+
         return (True)
     
     def launch(self, event):
@@ -184,7 +192,7 @@ class PluginManager():
             pass
         else:
             # Run the plugin with the message, and wait for it to finish
-            result = self._execute_hook(hook, event)
+            result = self.execute_hook(hook, event)
 
         # Return the result
         return result
@@ -318,7 +326,8 @@ class Plugin():
             self.sieves, \
             self.events, \
             self.periodic, \
-            self.run_on_start = find_hooks(self, module)
+            self.run_on_start, \
+            self.run_on_ready = find_hooks(self, module)
             
         self.tables = find_tables(module)
 
