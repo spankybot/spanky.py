@@ -6,7 +6,6 @@ from spanky.plugin.event import EventType
 
 valid_command_re = re.compile(r"^\w+$")
 
-
 class _Hook:
     """
     :type function: function
@@ -315,8 +314,6 @@ def periodic(interval, **kwargs):
     else:  # this decorator is being used as a function, so return a decorator
         return lambda func: _periodic_hook(func)
 
-
-
 def on_start(param=None, **kwargs):
     """External on_start decorator. Can be used directly as a decorator, or with args to return a decorator
     :type param: function | None
@@ -335,3 +332,22 @@ def on_start(param=None, **kwargs):
         return _on_start_hook(param)
     else:
         return lambda func: _on_start_hook(func)
+    
+def on_ready(param=None, **kwargs):
+    """External on_ready decorator. Can be used directly as a decorator, or with args to return a decorator
+    :type param: function | None
+    """
+
+    def _on_ready_hook(func):
+        hook = _get_hook(func, "on_ready")
+        if hook is None:
+            hook = _Hook(func, "on_ready")
+            _add_hook(func, hook)
+
+        hook._add_hook(kwargs)
+        return func
+
+    if callable(param):
+        return _on_ready_hook(param)
+    else:
+        return lambda func: _on_ready_hook(func)

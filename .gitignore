@@ -1,3 +1,6 @@
 *.json
 *.db
 *.pyc
+storage_data
+logs
+*.log

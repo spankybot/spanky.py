@@ -14,8 +14,12 @@ class EventType(enum.Enum):
     chan_add        = 6
     chan_upd        = 7
 
-    other           = 99
-    action          = 100
+    member_ban      = 8
+    member_unban    = 9
+    member_update   = 10
+
+    other = 99
+    action = 100
 
 class BaseEvent():
     def __init__(self, bot):
@@ -52,14 +56,18 @@ class BaseEvent():
             # be sure the close the database in the database executor, as it is only accessable in that one thread
             self.db.close()
             self.db = None
+            
+    def reply(self, text):
+        self.event.reply(text)
 
 class TextEvent(BaseEvent):
-    def __init__(self, hook, text, triggered_command, event, bot):
+    def __init__(self, hook, text, triggered_command, event, bot, permission_mgr):
         super().__init__(bot)
         self.hook = hook
         self.text = text
         self.triggered_command = triggered_command
         self.event = event
+        self.permission_mgr = permission_mgr
         
         self.doc = self.hook.doc
 
@@ -73,12 +81,25 @@ class OnStartEvent(BaseEvent):
     def __init__(self, bot, hook):
         super().__init__(bot)
         self.hook = hook
+        
+class OnReadyEvent(BaseEvent):
+    def __init__(self, bot, hook, permission_mgr):
+        super().__init__(bot)
+        self.hook = hook
+        self.permission_mgr = permission_mgr
 
 class TimeEvent(BaseEvent):
     def __init__(self, bot, hook, event):
         super().__init__(bot)
         self.hook = hook
         self.event = event
+
+class HookEvent(BaseEvent):
+    def __init__(self, bot, hook, event, permission_mgr):
+        super().__init__(bot)
+        self.hook = hook
+        self.event = event
+        self.permission_mgr = permission_mgr
 
 class RegexEvent(BaseEvent):
     """
