@@ -7,7 +7,7 @@ import asyncio
 
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
-from spanky.plugin.event import OnStartEvent
+from spanky.plugin.event import OnStartEvent, OnReadyEvent
 
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
@@ -57,6 +57,16 @@ class PluginManager():
                 # unregister databases
                 plugin.unregister_tables(self.db)
                 return
+            
+        # run on_ready hooks if bot ready
+        if self.bot.is_ready:
+            for server in self.bot.backend.get_servers():
+                for on_ready_hook in plugin.run_on_ready:
+                    self.launch(OnReadyEvent(
+                        bot=self.bot, 
+                        hook=on_ready_hook, 
+                        permission_mgr=self.bot.get_pmgr(server.id),
+                        server=server))
         
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
@@ -181,10 +191,16 @@ class PluginManager():
         
         hook = event.hook
 
-        if hook.type not in ("on_start", "periodic"):  # we don't need sieves on on_start hooks.
+        if hook.type not in ("on_start", "periodic", "on_ready"):
             for sieve in self.sieves:
-                event = self._sieve(sieve, event, hook)
-                if event is None:
+                args = {"bot": self.bot, "event":event}
+                if "storage" in sieve.required_args:
+                    stor_name = sieve.plugin.name.replace(".py", "").replace("/","_")
+                    storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
+                    args["storage"] = storage
+                can_run, msg = sieve.function(**args)
+                if not can_run and msg:
+                    event.event.send_message(msg)
                     return False
 
         if hook.single_thread:

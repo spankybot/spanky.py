@@ -60,16 +60,3 @@ class PermissionMgr():
             self.stor_cache[self.server.id + stor_file] = storage.dsdict(self.server.id, stor_file)
 
         return self.stor_cache[self.server.id + stor_file]
-    
-    #
-    # Bot commands
-    #
-    def set_default_bot_channel(self, channel_id):
-        self.config["default_bot_chan"] = channel_id
-        return None
-    
-    def list_default_bot_channel(self):
-        try:
-            return self.config["default_bot_chan"]
-        except:
-            return ""

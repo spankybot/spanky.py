@@ -54,24 +54,27 @@ class Bot():
         # Initialize the backend module
         self.backend = self.input.Init(self)
         await self.backend.do_init()
-    
-    def ready(self):
-        # Initialize per server permissions
-        self.server_permissions = {}
+        
+    def run_on_ready_work(self):
         for server in self.backend.get_servers():
-            pmgr = PermissionMgr(server)
-            
             for on_ready in self.plugin_manager.run_on_ready:
                 self.run_in_thread(self.plugin_manager.launch, (
                     OnReadyEvent(
                         bot=self, 
                         hook=on_ready, 
-                        permission_mgr=pmgr),))
+                        permission_mgr=self.get_pmgr(server.id),
+                        server=server),))
+    
+    def ready(self):
+        # Initialize per server permissions
+        self.server_permissions = {}
+        for server in self.backend.get_servers():
+            self.server_permissions[server.id] = PermissionMgr(server)
         
-            self.server_permissions[server.id] = pmgr
+        self.run_on_ready_work()
         
         self.is_ready = True
-            
+
     def get_pmgr(self, server_id):
         """
         Get permission manager for a given server ID.
@@ -180,6 +183,9 @@ class Bot():
         if not self.is_ready:
             return
         
+        if event.is_pm:
+            return
+        
         self.run_type_events(event)
         
         if event.author.bot:
@@ -212,7 +218,7 @@ class Bot():
                         permission_mgr=self.get_pmgr(event.server.id))
                     
                     # Log audit data
-                    audit.info("server %s / msg id %s / channel %s / <%s> %s" % (
+                    audit.info("[%s][%s][channel] / <%s> %s" % (
                         event.server.name, 
                         event.msg.id, 
                         event.channel.name, 
