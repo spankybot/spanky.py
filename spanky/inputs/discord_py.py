@@ -47,6 +47,12 @@ class DiscordUtils():
     def id_to_chan(self, id_str):
         return "<#%s>" % id_str
     
+    def id_to_role_name(self, id_str):
+        return discord.utils.find(lambda m: m.id == id_str, self.server._raw.roles).name
+    
+    def user_id_to_name(self, uid):
+        return discord.utils.find(lambda m: m.id == uid, self.server._raw.members).name
+    
     def get_channel(self, target):
         """
         Returns the target channel
@@ -103,7 +109,11 @@ class EventMessage(DiscordUtils):
         self.channel = Channel(message.channel)
         self.author = User(message.author)
         
-        self.server = Server(message.server)
+        self.is_pm = False
+        if hasattr(message, "server") and message.server:
+            self.server = Server(message.server)
+        else:
+            self.is_pm = True
         
         self.source = self.channel
         self.text = self.msg.text
@@ -139,8 +149,9 @@ class User():
         self.bot = obj.bot
         
         self.roles = []
-        for role in obj.roles:
-            self.roles.append(Role(role))
+        if hasattr(obj, "roles"):
+            for role in obj.roles:
+                self.roles.append(Role(role))
         
         self._raw = obj
 

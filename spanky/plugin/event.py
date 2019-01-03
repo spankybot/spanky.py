@@ -83,10 +83,12 @@ class OnStartEvent(BaseEvent):
         self.hook = hook
         
 class OnReadyEvent(BaseEvent):
-    def __init__(self, bot, hook, permission_mgr):
+    def __init__(self, bot, hook, permission_mgr, server):
         super().__init__(bot)
         self.hook = hook
         self.permission_mgr = permission_mgr
+        self.server = server
+        self.event = None
 
 class TimeEvent(BaseEvent):
     def __init__(self, bot, hook, event):
