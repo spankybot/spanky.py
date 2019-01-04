@@ -17,8 +17,8 @@ Chat-bot overlay framework that can run on top of any python-based bot and call 
                   ||                                                         | -> | moderator tools |
                   \/                                                         |    -------------------
             =============                                                    |    -----------
-            | Framework | ---> bot framework triggers events            ---> | -> | logging |
-            =============     that are specified in the plugins folders      |    -----------
+            | Framework | ===> bot framework triggers events            ===> | -> | logging |
+            =============      that are specified in the plugins folders     |    -----------
                                                                              |    ---------------------
                                                                              | -> | periodic events   |
                                                                                   | for announcements |
