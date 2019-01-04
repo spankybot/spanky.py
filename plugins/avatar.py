@@ -1,5 +1,3 @@
-import platform
-
 from spanky.plugin import hook
 
 @hook.command(format="user")
