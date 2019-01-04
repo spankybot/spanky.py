@@ -93,30 +93,6 @@ class Bot():
         Get bot user ID from backend.
         """
         return self.backend.get_own_id()
-
-    def allowed_command(self, command_hook, event):
-        """
-        Check if the command is allowed to run.
-        """
-        ret_val, reason = \
-            self.get_pmgr(event.server.id).allowed_command(command_hook, event)
-        
-        if ret_val:
-            return True
-        else:
-            event.send_message(reason)
-            
-    def correct_format(self, hook, text):
-        """Check if the request has the required format"""
-        if hook.format:
-            if len(hook.format.split()) == len(text.split()):
-                return True
-            else:
-                return False
-        else:
-            return True
-        
-        return False
     
     def run_in_thread(self, target, args=()):
         thread = threading.Thread(target=target, args=args)
@@ -204,28 +180,23 @@ class Bot():
             
                 event_text = event.msg.text[len(command)+2:].strip()
                 
-                if not self.correct_format(hook, event_text):
-                    event.send_message("Invalid command format")
-                    return
-                    
-                if self.allowed_command(hook, event):
-                    text_event = TextEvent(
-                        hook=hook,
-                        text=event_text,
-                        triggered_command=command, 
-                        event=event,
-                        bot=self,
-                        permission_mgr=self.get_pmgr(event.server.id))
-                    
-                    # Log audit data
-                    audit.info("[%s][%s][channel] / <%s> %s" % (
-                        event.server.name, 
-                        event.msg.id, 
-                        event.channel.name, 
-                        event.author.name + "/" + event.author.id + "/" + event.author.nick,
-                        event.text))
-                    self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
+                text_event = TextEvent(
+                    hook=hook,
+                    text=event_text,
+                    triggered_command=command, 
+                    event=event,
+                    bot=self,
+                    permission_mgr=self.get_pmgr(event.server.id))
                 
+                # Log audit data
+                audit.info("[%s][%s][%s] / <%s> %s" % (
+                    event.server.name, 
+                    event.msg.id, 
+                    event.channel.name, 
+                    event.author.name + "/" + event.author.id + "/" + event.author.nick,
+                    event.text))
+                self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
+            
         # Regex hooks
         for regex, regex_hook in self.plugin_manager.regex_hooks:
             regex_match = regex.search(event.msg.text)

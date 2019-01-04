@@ -39,21 +39,6 @@ class PermissionMgr():
             return "Invalid role"
         
         return None
-        
-    def allowed_command(self, hook, event):
-        """Check if the command can be executed due to restrictions"""
-        
-        if self.config["default_bot_chan"] and event.channel.id != self.config["default_bot_chan"]:
-            return False, "Only allowed in %s" % event.id_to_chan(self.config["default_bot_chan"])
-        
-        # Check if it's an OP command
-        if hook.permissions == Permission.admin and "admin_id" in self.admin.keys():
-            if event.author.id == self.admin["admin_id"]:
-                return True, ""
-            else:
-                return False, "You're not the admin."
-        
-        return True, ""
     
     def get_plugin_storage(self, stor_file):
         if stor_file not in self.stor_cache:
