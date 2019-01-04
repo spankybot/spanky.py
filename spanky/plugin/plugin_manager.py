@@ -8,6 +8,7 @@ import asyncio
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
 from spanky.plugin.event import OnStartEvent, OnReadyEvent
+from spanky.inputs.console import EventMessage
 
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
@@ -183,6 +184,18 @@ class PluginManager():
 
         return (True)
     
+    def correct_format(self, hook, text):
+        """Check if the request has the required format"""
+        if hook.format:
+            if len(hook.format.split()) == len(text.split()):
+                return True
+            else:
+                return False
+        else:
+            return True
+        
+        return False
+    
     def launch(self, event):
         """
         Dispatch a given event to a given hook using a given bot object.
@@ -190,18 +203,30 @@ class PluginManager():
         """
         
         hook = event.hook
-
-        if hook.type not in ("on_start", "periodic", "on_ready"):
+        
+        if hook.type in ("command"):
+            # Ask the sieves to validate our command
             for sieve in self.sieves:
-                args = {"bot": self.bot, "event":event}
+                args = {"bot": self.bot, "bot_event":event}
                 if "storage" in sieve.required_args:
                     stor_name = sieve.plugin.name.replace(".py", "").replace("/","_")
                     storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
                     args["storage"] = storage
                 can_run, msg = sieve.function(**args)
-                if not can_run and msg:
-                    event.event.send_message(msg)
-                    return False
+                if msg:
+                    event.event.reply(msg)
+                if not can_run:
+                    return
+
+            if not self.correct_format(hook, event.text):
+                func_doc = hook.function.__doc__
+                
+                msg = "Invalid format"
+                
+                if func_doc:
+                    msg += ": `" + hook.function.__doc__ + "`"
+                event.event.reply(msg)
+                return
 
         if hook.single_thread:
             # TODO

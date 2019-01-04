@@ -83,7 +83,7 @@ class DiscordUtils():
             asyncio.run_coroutine_threadsafe(send_message(self.get_channel(target), text), bot.loop)
 
     def reply(self, text, target=-1):
-        self.send_message(text, target)
+        self.send_message("(%s) %s" % (self.author.name, text), target)
 
 class EventPeriodic(DiscordUtils):
     def __init__(self):
@@ -148,9 +148,13 @@ class User():
         self.id = obj.id
         self.bot = obj.bot
         
+        self.avatar_url = obj.avatar_url
+        
         self.roles = []
         if hasattr(obj, "roles"):
             for role in obj.roles:
+                if role.name == '@everyone':
+                    continue
                 self.roles.append(Role(role))
         
         self._raw = obj
@@ -167,12 +171,21 @@ class Server():
         self.id = obj.id
         self._raw = obj
         
+        
     def get_role_ids(self):
         ids = []
         for role in self._raw.roles:
             ids.append(role.id)
 
         return ids
+    
+    def get_users(self):
+        users = []
+        
+        for user in self._raw.members:
+            users.append(User(user))
+            
+        return users
     
 class Role():
     hash = random.randint(0, 2 ** 31)
