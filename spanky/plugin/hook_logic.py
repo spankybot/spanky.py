@@ -48,6 +48,7 @@ class Hook:
         self.permissions = func_hook.kwargs.pop("permissions", [])
         self.format = func_hook.kwargs.pop("format", None)
         self.single_thread = func_hook.kwargs.pop("singlethread", False)
+        self.server_id = func_hook.kwargs.pop("server_id", None)
 
         if func_hook.kwargs:
             # we should have popped all the args, so warn if there are any left

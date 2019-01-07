@@ -135,6 +135,11 @@ class PluginManager():
             stor_name = hook.plugin.name.replace(".py", "").replace("/","_")
             event.storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
         
+        if "storage_loc" in hook.required_args:
+            event.storage_loc = \
+                event.permission_mgr.get_data_location(
+                    hook.plugin.name.replace(".py", "").replace("/","_"))
+        
         for required_arg in hook.required_args:
             if hasattr(event, required_arg):
                 value = getattr(event, required_arg)
@@ -205,6 +210,9 @@ class PluginManager():
         hook = event.hook
         
         if hook.type in ("command"):
+            if event.hook.server_id and event.event.server.id != event.hook.server_id:
+                return
+            
             # Ask the sieves to validate our command
             for sieve in self.sieves:
                 args = {"bot": self.bot, "bot_event":event}

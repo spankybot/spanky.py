@@ -7,7 +7,7 @@ DS_LOC = "storage_data/"
 class dstype():
     def __init__(self, parent, name):
         
-        os.system("mkdir -p %s" % DS_LOC + "/" + parent)
+        os.system("mkdir -p %s" % DS_LOC + "/" + parent + "/backup")
         
         location = parent + "/" + name
         
@@ -16,14 +16,15 @@ class dstype():
             self.data = data_obj
 
         self.location = location
+        self.backup_name = parent + "/backup/" + name
         
-    def do_sync(self, obj, name):
+    def do_sync(self, obj, name, backup_name):
         
         try:
             # Check if the current file is valid
             json.load(open(DS_LOC + name, "r"))
             # If yes, do a backup
-            os.system("cp %s %s" % (DS_LOC + name, DS_LOC + name + ".old"))
+            os.system("cp %s %s" % (DS_LOC + name, DS_LOC + backup_name))
         except:
             print("File at %s is not valid" % (DS_LOC + name))
             
@@ -31,7 +32,7 @@ class dstype():
         json.dump(obj, file, indent=4, sort_keys=True)
         
     def sync(self):
-        self.do_sync(self.data, self.location)
+        self.do_sync(self.data, self.location, self.backup_name)
     
     def get_obj(self, location):
         try:
