@@ -3,3 +3,4 @@ sqlalchemy
 
 praw
 discord
+markovify

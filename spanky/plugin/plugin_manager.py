@@ -78,7 +78,7 @@ class PluginManager():
                 if alias in self.commands:
                     logger.warning(
                         "Plugin {} attempted to register command {} which was already registered by {}. "
-                        "Ignoring new assignment.".format(plugin.title, alias, self.commands[alias].plugin.title))
+                        "Ignoring new assignment.".format(plugin.name, alias, self.commands[alias].plugin.name))
                 else:
                     self.commands[alias] = command_hook
             logger.debug("Loaded {}".format(repr(command_hook)))
@@ -168,6 +168,9 @@ class PluginManager():
             else:
                 asyncio.run_coroutine_threadsafe(hook.function(*parameters), self.bot.loop)
                 return None
+        except:
+            import traceback
+            traceback.print_exc()
         finally:
             event.close()
             
@@ -395,7 +398,7 @@ class Plugin():
         """
         if self.tables:
             # if there are any tables
-            logger.info("Unregistering tables for {}".format(self.title))
+            logger.info("Unregistering tables for {}".format(self.name))
 
             for table in self.tables:
                 db_data.db_metadata.remove(table)

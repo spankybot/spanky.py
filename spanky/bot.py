@@ -23,6 +23,7 @@ audit.addHandler(fh)
 
 class Bot():
     def __init__(self, input_type):
+        self.user_agent = "spaky.py bot https://github.com/gc-plp/spanky.py"
         self.is_ready = False
         self.loop = asyncio.get_event_loop()
         
@@ -183,9 +184,8 @@ class Bot():
         # Check if the command starts with .
         if event.do_trigger and event.msg.text.startswith("."):
             # Get the actual command
-            cmd_match = re.split(r'(\W+)', event.msg.text, 2)
-            logger.debug("Got command %s" % str(cmd_match))
-            command = cmd_match[2].lower()
+            command = event.msg.text[1:].split(" ", maxsplit=1)[0]
+            logger.debug("Got command %s" % str(command))
             
             # Check if it's in the command list
             if command in self.plugin_manager.commands.keys():
