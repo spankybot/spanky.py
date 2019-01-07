@@ -51,6 +51,9 @@ class CmdPerms():
 def check_permissions(bot, bot_event, storage):
     user_roles = bot_event.event.author.roles
     
+    if storage["admin_roles"] == None:
+        return False, "No admin set."
+    
     if bot_event.hook.permissions == permissions.Permission.admin:
         for role in user_roles:
             if role.id in storage["admin_roles"]:

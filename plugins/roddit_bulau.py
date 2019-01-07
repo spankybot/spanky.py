@@ -114,7 +114,7 @@ def get_roddit(server, storage):
         roddit = server
         rstorage = storage
 
-@hook.command
+@hook.command(server_id=RODDIT_ID)
 def bulautime(text, str_to_id, storage):
     """Print remaining time in bulau"""
     user = str_to_id(text)
