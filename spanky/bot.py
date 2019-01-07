@@ -131,7 +131,14 @@ class Bot():
 # ---------------- 
     def on_member_update(self, before, after):
         evt = self.input.EventMember(EventType.member_update, member=before, member_after=after)
+        self.do_user_event(evt)
         
+    def on_member_join(self, member):
+        evt = self.input.EventMember(EventType.join, member)
+        self.do_user_event(evt)
+        
+    def on_member_remove(self, member):
+        evt = self.input.EventMember(EventType.part, member)
         self.do_user_event(evt)
         
     def run_type_events(self, event):

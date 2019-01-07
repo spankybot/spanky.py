@@ -89,13 +89,13 @@ def escape(msg):
 
 @hook.event(EventType.join)
 def log_join(event, storage, send_message):
-    send_message(storage["evt_chan"],
-        "⚠`Join: ` %s %s" % (event.author.name, event.author.id))
+    send_message(target=storage["evt_chan"],
+        text="⚠`Join: ` %s %s" % (event.member.name, event.member.id))
 
 @hook.event(EventType.part)
 def log_part(event, storage, send_message):
-    send_message(storage["evt_chan"],
-        "🔚`Part: ` %s %s" % (event.author.name, event.author.id))
+    send_message(target=storage["evt_chan"],
+        text="🔚`Part: ` %s %s" % (event.member.name, event.member.id))
 
 
 @hook.event(EventType.message_edit)

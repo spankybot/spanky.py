@@ -64,6 +64,9 @@ class DiscordUtils():
     def user_id_to_name(self, uid):
         return discord.utils.find(lambda m: m.id == uid, self.server._raw.members).name
     
+    def user_id_to_object(self, uid):
+        return User(discord.utils.find(lambda m: m.id == uid, self.server._raw.members))
+    
     def get_channel(self, target):
         """
         Returns the target channel
@@ -89,6 +92,8 @@ class DiscordUtils():
 
     def send_message(self, text, target=-1):
         async def send_message(channel, message):
+            if not channel:
+                return
             try:
                 if type(self) == EventMessage and self.server.id in bot_replies:
                     old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
@@ -233,6 +238,18 @@ class User():
             
         to_replace = [i._raw for i in roles]
         asyncio.run_coroutine_threadsafe(do_repl_role(self._raw, to_replace), bot.loop)
+        
+    def kick(self):
+        async def do_kick(user):
+            await client.kick(user)
+        
+        asyncio.run_coroutine_threadsafe(do_kick(self._raw), bot.loop)
+        
+    def ban(self):
+        async def do_ban(user):
+            await client.ban(user)
+        
+        asyncio.run_coroutine_threadsafe(do_ban(self._raw), bot.loop)
 
 class Channel():
     def __init__(self, obj):
