@@ -3,6 +3,8 @@ import logging
 import asyncio
 import traceback
 import random
+import collections
+from gc import collect
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -11,8 +13,8 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 
 client = discord.Client()
-
 bot = None
+bot_replies = {}
 
 class Init():
     def __init__(self, bot_inst):
@@ -36,6 +38,15 @@ class Init():
             
     def get_own_id(self):
         return self.client.user.id
+    
+    def get_bot_roles_in_server(self, server):
+        roles = server._raw.get_member(client.user.id).roles
+        rlist = []
+        
+        for r in roles:
+            rlist.append(Role(r))
+        
+        return rlist
 
 class DiscordUtils():
     def str_to_id(self, string):
@@ -59,14 +70,15 @@ class DiscordUtils():
         target can be None, which defaults to the channel from where the message was sent
             a channel name starting with '#' (e.g. #my-channel) or a channel ID
         """
-        if target == -1:
-            target = self.source.id
-        elif target[0] == "#":
-            target = target[1:]
-            return discord.utils.find(lambda m: m.name == target, self.server._raw.channels)
+        if target:
+            if target == -1:
+                target = self.source.id
+            elif target[0] == "#":
+                target = target[1:]
+                return discord.utils.find(lambda m: m.name == target, self.server._raw.channels)
+            
+            return discord.utils.find(lambda m: m.id == target, self.server._raw.channels)
         
-        return discord.utils.find(lambda m: m.id == target, self.server._raw.channels)
-    
     def get_channel_name(self, chan_id):
         chan = discord.utils.find(lambda m: m.id == chan_id, self.server._raw.channels)
         return chan.name
@@ -77,13 +89,44 @@ class DiscordUtils():
 
     def send_message(self, text, target=-1):
         async def send_message(channel, message):
-            return Message(await client.send_message(channel, message))
+            try:
+                if type(self) == EventMessage and self.server.id in bot_replies:
+                    old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
+                    if old_reply and old_reply._raw.channel.id == channel.id:
+                        msg = Message(await client.edit_message(old_reply._raw, message))
+                        add_bot_reply(self.server.id, self.msg, msg)
+                        return msg
+                
+                msg = Message(await client.send_message(channel, message))
+                if type(self) == EventMessage:
+                    add_bot_reply(self.server.id, self.msg._raw, msg)
+                return msg
+            except:
+                import traceback
+                print(traceback.format_exc())
 
-        if target:
-            asyncio.run_coroutine_threadsafe(send_message(self.get_channel(target), text), bot.loop)
+        asyncio.run_coroutine_threadsafe(send_message(self.get_channel(target), text), bot.loop)
 
     def reply(self, text, target=-1):
         self.send_message("(%s) %s" % (self.author.name, text), target)
+        
+    def send_file(self, file, target=-1):
+        async def send_file(channel, file):
+            if self.server.id in bot_replies:
+                old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
+                if old_reply and old_reply._raw.channel.id == channel.id:
+                    await client.delete_message(old_reply._raw)
+                    msg = Message(await client.send_file(channel, file))
+                    return msg
+
+            msg = Message(await client.send_file(channel, file))
+            add_bot_reply(self.server.id, self.msg._raw, msg)
+            return msg
+            
+        asyncio.run_coroutine_threadsafe(send_file(self.get_channel(target), file), bot.loop)
+        
+    async def async_send_file(self, file, target=-1):
+        return Message(await client.send_file(self.get_channel(target), file))
 
 class EventPeriodic(DiscordUtils):
     def __init__(self):
@@ -109,9 +152,13 @@ class EventMessage(DiscordUtils):
         self.channel = Channel(message.channel)
         self.author = User(message.author)
         
+        self.server_replies = None
         self.is_pm = False
         if hasattr(message, "server") and message.server:
             self.server = Server(message.server)
+            
+            if self.server.id in bot_replies:
+                self.server_replies = bot_replies[self.server.id]
         else:
             self.is_pm = True
         
@@ -132,6 +179,11 @@ class EventMessage(DiscordUtils):
             self.deleted = True
             # don't trigger hooks on deleted messages
             self.do_trigger = False
+        
+        self.attachments = []
+        if len(message.attachments) > 0:
+            for att in message.attachments:
+                self.attachments.append(Attachment(att))
         
         self._message = message
 
@@ -158,19 +210,76 @@ class User():
                 self.roles.append(Role(role))
         
         self._raw = obj
+        
+    def add_role(self, role):
+        async def do_add_role(user, role):
+            await client.add_roles(user, role)
+            
+        asyncio.run_coroutine_threadsafe(do_add_role(self._raw, role._raw), bot.loop)
+        
+    def remove_role(self, role):
+        async def do_rem_role(user, role):
+            try:
+                while role in user.roles:
+                    await client.remove_roles(user, role)
+            except Exception as e:
+                print(e)
+            
+        asyncio.run_coroutine_threadsafe(do_rem_role(self._raw, role._raw), bot.loop)
+
+    def replace_roles(self, roles):
+        async def do_repl_role(user, roles):
+            await client.replace_roles(user, *roles)
+            
+        to_replace = [i._raw for i in roles]
+        asyncio.run_coroutine_threadsafe(do_repl_role(self._raw, to_replace), bot.loop)
 
 class Channel():
     def __init__(self, obj):
         self.name = obj.name
         self.id = obj.id
         self._raw = obj
+        
+    def delete_messages(self, number):
+        async def do_delete(channel, num):
+            async def del_bulk(channel, num):
+                list_del = []
+    
+                async for m in client.logs_from(channel, limit=num):
+                    if not m.pinned:
+                        list_del.append(m)
+    
+                await client.delete_messages(list_del)
+    
+            async def del_simple(channel, num):
+                async for m in client.logs_from(channel, limit=num):
+                    if not m.pinned:
+                        await client.delete_message(m)
+    
+            if num > 2 and num < 100:
+                try:
+                    await del_bulk(channel, num)
+                except:
+                    await del_simple(channel, num)
+            else:
+                await del_simple(channel, num)
+                
+        asyncio.run_coroutine_threadsafe(do_delete(self._raw, number), bot.loop)
+        
     
 class Server():
     def __init__(self, obj):
         self.name = obj.name
         self.id = obj.id
         self._raw = obj
+    
+    def get_roles(self):
+        roles = []
         
+        for role in self._raw.roles:
+            roles.append(Role(role))
+
+        return roles
         
     def get_role_ids(self):
         ids = []
@@ -194,15 +303,54 @@ class Role():
         return self.hash
         
     def __eq__(self, other):
-        if self.id == other.id:
+        if other and self.id == other.id:
             return True
         return False
         
     def __init__(self, obj):
         self.name = obj.name
         self.id = obj.id
+        self.position = obj.position
         self._raw = obj
         
+class Attachment():
+    def __init__(self, obj):
+        self.url = obj['url']
+        self._raw = obj
+
+class DictQueue():
+    def __init__(self, size):
+        self.queue = collections.deque(maxlen=size)
+    
+    def __setitem__(self, key, value):
+        self.queue.append((key, value))
+        
+    def __iter__(self):
+        self.index = 0
+        return self
+
+    def __next__(self):
+        if self.index == len(self.queue):
+            raise StopIteration
+        
+        rval = self.queue[self.index][0]
+        self.index = self.index + 1
+        return rval
+    
+    def get_old_reply(self, message):
+        for elem in self.queue:
+            if elem[0] == message.id:
+                return elem[1]
+            
+        return None
+    
+def add_bot_reply(server_id, source, reply):
+    if server_id not in bot_replies:
+        bot_replies[server_id] = DictQueue(100)
+    bot_replies[server_id][source.id] = reply
+    
+    print("%s -> %s" % (source.id, reply.id))
+
 @client.event
 async def on_ready():
     print('Logged in as')
@@ -253,6 +401,7 @@ async def on_member_ban(member):
 async def on_member_unban(server, user):
     await call_func(bot.on_member_unban, server, user)
 ###
+
 
 async def periodic_task():
     global plugin_manager

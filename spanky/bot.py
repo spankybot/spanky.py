@@ -74,6 +74,9 @@ class Bot():
         self.run_on_ready_work()
         
         self.is_ready = True
+        
+    def get_servers(self):
+        return self.backend.get_servers()
 
     def get_pmgr(self, server_id):
         """
@@ -93,6 +96,9 @@ class Bot():
         Get bot user ID from backend.
         """
         return self.backend.get_own_id()
+    
+    def get_bot_roles_in_server(self, server):
+        return self.backend.get_bot_roles_in_server(server)
     
     def run_in_thread(self, target, args=()):
         thread = threading.Thread(target=target, args=args)
@@ -206,6 +212,9 @@ class Bot():
                 thread.start()
             
     def on_periodic(self):
+        if not self.is_ready:
+            return 
+        
         for _, plugin in self.plugin_manager.plugins.items():
             for periodic in plugin.periodic:
                 if time.time() - periodic.last_time > periodic.interval:

@@ -133,14 +133,14 @@ def log_message_del(event, send_message, storage):
 def log_member_update(event, send_message, storage):
     if set(event.before.member.roles) != set(event.after.member.roles):
         send_message(target=storage["evt_chan"],
-            text="`Member update` %s: before `%s`, after `%s`" %
+            text="`Member update` %s: `before` %s, `after` %s" %
             (event.before.member.nick,
-                ", ".join(i.name for i in event.before.member.roles[1:]),
-                ", ".join(i.name for i in event.after.member.roles[1:])))
+                ", ".join(i.name for i in event.before.member.roles),
+                ", ".join(i.name for i in event.after.member.roles)))
 
     if event.before.member.nick != event.after.member.nick:
         send_message(target=storage["evt_chan"],
-            text="`Nick change` before `%s`, after `%s`" %
+            text="`Nick change` `before` %s, `after` %s" %
                 (event.before.member.nick, event.after.member.nick))
 
 @hook.event(EventType.member_ban)
