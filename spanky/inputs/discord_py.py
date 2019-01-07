@@ -67,20 +67,26 @@ class DiscordUtils():
     def user_id_to_object(self, uid):
         return User(discord.utils.find(lambda m: m.id == uid, self.server._raw.members))
     
-    def get_channel(self, target):
+    def get_channel(self, target, server):
         """
         Returns the target channel
         target can be None, which defaults to the channel from where the message was sent
             a channel name starting with '#' (e.g. #my-channel) or a channel ID
         """
+        
+        if server:
+            target_server = server._raw
+        else:
+            target_server = self.server._raw
+        
         if target:
             if target == -1:
                 target = self.source.id
             elif target[0] == "#":
                 target = target[1:]
-                return discord.utils.find(lambda m: m.name == target, self.server._raw.channels)
+                return discord.utils.find(lambda m: m.name == target, target_server.channels)
             
-            return discord.utils.find(lambda m: m.id == target, self.server._raw.channels)
+            return discord.utils.find(lambda m: m.id == target, target_server.channels)
         
     def get_channel_name(self, chan_id):
         chan = discord.utils.find(lambda m: m.id == chan_id, self.server._raw.channels)
@@ -88,29 +94,41 @@ class DiscordUtils():
     
     async def async_send_message(self, text, target=-1):
         if target:
-            return Message(await client.send_message(self.get_channel(target), text))
+            try:
+                return Message(await client.send_message(self.get_channel(target), text))
+            except:
+                print(traceback.format_exc())
 
-    def send_message(self, text, target=-1):
+    def send_message(self, text, target=-1, server=None):
         async def send_message(channel, message):
             if not channel:
                 return
             try:
                 if type(self) == EventMessage and self.server.id in bot_replies:
                     old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
+                    
                     if old_reply and old_reply._raw.channel.id == channel.id:
-                        msg = Message(await client.edit_message(old_reply._raw, message))
+                        try:
+                            msg = Message(await client.edit_message(old_reply._raw, message))
+                        except:
+                            print(traceback.format_exc())
+                            
                         add_bot_reply(self.server.id, self.msg, msg)
                         return msg
-                
-                msg = Message(await client.send_message(channel, message))
-                if type(self) == EventMessage:
+                try:
+                    msg = Message(await client.send_message(channel, message))
+                except:
+                    print(traceback.format_exc())
+                    
+                if type(self) == EventMessage and msg:
                     add_bot_reply(self.server.id, self.msg._raw, msg)
                 return msg
             except:
-                import traceback
                 print(traceback.format_exc())
 
-        asyncio.run_coroutine_threadsafe(send_message(self.get_channel(target), text), bot.loop)
+        asyncio.run_coroutine_threadsafe(
+            send_message(self.get_channel(target, server), text), 
+            bot.loop)
 
     def reply(self, text, target=-1):
         self.send_message("(%s) %s" % (self.author.name, text), target)
@@ -120,18 +138,29 @@ class DiscordUtils():
             if self.server.id in bot_replies:
                 old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
                 if old_reply and old_reply._raw.channel.id == channel.id:
-                    await client.delete_message(old_reply._raw)
-                    msg = Message(await client.send_file(channel, file))
+                    
+                    try:
+                        await client.delete_message(old_reply._raw)
+                        msg = Message(await client.send_file(channel, file))
+                    except:
+                        print(traceback.format_exc())
                     return msg
 
-            msg = Message(await client.send_file(channel, file))
+            try:
+                msg = Message(await client.send_file(channel, file))
+            except:
+                print(traceback.format_exc())
+                
             add_bot_reply(self.server.id, self.msg._raw, msg)
             return msg
             
         asyncio.run_coroutine_threadsafe(send_file(self.get_channel(target), file), bot.loop)
         
     async def async_send_file(self, file, target=-1):
-        return Message(await client.send_file(self.get_channel(target), file))
+        try:
+            return Message(await client.send_file(self.get_channel(target), file))
+        except:
+            print(traceback.format_exc())
 
 class EventPeriodic(DiscordUtils):
     def __init__(self):
@@ -218,15 +247,20 @@ class User():
         
     def add_role(self, role):
         async def do_add_role(user, role):
-            await client.add_roles(user, role)
+            try:
+                await client.add_roles(user, role)
+            except:
+                print(traceback.format_exc())
             
         asyncio.run_coroutine_threadsafe(do_add_role(self._raw, role._raw), bot.loop)
         
     def remove_role(self, role):
         async def do_rem_role(user, role):
+            tries = 0
             try:
-                while role in user.roles:
+                while role in user.roles and tries < 5:
                     await client.remove_roles(user, role)
+                    tries += 1
             except Exception as e:
                 print(e)
             
@@ -234,20 +268,29 @@ class User():
 
     def replace_roles(self, roles):
         async def do_repl_role(user, roles):
-            await client.replace_roles(user, *roles)
+            try:
+                await client.replace_roles(user, *roles)
+            except:
+                print(traceback.format_exc())
             
         to_replace = [i._raw for i in roles]
         asyncio.run_coroutine_threadsafe(do_repl_role(self._raw, to_replace), bot.loop)
         
     def kick(self):
         async def do_kick(user):
-            await client.kick(user)
+            try:
+                await client.kick(user)
+            except:
+                print(traceback.format_exc())
         
         asyncio.run_coroutine_threadsafe(do_kick(self._raw), bot.loop)
         
     def ban(self):
         async def do_ban(user):
-            await client.ban(user)
+            try:
+                await client.ban(user)
+            except:
+                print(traceback.format_exc())
         
         asyncio.run_coroutine_threadsafe(do_ban(self._raw), bot.loop)
 
@@ -282,7 +325,6 @@ class Channel():
                 await del_simple(channel, num)
                 
         asyncio.run_coroutine_threadsafe(do_delete(self._raw, number), bot.loop)
-        
     
 class Server():
     def __init__(self, obj):

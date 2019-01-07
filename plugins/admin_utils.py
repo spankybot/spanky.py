@@ -1,4 +1,6 @@
+import datetime
 from spanky.plugin import hook, permissions
+from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
 
 @hook.command(permissions=Permission.admin, format="user")
@@ -51,8 +53,34 @@ def add_join_event(storage, text):
         return "Invalid type."
     return "Done."
 
+@hook.event(EventType.join)
+def do_join(event, storage, send_message, str_to_id, server):
+    for msg in storage["on_join_message"]:
+        args = {
+            "AGE":  datetime.datetime.utcfromtimestamp(\
+                int((int(event.member.id) >> 22) + 1420070400000) / 1000),
+            "USER": event.member.name,
+            "USER_ID": event.member.id
+        }
+        
+        text = msg.split(" ", maxsplit=1)
+        chanid = str_to_id(text[0])
+        message = text[1].format(**args)
+        
+        send_message(target=chanid, text=message)
+    
+    for role in storage["on_join_role"]:
+        role_id = str_to_id(role)
+        
+        for role in server.get_roles():
+            if role.id == role_id:
+                event.member.add_role(role)
+
 @hook.command(permissions=Permission.admin)
 def list_join_events(storage):
+    """
+    List on-join events
+    """
     msg = ""
     
     if storage["on_join_message"]:
@@ -65,12 +93,15 @@ def list_join_events(storage):
 
 @hook.command(permissions=Permission.admin)
 def del_join_event(storage, text):
+    """
+    <event> - delete a join event
+    """
     if storage["on_join_message"] and text in storage["on_join_message"]:
-        del storage["on_join_message"][text]
+        storage["on_join_message"].remove(text)
         storage.sync()
         return "Done."
     elif storage["on_join_role"] and text in storage["on_join_role"]:
-        del storage["on_join_role"][text]
+        storage["on_join_role"].remove(text)
         storage.sync()
         return "Done."
     
