@@ -1,26 +1,26 @@
-$(dark_green, bold)As I see it, yes
-$(dark_green, bold)It is certain
-$(dark_green, bold)It is decidedly so
-$(dark_green, bold)Most likely
-$(dark_green, bold)Outlook good
-$(dark_green, bold)Signs point to yes
-$(dark_green, bold)One would be wise to think so
-$(dark_green, bold)Naturally
-$(dark_green, bold)Without a doubt
-$(dark_green, bold)Yes
-$(dark_green, bold)Yes, definitely
-$(dark_green, bold)You may rely on it
-$(bold)Reply hazy, try again
-$(bold)Ask again later
-$(bold)Better not tell you now
-$(bold)Cannot predict now
-$(bold)Concentrate and ask again
-$(bold)You know the answer better than I
-$(bold)Maybe...
-$(dark_red, bold)You're kidding, right?
-$(dark_red, bold)Don't count on it
-$(dark_red, bold)In your dreams
-$(dark_red, bold)My reply is no
-$(dark_red, bold)My sources say no
-$(dark_red, bold)Outlook not so good
-$(dark_red, bold)Very doubtful
+As I see it, yes
+It is certain
+It is decidedly so
+Most likely
+Outlook good
+Signs point to yes
+One would be wise to think so
+Naturally
+Without a doubt
+Yes
+Yes, definitely
+You may rely on it
+Reply hazy, try again
+Ask again later
+Better not tell you now
+Cannot predict now
+Concentrate and ask again
+You know the answer better than I
+Maybe...
+You're kidding, right?
+Don't count on it
+In your dreams
+My reply is no
+My sources say no
+Outlook not so good
+Very doubtful
