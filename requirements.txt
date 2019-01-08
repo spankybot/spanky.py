@@ -1,6 +1,9 @@
 watchdog
 sqlalchemy
-
 praw
 discord
 markovify
+cleverwrap
+lxml
+bs4
+isodate
