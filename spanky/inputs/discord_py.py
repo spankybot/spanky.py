@@ -225,6 +225,7 @@ class Message():
     def __init__(self, obj):
         self.text = obj.content
         self.id = obj.id
+        self.author = User(obj.author)
         self._raw = obj
         
 class User():
@@ -325,6 +326,13 @@ class Channel():
                 await del_simple(channel, num)
                 
         asyncio.run_coroutine_threadsafe(do_delete(self._raw, number), bot.loop)
+        
+    async def async_get_latest_messages(self, no_messages):
+        msgs = []
+        async for msg in client.logs_from(self._raw, limit=no_messages):
+            msgs.append(Message(msg))
+        
+        return msgs
     
 class Server():
     def __init__(self, obj):
