@@ -17,6 +17,9 @@ class EventType(enum.Enum):
     member_ban      = 8
     member_unban    = 9
     member_update   = 10
+    
+    reaction_add    = 11
+    reaction_remove = 12
 
     other = 99
     action = 100

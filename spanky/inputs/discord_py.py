@@ -1,3 +1,5 @@
+#-*- coding: utf-8 -*-
+
 import discord
 import logging
 import asyncio
@@ -92,42 +94,40 @@ class DiscordUtils():
         chan = discord.utils.find(lambda m: m.id == chan_id, self.server._raw.channels)
         return chan.name
     
-    async def async_send_message(self, text, target=-1):
-        if target:
-            try:
-                return Message(await client.send_message(self.get_channel(target), text))
-            except:
-                print(traceback.format_exc())
-
-    def send_message(self, text, target=-1, server=None):
-        async def send_message(channel, message):
-            if not channel:
-                return
-            try:
-                if type(self) == EventMessage and self.server.id in bot_replies:
-                    old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
-                    
-                    if old_reply and old_reply._raw.channel.id == channel.id:
-                        try:
-                            msg = Message(await client.edit_message(old_reply._raw, message))
-                        except:
-                            print(traceback.format_exc())
-                            
-                        add_bot_reply(self.server.id, self.msg, msg)
-                        return msg
+    async def async_send_message(self, text, target=-1, server=None):
+        channel = self.get_channel(target, server)
+        if not channel:
+            return
+        try:
+            old_reply = None
+            if type(self) is EventMessage and self.server.id in bot_replies:
+                old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
+                
+            if type(self) is EventReact and self.server.id in bot_replies:
+                old_reply = bot_replies[self.server.id].get_bot_message(self.msg)
+                
+            if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
-                    msg = Message(await client.send_message(channel, message))
+                    msg = Message(await client.edit_message(old_reply._raw, text))
                 except:
                     print(traceback.format_exc())
                     
-                if type(self) == EventMessage and msg:
-                    add_bot_reply(self.server.id, self.msg._raw, msg)
+                add_bot_reply(self.server.id, self.msg, msg)
                 return msg
+            try:
+                msg = Message(await client.send_message(channel, text))
             except:
                 print(traceback.format_exc())
+                
+            if type(self) is EventMessage and msg:
+                add_bot_reply(self.server.id, self.msg._raw, msg)
+            return msg
+        except:
+            print(traceback.format_exc())
 
+    def send_message(self, text, target=-1, server=None):
         asyncio.run_coroutine_threadsafe(
-            send_message(self.get_channel(target, server), text), 
+            self.async_send_message(text, target, server), 
             bot.loop)
 
     def reply(self, text, target=-1):
@@ -166,12 +166,20 @@ class EventPeriodic(DiscordUtils):
     def __init__(self):
         pass
 
+class EventReact(DiscordUtils):
+    def __init__(self, event_type, user, reaction):
+        self.type = event_type
+        self.author = User(user)
+        self.server = Server(user.server)
+        self.msg = Message(reaction.message)
+        self.channel = Channel(reaction.message.channel)
+        
+        self.reaction = Reaction(reaction)
+
 class EventMember(DiscordUtils):
     def __init__(self, event_type, member, member_after=None):
         self.type = event_type
-        
         self.member = User(member)
-        
         self.server = Server(member.server)
         
         if member_after:
@@ -226,7 +234,20 @@ class Message():
         self.text = obj.content
         self.id = obj.id
         self.author = User(obj.author)
+        self.clean_content = obj.clean_content
         self._raw = obj
+        
+    async def async_add_reaction(self, string):
+        try:
+            await client.add_reaction(self._raw, string)
+        except:
+            traceback.print_exc()
+
+    async def async_remove_reaction(self, string, author):
+        try:
+            await client.remove_reaction(self._raw, string, author._raw)
+        except:
+            traceback.print_exc()
         
 class User():
     def __init__(self, obj):
@@ -385,6 +406,24 @@ class Attachment():
         self.url = obj['url']
         self._raw = obj
 
+class Reaction():
+    def __init__(self, obj):
+        self.emoji = Emoji(obj.emoji)
+        self._raw = obj
+        
+class Emoji():
+    def __init__(self, obj):
+        if isinstance(obj, str):
+            self.name = obj
+            self.id = None
+            self.url = None
+        else:
+            self.name = obj.name
+            self.id = obj.id
+            self.url = obj.url
+            
+        self._raw = obj
+
 class DictQueue():
     def __init__(self, size):
         self.queue = collections.deque(maxlen=size)
@@ -407,6 +446,11 @@ class DictQueue():
     def get_old_reply(self, message):
         for elem in self.queue:
             if elem[0] == message.id:
+                return elem[1]
+            
+    def get_bot_message(self, message):
+        for elem in self.queue:
+            if elem[1].id == message.id:
                 return elem[1]
             
         return None
@@ -467,6 +511,17 @@ async def on_member_ban(member):
 @client.event
 async def on_member_unban(server, user):
     await call_func(bot.on_member_unban, server, user)
+###
+
+### Reactions
+@client.event
+async def on_reaction_add(reaction, user):
+    if user.id != client.user.id:
+        await call_func(bot.on_reaction_add, reaction, user)
+    
+async def on_reaction_remove(reaction, user):
+    if user.id != client.user.id:
+        await call_func(bot.on_reaction_remove, reaction, user)
 ###
 
 

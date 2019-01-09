@@ -132,15 +132,27 @@ class Bot():
 # ---------------- 
     def on_member_update(self, before, after):
         evt = self.input.EventMember(EventType.member_update, member=before, member_after=after)
-        self.do_user_event(evt)
+        self.do_non_text_event(evt)
         
     def on_member_join(self, member):
         evt = self.input.EventMember(EventType.join, member)
-        self.do_user_event(evt)
+        self.do_non_text_event(evt)
         
     def on_member_remove(self, member):
         evt = self.input.EventMember(EventType.part, member)
-        self.do_user_event(evt)
+        self.do_non_text_event(evt)
+
+# ---------------- 
+# Reaction events
+# ----------------  
+    def on_reaction_add(self, reaction, user):
+        evt = self.input.EventReact(EventType.reaction_add, user=user, reaction=reaction)
+        self.do_non_text_event(evt)
+        
+    def on_reaction_remove(self, reaction, user):
+        evt = self.input.EventReact(EventType.reaction_remove, user=user, reaction=reaction)
+        self.do_non_text_event(evt)
+        
         
     def run_type_events(self, event):
         # Raw hooks
@@ -162,7 +174,7 @@ class Bot():
                                   event=event,
                                   permission_mgr=self.get_pmgr(event.server.id)),))
 
-    def do_user_event(self, event):
+    def do_non_text_event(self, event):
         if not self.is_ready:
             return
         
