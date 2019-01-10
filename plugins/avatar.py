@@ -1,6 +1,6 @@
 from spanky.plugin import hook
 
-@hook.command(format="user ugroup")
+@hook.command(format="user")
 def avatar(event, text, str_to_id):
     """<user or user-id> - Get someones avatar"""
     text = str_to_id(text)

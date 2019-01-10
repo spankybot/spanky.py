@@ -66,15 +66,17 @@ async def do_page(bot, event, storage, send_message):
     if event.msg.author.id != bot.get_own_id():
         return
     
-    if event.reaction.emoji.name == LARROW or \
-        event.reaction.emoji.name == RARROW or \
-        event.msg.text.startswith("[Grab page"):
+    if (event.reaction.emoji.name == LARROW or \
+        event.reaction.emoji.name == RARROW) and \
+        event.msg.text.startswith("Grab"):
         
         text = event.msg.text.split("\n")[0]
         is_content = True
-        if "Grabs" in text:
+        
+        old_page = -99
+        if text.startswith("Grabs"):
             old_page = int(re.search(r'Grabs page (.*?)/', text).group(1))
-        elif "Grabl" in text:
+        elif text.startswith("Grabl"):
             is_content = False
             old_page = int(re.search(r'Grabl page (.*?)/', text).group(1))
                            
@@ -87,17 +89,22 @@ async def do_page(bot, event, storage, send_message):
         elif event.reaction.emoji.name == LARROW and old_page > 1:
             crt_page = old_page - 1
         
+        await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
+        if crt_page == old_page:
+            return
+        
         if is_content:
             content, total_len = get_content_for(search_term, storage)
+            msg = "Grabs"
         else:
             content, total_len = get_content_by(search_term, storage)
+            msg = "Grabl"
         
-        msg = "Grabs page %d/%d: %s\n" % (crt_page, tot_pages, search_term)
+        msg += " page %d/%d: %s\n" % (crt_page, tot_pages, search_term)
         msg += get_page_for(content, crt_page - 1, MAX_LEN, total_len // MAX_LEN)
         
         send_message(msg, event.channel.id)
-        
-        await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
         
 def get_content_for(term, storage):
     total_len = 0
@@ -133,9 +140,11 @@ def grabu(text, storage, str_to_id):
     for msg in storage["grabs"]:
         if msg["author_id"] == user:
             content.append(msg["text"])
-            
+    
+    if len(content) == 0:
+        return "Nothing here."
+    
     return random.choice(content)
-
 
 @hook.command(format="word")
 async def grabl(event, storage, async_send_message, str_to_id, text):
@@ -185,7 +194,7 @@ async def grabs(event, storage, async_send_message):
         return
     else:
         if total_pages > 0:
-            msg = "Grab page 1/%d: %s\n" % (total_pages, text)
+            msg = "Grabs page 1/%d: %s\n" % (total_pages, text)
             msg += get_page_for(content, 0, MAX_LEN, total_pages)
             
             message = await async_send_message(msg)

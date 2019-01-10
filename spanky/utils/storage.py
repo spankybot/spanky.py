@@ -1,6 +1,8 @@
 import os
 import json
 import collections
+import logging
+logger = logging.getLogger("spanky")
 
 DS_LOC = "storage_data/"
 
@@ -9,14 +11,13 @@ class dstype():
         
         os.system("mkdir -p %s" % DS_LOC + "/" + parent + "/backup")
         
-        location = parent + "/" + name
+        self.location = parent + "/" + name
+        self.backup_name = parent + "/backup/" + name
         
-        data_obj = self.get_obj(location)
+        data_obj = self.get_obj(self.location)
         if data_obj:
             self.data = data_obj
 
-        self.location = location
-        self.backup_name = parent + "/backup/" + name
         
     def do_sync(self, obj, name, backup_name):
         
@@ -39,7 +40,14 @@ class dstype():
             data = json.load(open(DS_LOC + location, "r"))
             return data
         except:
-            return None
+            try:
+                # Try the backup
+                data = json.load(open(DS_LOC + self.backup_name, "r"))
+                logger.critical("Loaded backup for " + self.location)
+                return data
+            except:
+                logger.error("Could not load " + self.location)
+                return None
     
 class dsdict(dstype, collections.UserDict):
     def __init__(self, parent, name):
