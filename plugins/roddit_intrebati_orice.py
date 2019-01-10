@@ -2,6 +2,7 @@ import praw
 import time
 from spanky.plugin import hook
 from datetime import datetime
+from spanky.plugin.permissions import Permission
 
 USER_AGENT = ""
 LAST_CHECK = 0
@@ -10,24 +11,24 @@ RODDIT_ID = "297483005763780613"
 stor = None
 roddit = None
 
-@hook.command(server_id=RODDIT_ID)
-def set_updates_channel(text, str_to_id):
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
+def set_roddit_channel(text, str_to_id):
     """
     <channel> - Send 'intrebati orice' on channel.
     """
     stor['channel'] = str_to_id(text)
     return "Done."
 
-@hook.command(server_id=RODDIT_ID)
-def clear_updates_channel():
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
+def clear_roddit_channel():
     """
     Remove 'intrebati orice' announcement channel.
     """
     stor['channel'] = None
     return "Done."
 
-@hook.command(server_id=RODDIT_ID)
-def get_updates_channel(id_to_chan):
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
+def get_roddit_channel(id_to_chan):
     """
     List 'intrebati orice' annoucement channel.
     """

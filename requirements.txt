@@ -7,3 +7,4 @@ cleverwrap
 lxml
 bs4
 isodate
+microdata
