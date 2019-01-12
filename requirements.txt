@@ -8,3 +8,4 @@ lxml
 bs4
 isodate
 microdata
+pyenchant
