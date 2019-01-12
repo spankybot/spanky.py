@@ -4,17 +4,17 @@ from spanky.utils import storage
 @enum.unique
 class Permission(enum.Enum):
     admin    = 0
-    
+
 class PermissionMgr():
     def __init__(self, server):
         self.meta = storage.dsdict(server.id, "meta.json")
         self.server = server
-        
+
         self.stor_cache = {}
-        
+
         if "name" not in self.meta.keys():
             self.meta["name"] = server.name
-            
+
         if "id" not in self.meta.keys():
             self.meta["id"] = server.id
 
@@ -23,6 +23,6 @@ class PermissionMgr():
             self.stor_cache[self.server.id + stor_file] = storage.dsdict(self.server.id, stor_file)
 
         return self.stor_cache[self.server.id + stor_file]
-    
+
     def get_data_location(self, name):
         return storage.DS_LOC + "/" + str(self.server.id) + "/" + name + "_data/"
