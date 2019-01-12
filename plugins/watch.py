@@ -1,6 +1,7 @@
-from spanky.plugin import hook
 import praw
 import time
+from spanky.plugin import hook
+from spanky.plugin.permissions import Permission
 
 tstamps = {}
 reddit_inst = None
@@ -15,6 +16,9 @@ def set_crt_timestamps():
     epoch = int(time.time())
 
     for _, storage in storages.items():
+        if not storage["subs"]:
+            storage["subs"] = {}
+
         for sub in storage["subs"].keys():
             storage["subs"][sub]["timestamp"] = epoch
         storage.sync()
@@ -23,7 +27,7 @@ def set_crt_timestamps():
 def init():
     global reddit_inst
     reddit_inst = praw.Reddit("irc_bot", user_agent='Subreddit watcher by /u/programatorulupeste')
-    
+
 @hook.on_ready()
 def ready(server, storage):
     storages[server.id] = storage
@@ -42,28 +46,29 @@ def do_it(thread):
 
     return prefix + " " + message
 
-@hook.periodic(1)
+@hook.periodic(30)
 def checker(send_message):
     global watching
     global reddit_inst
 
     for server_id, storage in storages.items():
         if storage["watching"] == False:
-            continue 
-        
+            continue
+
         for sub in storage["subs"].keys():
             try:
                 subreddit = reddit_inst.subreddit(sub)
                 newest = storage["subs"][sub]["timestamp"]
-                
+
                 for submission in subreddit.new():
                     subtime = submission.created_utc
-                    if subtime > newest:
-                        newest = subtime
-                        storage["subs"][sub]["timestamp"] = newest
-                        storage.sync
-                    send_message(target=storage["channel"], text=do_it(submission), server=servers[server_id])
-    
+                    if subtime > storage["subs"][sub]["timestamp"]:
+                        if subtime > newest:
+                            newest = subtime
+                            storage["subs"][sub]["timestamp"] = newest
+                            storage.sync
+                        send_message(target=storage["channel"], text=do_it(submission), server=servers[server_id])
+
             except BaseException as e:
                 print(str(e))
                 print("Exception generated for sub: " + sub)
@@ -78,19 +83,20 @@ def subwatch_list(event):
     else:
         return "Empty."
 
-@hook.command(format="sub")
+@hook.command(permissions=Permission.admin, format="sub")
 def subwatch_add(text, event):
     """
     Add a subreddit to the watch list.
     """
     if storages[event.server.id]["subs"] == None:
         storages[event.server.id]["subs"] = {}
-    
+
     storages[event.server.id]["subs"][text] = {}
+    storages[event.server.id]["subs"][text]["timestamp"] = int(time.time())
     storages[event.server.id].sync()
     return "Done"
 
-@hook.command
+@hook.command(permissions=Permission.admin)
 def subwatch_del(text, event):
     """
     Remove a subreddit from the watch list
@@ -102,7 +108,7 @@ def subwatch_del(text, event):
         storages[event.server.id].sync()
         return "OK."
 
-@hook.command
+@hook.command(permissions=Permission.admin)
 def startwatch(event):
     """
     Start watching subreddits.
@@ -111,7 +117,7 @@ def startwatch(event):
     set_crt_timestamps()
     return "Started watching"
 
-@hook.command
+@hook.command(permissions=Permission.admin)
 def stopwatch(event):
     """
     Stop watching subreddits.
@@ -119,7 +125,7 @@ def stopwatch(event):
     storages[event.server.id]["watching"] = False
     return "Stopped watching"
 
-@hook.command(format="chan")
+@hook.command(permissions=Permission.admin, format="chan")
 def set_rupdates_channel(text, str_to_id, event):
     """
     <channel> - Send reddit updates on channel.
@@ -127,7 +133,7 @@ def set_rupdates_channel(text, str_to_id, event):
     storages[event.server.id]['channel'] = str_to_id(text)
     return "Done."
 
-@hook.command()
+@hook.command(permissions=Permission.admin)
 def clear_rupdates_channel(event):
     """
     Remove reddit updates channel.
@@ -135,7 +141,7 @@ def clear_rupdates_channel(event):
     storages[event.server.id]['channel'] = None
     return "Done."
 
-@hook.command()
+@hook.command(permissions=Permission.admin)
 def get_rupdates_channel(id_to_chan, event):
     """
     List reddit updates annoucement channel.

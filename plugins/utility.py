@@ -51,7 +51,7 @@ def load_text(bot):
     """
     global leet
 
-    with codecs.open(os.path.join(bot.data_dir, "leet.json"), encoding="utf-8") as f:
+    with codecs.open(os.path.join("plugin_data/leet.json"), encoding="utf-8") as f:
         leet = json.load(f)
 
 

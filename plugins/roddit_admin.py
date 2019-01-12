@@ -1,13 +1,14 @@
 import datetime
 from spanky.plugin import hook
 from spanky.utils import time_utils
+from spanky.plugin.permissions import Permission
 
 time_tokens = ['s', 'm', 'h', 'd']
 SEC_IN_MIN = 60
 SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
 
-RODDIT_ID = "297483005763780613"
+RODDIT_ID = "287285563118190592"
 
 roddit = None
 rstorage = None
@@ -22,17 +23,17 @@ def get_role_by_name(server, rname):
     for r in server.get_roles():
         if r.name == rname:
             return r
-        
+
     return None
 
 def get_role_by_id(server, rid):
     for r in server.get_roles():
         if r.id == rid:
             return r
-        
+
     return None
 
-@hook.command(server_id=RODDIT_ID)
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def bulau(send_message, text, server, event, bot, str_to_id):
     """<user, duration> - assign bulau role for specified time - duration can be seconds, minutes, hours, days.\
  To set a 10 minute 15 seconds timeout for someone, type: '.bulau @user 10m15s'.\
@@ -73,7 +74,7 @@ def bulau(send_message, text, server, event, bot, str_to_id):
 
     if brole == None or member == None:
         return "Internal error."
-            
+
 #     if brole in member.roles:
 #         print("User already in bulau")
 #         storage[user]["expire"] = texp
@@ -132,10 +133,10 @@ def bulaucheck():
     global rstorage
     tnow = datetime.datetime.now().timestamp()
     to_del = []
-    
+
     if not rstorage:
         return
-    
+
     for user in rstorage:
         if rstorage[user]['expire'] < tnow:
             print("Done for " + user)
@@ -154,3 +155,10 @@ def bulaucheck():
 
         del rstorage[user]
         rstorage.sync()
+
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
+def ok(text, str_to_id):
+    role = get_role_by_name(roddit, "Valoare")
+    user = get_user_by_id(roddit, str_to_id(text))
+
+    user.add_role(role)

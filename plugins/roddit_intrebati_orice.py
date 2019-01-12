@@ -6,7 +6,7 @@ from spanky.plugin.permissions import Permission
 
 USER_AGENT = ""
 LAST_CHECK = 0
-RODDIT_ID = "297483005763780613"
+RODDIT_ID = "287285563118190592"
 
 stor = None
 roddit = None
@@ -44,7 +44,7 @@ def init(server, storage):
 
     USER_AGENT = "/r/Romania scraper by /u/programatorulupeste"
     LAST_CHECK = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-    
+
     if server.id == RODDIT_ID:
         global stor
         global roddit
@@ -79,7 +79,7 @@ def wrap_message(comm):
 def checker(send_message):
     global USER_AGENT
     global LAST_CHECK
-    
+
     try:
         r = praw.Reddit("irc_bot", user_agent=USER_AGENT)
         subreddit = r.subreddit('romania')

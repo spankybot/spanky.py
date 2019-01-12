@@ -23,7 +23,7 @@ def save_picture(url, tag_name, message, storage, storage_loc):
         storage[tag_name] = {}
         storage[tag_name]["type"] = "picture"
         storage[tag_name]["location"] = fname
-        
+
         storage.sync()
 
         message("Added picture tag")
@@ -49,7 +49,7 @@ def save_text(text_list, tag_name, message, storage):
     except:
         del storage[tag_name]
         storage.sync()
-        
+
         import traceback
         traceback.print_exc()
 
@@ -61,7 +61,7 @@ def tag(text, send_file, storage, storage_loc):
     text = text.split()
     if len(text) == 0:
         return __doc__
-    
+
     tag = text[0]
 
     if tag == "list":
