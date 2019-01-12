@@ -1,3 +1,4 @@
+import re
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
@@ -6,7 +7,7 @@ from spanky.plugin.permissions import Permission
 def log_prepare(storage):
     if "chan_filter_list" not in storage.keys():
         storage["chan_filter_list"] = []
-    
+
     if "evt_chan" not in storage.keys():
         storage["evt_chan"] = None
 
@@ -34,7 +35,7 @@ def get_event_log_chan(storage, id_to_chan):
     """
     if storage["evt_chan"]:
         return id_to_chan(storage["evt_chan"])
-    
+
     return "Not set."
 
 @hook.command(permissions=Permission.admin, format="channel")
@@ -45,11 +46,11 @@ def add_filter_out_channel(text, str_to_id, storage):
     chan_list = storage["chan_filter_list"]
     if not chan_list:
         chan_list = []
-        
+
     chan_list.append(str_to_id(text))
-        
+
     storage["chan_filter_list"] = chan_list
-    
+
     return "Done."
 
 @hook.command(permissions=Permission.admin, format="channel")
@@ -61,13 +62,13 @@ def clear_filter_out_channel(text, str_to_id, storage):
     chan_list = storage["chan_filter_list"]
     if not chan_list:
         chan_list = []
-    
+
     if chan_id not in chan_list:
         return
-    
+
     chan_list.remove(chan_id)
     storage["chan_filter_list"] = chan_list
-    
+
     return "Done."
 
 @hook.command(permissions=Permission.admin)
@@ -76,7 +77,7 @@ def list_filtered_out_channels(id_to_chan, storage):
     <channel> - List filtered channels.
     """
     chan_list = storage["chan_filter_list"]
-    
+
     if chan_list and len(chan_list) > 0:
         return ", ".join(id_to_chan(chan) for chan in chan_list)
     else:
@@ -113,7 +114,7 @@ def log_message_edit(event, send_message, storage):
         event.before.channel.name,
         event.after.msg.id,
         event.after.author.name
-        ), 
+        ),
         storage["evt_chan"])
 
 @hook.event(EventType.message_del)
@@ -145,10 +146,56 @@ def log_member_update(event, send_message, storage):
 
 @hook.event(EventType.member_ban)
 def log_member_ban(event, send_message, storage):
-    send_message(target=storage["evt_chan"], 
+    send_message(target=storage["evt_chan"],
          text="`Banned`: %s %s" % (event.member.name, event.member.id))
 
 @hook.event(EventType.member_unban)
 def log_member_unban(event, send_message, storage):
-    send_message(target=storage["evt_chan"], 
+    send_message(target=storage["evt_chan"],
          text="`Unban`: %s %s" % (event.user.name, event.user.id))
+
+@hook.command(permissions=Permission.admin)
+def add_bad_word(storage, text):
+    """<word> - remove a message it contains 'word'"""
+    if storage["bad"] == None:
+        storage["bad"] = []
+    storage["bad"].append(text)
+
+    storage.sync()
+
+    return "Done."
+
+@hook.command(permissions=Permission.admin)
+def list_bad_words(storage):
+    """List bad words"""
+    if storage["bad"]:
+        return ", ".join(i for i in storage["bad"])
+    else:
+        return "Empty."
+
+@hook.command(permissions=Permission.admin)
+def remove_bad_word(storage, text):
+    """<word> - Remove a bad word"""
+    if not storage["bad"]:
+        return
+
+    if text in storage["bad"]:
+        storage["bad"].remove(text)
+        storage.sync()
+        return "Done."
+
+    return "Couldn't find it."
+
+@hook.event(EventType.message)
+def check_bad_words(storage, event, bot):
+    if event.channel.id == storage["evt_chan"]:
+        return
+
+    if event.author.id == bot.get_own_id():
+        return
+
+    if not storage["bad"]:
+        return
+    for word in storage["bad"]:
+        if re.search(r"\b%s\b" % word, event.msg.text):
+            event.msg.delete_message()
