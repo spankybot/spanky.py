@@ -9,4 +9,5 @@ def get_key(bot):
 
 @hook.command
 def coa(text):
+    """<text> - talk to CleverBot"""
     return cb.say(text)

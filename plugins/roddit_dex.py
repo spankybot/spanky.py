@@ -5,8 +5,12 @@ import requests
 import os
 from bs4 import BeautifulSoup
 
-@hook.command()
+RODDIT_ID = "287285563118190592"
+
+@hook.command(server_id=RODDIT_ID)
 def dex(send_message, text):
+    """<cuvant> - Cauta definitia pentru un cuvant in DEX"""
+
     def_nr = 0
     stext = text.split()
 
