@@ -249,6 +249,11 @@ class Message():
         except:
             traceback.print_exc()
 
+    def delete_message(self):
+        async def delete_message(message):
+            await client.delete_message(message)
+        asyncio.run_coroutine_threadsafe(delete_message(self._raw), bot.loop)
+
 class User():
     def __init__(self, obj):
         self.nick = obj.display_name
