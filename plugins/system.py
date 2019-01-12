@@ -7,6 +7,11 @@ from spanky.utils.filesize import size as format_bytes
 from spanky.plugin import hook
 
 @hook.command()
+def about():
+    return "Bot source code can be found at https://github.com/gc-plp/spanky.py or ask the owner: plp#7552"
+
+
+@hook.command()
 def system(send_message):
     """-- Retrieves information about the host system."""
 
@@ -17,18 +22,15 @@ def system(send_message):
     sys_architecture = '-'.join(platform.architecture())
     sys_cpu_count = platform.machine()
 
-    send_message(
-        "OS: {}, "
-        "Python: {} {}, "
-        "Architecture: {} ({})"
-        .format(
+    msg = "OS: {}, "\
+        "Python: {} {}, "\
+        "Architecture: {} ({})".format(
             sys_os,
             python_implementation,
             python_version,
             sys_architecture,
             sys_cpu_count)
-    )
-    
+
     process = psutil.Process(os.getpid())
 
     # get the data we need using the Process we got
@@ -37,14 +39,13 @@ def system(send_message):
     memory_usage = format_bytes(process.memory_info()[0])
     uptime = timedelta(seconds=round(time.time() - process.create_time()))
 
-    send_message(
-        "Uptime: {}, "
-        "Threads: {}, "
-        "CPU Usage: {}, "
-        "Memory Usage: {}"
-        .format(
+    msg += "Uptime: {}, "\
+        "Threads: {}, "\
+        "CPU Usage: {}, "\
+        "Memory Usage: {}".format(
             uptime,
             thread_count,
             cpu_usage,
             memory_usage)
-    )
+
+    return msg
