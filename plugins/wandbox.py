@@ -1,4 +1,5 @@
 import json
+import re
 import requests
 from spanky.plugin import hook
 from spanky.utils import web
@@ -104,6 +105,7 @@ def wb(text, send_message):
 
     try:
         if to_print:
+            to_print = re.sub(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]', '', to_print)
             if len(to_print) > MAX_LEN and len(to_print.split("\n")) > MAX_LINES:
                 url = web.paste(data=str(to_print))
                 resp_lines = to_print.split("\n")
