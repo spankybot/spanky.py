@@ -1,16 +1,16 @@
 from spanky.plugin import hook
 
-RODDIT_ID = "287285563118190592"
+BM_ID = "349583192921079808"
 
-nu_vreau = "Nu vreau culoare".lower()
+no_role = "no role".lower()
 
-@hook.command(server_id=RODDIT_ID)
-def color(send_message, server, event, bot, text):
+@hook.command(server_id=BM_ID)
+def charlie(send_message, server, event, bot, text):
     use_slow_mode = False
 
     bot_roles = bot.get_bot_roles_in_server(server)
 
-    list_colors = {nu_vreau: None}
+    list_colors = {no_role: None}
     user_roles = {}
     for i in event.author.roles:
         user_roles[i.name.lower()] = i
@@ -26,9 +26,9 @@ def color(send_message, server, event, bot, text):
             use_slow_mode = True
 
     for srole in server.get_roles():
-        if "- START Culori -" in srole.name:
+        if "START BOT ROLES" in srole.name:
             pos_start = srole.position
-        if "- END Culori -" in srole.name:
+        if "END BOT ROLES" in srole.name:
             pos_end = srole.position
 
     for i in server.get_roles():
@@ -36,17 +36,17 @@ def color(send_message, server, event, bot, text):
             list_colors[i.name.lower()] = i
 
     if text == "":
-        send_message("Available colors: `%s`" % (", ".join(i for i in sorted(list_colors))))
+        send_message("Available roles: `%s`" % (", ".join(i for i in sorted(list_colors))))
         return
 
     split = text.split()
     role = " ".join(split).lower()
 
     if role not in list_colors:
-        send_message("%s is not a color. Available colors: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
+        send_message("%s is not a role. Available roles: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
         return
 
-    if role == nu_vreau:
+    if role == no_role:
         for i in list_colors:
             if i in user_roles:
                 if use_slow_mode:
@@ -71,6 +71,6 @@ def color(send_message, server, event, bot, text):
         event.author.replace_roles(repl_roles)
         return "Done!"
     else:
-        if role != nu_vreau:
+        if role != no_role:
             event.author.add_role(list_colors[role])
-        return "Ai mai multe drepturi decat mine si s-ar putea sa nu fi mers totul OK. Fa-l singur in plm."
+        return "Probably done."

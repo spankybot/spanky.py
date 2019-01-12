@@ -8,6 +8,8 @@ from sqlalchemy import Table, Column, String, PrimaryKeyConstraint, DateTime
 from sqlalchemy.sql import select
 from spanky import database
 
+RODDIT_ID = "287285563118190592"
+
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
 domains = ['imgur.com', 'gfycat.com', 'redditmedia.com', 'i.redd.it', 'flic.kr', '500px.com']
 
@@ -161,7 +163,7 @@ def refresh_porn(db):
         fake_list = [el['subreddit']]
         get_links_from_subs(fake_list)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def force_refresh_porn():
     r = praw.Reddit("irc_bot", user_agent=USER_AGENT)
     db_subs = g_db.execute(select([subs.c.subreddit]))
@@ -176,133 +178,133 @@ def format_output_message(data):
     entry = random.choice(data)
     return "%s / source: <https://redd.it/%s>" % (entry[0], entry[1])
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def skinny():
     data = get_links_from_subs(['skinnytail'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def roscate():
     data = get_links_from_subs(['ginger', 'redheads', 'RedheadGifs'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def tatuate():
     data = get_links_from_subs(['altgonewild'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def nsfwfunny():
     data = get_links_from_subs(['nsfwfunny'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def craci():
     data = get_links_from_subs(['thighhighs', 'stockings'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def buci():
     data = get_links_from_subs(['ass', 'asstastic', 'assinthong', 'pawg'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def tzatze():
     data = get_links_from_subs(['boobs', 'boobies', 'BiggerThanYouThought'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def fetish():
     data = get_links_from_subs(['kinky', 'bdsm', 'bondage', 'collared', 'lesdom'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def teen():
     data = get_links_from_subs(['LegalTeens', 'Just18', 'youngporn', 'barelylegal'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def sloboz():
     data = get_links_from_subs(['cumsluts', 'GirlsFinishingTheJob'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def anal():
     data = get_links_from_subs(['anal', 'painal'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def milf():
     data = get_links_from_subs(['milf'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def amateur():
     data = get_links_from_subs(['RealGirls', 'Amateur', 'GoneWild'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def traps():
     data = get_links_from_subs(['Tgirls', 'traps', 'gonewildtrans', 'tgifs'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def aww():
     data = get_links_from_subs(['aww'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def pisi():
     data = get_links_from_subs(['cats'])
 
     return format_output_message(data)
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def cutu():
     data = get_links_from_subs(['dogpictures', 'TuckedInPuppies'])
 
     return format_output_message(data) + " HAM, HAM!"
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def blep():
     data = get_links_from_subs(['blep', 'blop'])
 
     return format_output_message(data) + " :P"
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def capre():
     data = get_links_from_subs(['doggy'])
 
     return format_output_message(data) + " NSFW!"
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def lesbiene():
     data = get_links_from_subs(['dykesgonewild'])
 
     return format_output_message(data) + " NSFW!"
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def thicc():
     data = get_links_from_subs(['pawg', 'thick'])
 
     return format_output_message(data) + " NSFW!"
 
-@hook.command()
+@hook.command(server_id=RODDIT_ID)
 def fetch_image(text):
     if text:
         text = text.split()
