@@ -360,6 +360,9 @@ class Channel():
 
         return msgs
 
+    async def async_get_message(self, msg_id):
+        return Message(await client.get_message(self._raw, msg_id))
+
 class Server():
     def __init__(self, obj):
         self.name = obj.name
@@ -537,7 +540,7 @@ async def periodic_task():
     while not client.is_closed:
         try:
             bot.on_periodic()
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
         except Exception:
             traceback.print_stack()
             traceback.print_exc()
