@@ -11,19 +11,25 @@ RARROW=u'➡'
 @hook.command(format="user")
 async def grab(text, channel, str_to_id, storage, reply, event):
     """<user> - grab user's last message"""
-    user_id = str_to_id(text)
+    if not text.startswith("https://discordapp.com/channels/"):
+        user_id = str_to_id(text)
 
-#     if event.author.id == user_id:
-#         reply("Didn't your mom teach you not to grab yourself in public?")
-#         return
+        if event.author.id == user_id:
+            reply("Didn't your mom teach you not to grab yourself in public?")
+            return
 
-    messages = await channel.async_get_latest_messages(100)
+        messages = await channel.async_get_latest_messages(100)
 
-    to_grab = None
-    for msg in messages:
-        if msg.author.id == user_id:
-            to_grab = msg
-            break
+        to_grab = None
+        for msg in messages:
+            if msg.author.id == user_id:
+                to_grab = msg
+                break
+    else:
+        try:
+            to_grab = await channel.async_get_message(text.split("/")[-1])
+        except Exception as e:
+            print(e)
 
     if not to_grab:
         reply("Couldn't find anything.")
