@@ -39,7 +39,8 @@ class CmdPerms():
             self.chgroups.extend(storage["commands"][cmd]["groups"])
 
             for chgroup in storage["commands"][cmd]["groups"]:
-                self.channel_ids.extend(storage["chgroups"][chgroup]["channels"])
+                if "channels" in storage["chgroups"][chgroup].keys():
+                    self.channel_ids.extend(storage["chgroups"][chgroup]["channels"])
 
         if "fgroups" in storage["commands"][cmd].keys():
             self.forbid_chgroups.extend(storage["commands"][cmd]["fgroups"])
