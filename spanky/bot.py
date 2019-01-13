@@ -22,6 +22,8 @@ fh = logging.FileHandler('audit.log')
 fh.setLevel(logging.DEBUG)
 audit.addHandler(fh)
 
+cmd_re = re.compile(r"(\W+)")
+
 class Bot():
     def __init__(self, input_type):
         self.user_agent = "spaky.py bot https://github.com/gc-plp/spanky.py"
@@ -195,16 +197,21 @@ class Bot():
             return
 
         # Check if the command starts with .
-        if event.do_trigger and event.msg.text.startswith("."):
+        if event.do_trigger and len(event.msg.text) > 0 and event.msg.text[0] == ".":
             # Get the actual command
-            command = event.msg.text[1:].split(" ", maxsplit=1)[0]
+            cmd_split = re.split(cmd_re, event.msg.text, maxsplit=2)
+
+            command = cmd_split[2]
             logger.debug("Got command %s" % str(command))
 
             # Check if it's in the command list
             if command in self.plugin_manager.commands.keys():
                 hook = self.plugin_manager.commands[command]
 
-                event_text = event.msg.text[len(command)+2:].strip()
+                if len(cmd_split) > 3:
+                    event_text = cmd_split[4]
+                else:
+                    event_text = ""
 
                 text_event = TextEvent(
                     hook=hook,
