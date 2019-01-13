@@ -1,9 +1,16 @@
+#-*- coding: utf-8 -*-
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
+from spanky.plugin.event import EventType
 import requests
 import os
+import re
 import random
 import string
+
+LARROW=u'⬅'
+RARROW=u'➡'
+MAX_LEN = 500
 
 def save_picture(url, tag_name, message, storage, storage_loc):
     if tag_name in storage.keys():
@@ -53,8 +60,52 @@ def save_text(text_list, tag_name, message, storage):
         import traceback
         traceback.print_exc()
 
+def get_page_for(content, page_len):
+    pages = [""]
+    crt_page = 0
+    crt_page_len = 0
+    try:
+        for idx, i in enumerate(content):
+            crt_page_len += len(i)
+            pages[crt_page] += "`%s`" % i
+
+            if crt_page_len >= page_len:
+                crt_page += 1
+                crt_page_len = 0
+                pages.append("")
+            elif idx < len(content) - 1:
+                pages[crt_page] += ", "
+
+        return pages
+    except Exception as e:
+        print(str(e))
+
+@hook.event(EventType.reaction_add)
+async def do_page(bot, event, storage, send_message):
+    if event.msg.author.id != bot.get_own_id():
+        return
+
+    if (event.reaction.emoji.name == LARROW or \
+        event.reaction.emoji.name == RARROW) and \
+        event.msg.text.startswith("Tags"):
+            crt_page = int(re.search(r'Tags (.*?)/', event.msg.text).group(1))
+            tot_pages = int(re.search(r'/(.*?):', event.msg.text).group(1))
+
+            if event.reaction.emoji.name == RARROW and crt_page + 1 <= tot_pages:
+                crt_page += 1
+            elif event.reaction.emoji.name == LARROW and crt_page > 1:
+                crt_page -= 1
+            else:
+                await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+                return
+
+            await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
+            content = get_page_for(sorted(list(storage)), MAX_LEN)
+            send_message("Tags %d/%d: %s" % (crt_page, tot_pages, content[crt_page - 1]), event.channel.id)
+
 @hook.command()
-def tag(text, send_file, storage, storage_loc):
+async def tag(text, send_file, storage, storage_loc, async_send_message):
     """
     <tag> - Return a tag.
     """
@@ -65,7 +116,13 @@ def tag(text, send_file, storage, storage_loc):
     tag = text[0]
 
     if tag == "list":
-        return "Tags: `" + ", ".join(i for i in sorted(list(storage))) + "`"
+        content = get_page_for(sorted(list(storage)), MAX_LEN)
+        if len(content) > 1:
+            message = await async_send_message("Tags 1/%d: %s" % (len(content), content[0]))
+            await message.async_add_reaction(LARROW)
+            await message.async_add_reaction(RARROW)
+        else:
+            await async_send_message("Tags: %s" % content[0])
     else:
         if tag in storage:
             if storage[tag]['type'] == "text":
