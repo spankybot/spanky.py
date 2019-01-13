@@ -128,7 +128,7 @@ def bulautime(text, str_to_id, storage):
     else:
         return "User not in bulau list"
 
-@hook.periodic(1)
+@hook.periodic(2)
 def bulaucheck():
     global rstorage
     tnow = datetime.datetime.now().timestamp()
