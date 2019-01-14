@@ -4,7 +4,7 @@ import random
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 
-MAX_LEN = 500
+MAX_LEN = 10
 LARROW=u'⬅'
 RARROW=u'➡'
 
@@ -29,7 +29,8 @@ async def grab(text, channel, str_to_id, storage, reply, event):
         try:
             to_grab = await channel.async_get_message(text.split("/")[-1])
         except Exception as e:
-            print(e)
+            import traceback
+            traceback.print_exc()
 
     if not to_grab:
         reply("Couldn't find anything.")
@@ -48,22 +49,23 @@ async def grab(text, channel, str_to_id, storage, reply, event):
 
     reply("Done.")
 
-def get_page_for(content, page, page_len, total_pages):
-    pages = [""] * total_pages
+def get_page_for(content, page_len):
+    pages = [""]
     crt_page = 0
     crt_page_len = 0
     try:
         for i in content:
-            crt_page_len += len(i)
+            crt_page_len += 1
             pages[crt_page] += "`%s`" % i
 
             if crt_page_len >= page_len:
                 crt_page += 1
                 crt_page_len = 0
+                pages.append("")
             else:
-                pages[crt_page] += ", "
+                pages[crt_page] += "\n"
 
-        return pages[page]
+        return pages
     except Exception as e:
         print(str(e))
 
@@ -108,7 +110,7 @@ async def do_page(bot, event, storage, send_message):
             msg = "Grabl"
 
         msg += " page %d/%d: %s\n" % (crt_page, tot_pages, search_term)
-        msg += get_page_for(content, crt_page - 1, MAX_LEN, total_len // MAX_LEN)
+        msg += get_page_for(content, MAX_LEN)[crt_page - 1]
 
         send_message(msg, event.channel.id)
 
@@ -128,12 +130,18 @@ def get_content_by(term, storage):
     total_len = 0
     content = []
     for msg in storage["grabs"]:
-        if term == msg["author_id"]:
+        if term == msg["author_id"] or term == "":
             to_add = "`<%s> %s`" % (msg["author_name"], msg["text"])
             total_len += len(to_add)
             content.append(to_add)
 
     return content, total_len
+
+@hook.command()
+def grabr(storage):
+    item = random.choice(storage["grabs"])
+
+    return "<%s> %s" % (item["author_name"], item["text"])
 
 @hook.command(format="word")
 def grabu(text, storage, str_to_id):
@@ -152,17 +160,16 @@ def grabu(text, storage, str_to_id):
 
     return random.choice(content)
 
-@hook.command(format="word")
+@hook.command
 async def grabl(event, storage, async_send_message, str_to_id, text):
     """
-    <user> - List quotes for user.
+    <user> - List quotes for user. If no user is specified, it lists everything on the server.
     """
     text = str_to_id(text)
     content, total_len = get_content_by(text, storage)
 
-    total_pages = 0
-    if total_len > MAX_LEN:
-        total_pages = total_len // MAX_LEN
+    pages = get_page_for(content, MAX_LEN)
+    total_pages = len(pages)
 
     if len(content) == 0:
         await async_send_message("Nothing found.")
@@ -170,7 +177,7 @@ async def grabl(event, storage, async_send_message, str_to_id, text):
     else:
         if total_pages > 0:
             msg = "Grabl page 1/%d: %s\n" % (total_pages, text)
-            msg += get_page_for(content, 0, MAX_LEN, total_pages)
+            msg += pages[0]
 
             message = await async_send_message(msg)
 
@@ -191,9 +198,9 @@ async def grabs(event, storage, async_send_message):
     text = event.msg.clean_content.split(" ", maxsplit=1)[1]
     content, total_len = get_content_for(text, storage)
 
-    total_pages = 0
-    if total_len > MAX_LEN:
-        total_pages = total_len // MAX_LEN
+
+    pages = get_page_for(content, MAX_LEN)
+    total_pages = len(pages)
 
     if len(content) == 0:
         await async_send_message("Nothing found.")
@@ -201,7 +208,7 @@ async def grabs(event, storage, async_send_message):
     else:
         if total_pages > 0:
             msg = "Grabs page 1/%d: %s\n" % (total_pages, text)
-            msg += get_page_for(content, 0, MAX_LEN, total_pages)
+            msg += pages[0]
 
             message = await async_send_message(msg)
 
