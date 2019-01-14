@@ -19,8 +19,8 @@ def load_trumps():
 
 @asyncio.coroutine
 @hook.command(format="user")
-def trump(text, send_message):
+def trump(event, send_message):
     """trump a user."""
-    user = text.strip()
+    user = event.msg.clean_content.split(" ", maxsplit=1)[1]
     generator = textgen.TextGenerator(trump_data["templates"], trump_data["parts"], variables={"user": user})
     send_message(generator.generate_string())

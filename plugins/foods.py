@@ -99,7 +99,8 @@ def basic_format(text, data, **kwargs):
 
 
 def basic_food(food):
-    def func(text, send_message):
+    def func(event, send_message):
+        text = event.msg.clean_content.split(" ", maxsplit=1)[1]
         send_message(basic_format(text, basic_food_data[food.name]))
 
     func.__name__ = food.name
