@@ -68,6 +68,10 @@ class DiscordUtils():
 
     def user_id_to_object(self, uid):
         return User(discord.utils.find(lambda m: m.id == uid, self.server._raw.members))
+    
+    def get_emoji(self, str):
+        id = str.replace("<", " ").replace(">", " ").replace(":", " ").strip().split(" ")[1]
+        return Emoji(discord.utils.find(lambda m: m.id == id, self.server._raw.emojis))
 
     def get_channel(self, target, server):
         """
@@ -226,6 +230,12 @@ class EventMessage(DiscordUtils):
         if len(message.attachments) > 0:
             for att in message.attachments:
                 self.attachments.append(Attachment(att))
+                
+        self.embeds = []
+        if len(message.embeds) > 0:
+            for emb in message.embeds:
+                if emb["type"] == "image":
+                    self.embeds.append(Embed(emb))
 
         self._message = message
 
@@ -410,6 +420,11 @@ class Role():
         self._raw = obj
 
 class Attachment():
+    def __init__(self, obj):
+        self.url = obj['url']
+        self._raw = obj
+
+class Embed():
     def __init__(self, obj):
         self.url = obj['url']
         self._raw = obj
