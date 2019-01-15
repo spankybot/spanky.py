@@ -126,11 +126,11 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
     else:
         if tag in storage:
             if storage[tag]['type'] == "text":
-                return storage[tag]['content']
+                await async_send_message(storage[tag]['content'])
             elif storage[tag]['type'] == "picture":
                 send_file(open(storage_loc + storage[tag]['location'], 'rb'))
         else:
-            return "Syntax is: `.tag list` or `.tag <name>`"
+            await async_send_message("Syntax is: `.tag list` or `.tag <name>`")
 
 @hook.command()
 def tag_add(text, event, reply, storage, storage_loc):
