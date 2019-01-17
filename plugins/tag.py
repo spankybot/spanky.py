@@ -107,7 +107,7 @@ async def do_page(bot, event, storage, send_message):
 @hook.command()
 async def tag(text, send_file, storage, storage_loc, async_send_message):
     """
-    <tag> - Return a tag.
+    <tag> - Return a tag. '.tag list' lists tags, '.tag random' returns random tag
     """
     text = text.split()
     if len(text) == 0:
@@ -124,9 +124,14 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
         else:
             await async_send_message("Tags: %s" % content[0])
     else:
+        msg = ""
+        if tag == "random":
+           tag = random.choice(list(storage.keys()))
+           msg = "(%s)\n" % tag
+
         if tag in storage:
             if storage[tag]['type'] == "text":
-                await async_send_message(storage[tag]['content'])
+                await async_send_message(msg + storage[tag]['content'])
             elif storage[tag]['type'] == "picture":
                 send_file(open(storage_loc + storage[tag]['location'], 'rb'))
         else:
