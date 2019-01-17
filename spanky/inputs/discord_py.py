@@ -67,8 +67,12 @@ class DiscordUtils():
         return discord.utils.find(lambda m: m.id == uid, self.server._raw.members).name
 
     def user_id_to_object(self, uid):
-        return User(discord.utils.find(lambda m: m.id == uid, self.server._raw.members))
-    
+        user = discord.utils.find(lambda m: m.id == uid, self.server._raw.members)
+        if user:
+            return User(user)
+        else:
+            return None
+
     def get_emoji(self, str):
         id = str.replace("<", " ").replace(">", " ").replace(":", " ").strip().split(" ")[1]
         return Emoji(discord.utils.find(lambda m: m.id == id, self.server._raw.emojis))
@@ -230,7 +234,7 @@ class EventMessage(DiscordUtils):
         if len(message.attachments) > 0:
             for att in message.attachments:
                 self.attachments.append(Attachment(att))
-                
+
         self.embeds = []
         if len(message.embeds) > 0:
             for emb in message.embeds:
