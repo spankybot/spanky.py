@@ -1,7 +1,3 @@
-import re
-from spanky.plugin import hook
-from spanky.plugin.event import EventType
-from spanky.plugin.permissions import Permission
 
 @hook.on_ready
 def log_prepare(storage):
@@ -100,11 +96,11 @@ def log_part(event, storage, send_message):
 
 
 @hook.event(EventType.message_edit)
-def log_message_edit(event, send_message, storage):
+def log_message_edit(event, send_message, storage, bot):
     if event.before.channel.id in storage["chan_filter_list"]:
         return
 
-    if event.before.text == event.after.text:
+    if event.before.text == event.after.text or event.before.author.id == bot.get_own_id():
         return
 
     send_message(
@@ -134,8 +130,8 @@ def log_message_del(event, send_message, storage):
 def log_member_update(event, send_message, storage):
     if set(event.before.member.roles) != set(event.after.member.roles):
         send_message(target=storage["evt_chan"],
-            text="`Member update` %s: `before` %s, `after` %s" %
-            (event.before.member.nick,
+            text="`Member update` %s %s: `before` %s, `after` %s" %
+            (event.before.member.nick, event.before.member.id,
                 ", ".join(i.name for i in event.before.member.roles),
                 ", ".join(i.name for i in event.after.member.roles)))
 
