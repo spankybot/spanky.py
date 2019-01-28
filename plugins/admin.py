@@ -246,7 +246,7 @@ def del_chan_from_chgroup(send_message, text, server, str_to_id):
 #
 @hook.command(permissions=Permission.admin, format="command channel-group")
 def add_chgroup_to_cmd(send_message, text, server):
-    """<channel-group command> - Add a channel-group to a command. The command will only be usable in that channel."""
+    """<command channel-group> - Add a channel-group to a command. The command will only be usable in that channel."""
     send_message(cgroups_own_cmds[server.id].add_thing(text))
 
 @hook.command(permissions=Permission.admin, format="cmd")
