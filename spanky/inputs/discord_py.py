@@ -75,7 +75,11 @@ class DiscordUtils():
 
     def get_emoji(self, str):
         id = str.replace("<", " ").replace(">", " ").replace(":", " ").strip().split(" ")[1]
-        return Emoji(discord.utils.find(lambda m: m.id == id, self.server._raw.emojis))
+        emoji = discord.utils.find(lambda m: m.id == id, self.server._raw.emojis)
+        if emoji:
+            return Emoji(emoji)
+        else:
+            return None
 
     def get_channel(self, target, server):
         """
