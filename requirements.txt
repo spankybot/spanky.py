@@ -8,4 +8,6 @@ lxml
 bs4
 isodate
 microdata
-pyenchant
+wand
+psutil
+oslo.concurrency
