@@ -197,7 +197,7 @@ def add_moustache(image, moustache_img, debug=False):
 
         avg_pos = get_average_pos(face_landmarks["nose_tip"] + face_landmarks["top_lip"])
 
-        offset = rotate_origin_only((moustache_json["offset_x"], moustache_json["offset_y"]), lip_angle)
+        offset = rotate_origin_only((moustache_json["offset_x"], moustache_json["offset_y"]), -lip_angle)
 
         moustache_paste = (avg_pos[0] - moustache.size[0] // 2 + offset[0],
                            avg_pos[1] - moustache.size[1] // 2 + offset[1])
