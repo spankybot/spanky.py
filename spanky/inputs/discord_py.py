@@ -6,6 +6,7 @@ import asyncio
 import traceback
 import random
 import collections
+import requests
 from gc import collect
 
 logger = logging.getLogger('discord')
@@ -52,7 +53,7 @@ class Init():
 
 class DiscordUtils():
     def str_to_id(self, string):
-        return string.replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "")
+        return string.replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
 
     def id_to_user(self, id_str):
         return "<@%s>" % id_str
@@ -70,14 +71,6 @@ class DiscordUtils():
         user = discord.utils.find(lambda m: m.id == uid, self.server._raw.members)
         if user:
             return User(user)
-        else:
-            return None
-
-    def get_emoji(self, str):
-        id = str.replace("<", " ").replace(">", " ").replace(":", " ").strip().split(" ")[1]
-        emoji = discord.utils.find(lambda m: m.id == id, self.server._raw.emojis)
-        if emoji:
-            return Emoji(emoji)
         else:
             return None
 
@@ -226,6 +219,7 @@ class EventMessage(DiscordUtils):
             self.after = EventMessage(-1, message=message)
             self.edited = True
         else:
+            self.before = None
             self.after = None
             self.edited = False
 
@@ -246,6 +240,19 @@ class EventMessage(DiscordUtils):
                     self.embeds.append(Embed(emb))
 
         self._message = message
+
+    @property
+    def url(self):
+        if len(self.attachments) > 0:
+            yield self.attachments[0].url
+        elif len(self.embeds) > 0:
+            yield self.embeds[0].url
+        elif self.user_id_to_object(stripped) != None:
+            yield self.user_id_to_object(stripped).avatar_url
+        elif len(stripped) == 1 and requests.get("https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(codepoint=ord(stripped))).status_code == 200:
+            yield "https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(codepoint=ord(stripped))
+        elif requests.get("https://cdn.discordapp.com/emojis/%s.png" % stripped).status_code == 200:
+            yield "https://cdn.discordapp.com/emojis/%s.png" % stripped
 
 class Message():
     def __init__(self, obj):
