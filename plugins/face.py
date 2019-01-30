@@ -6,6 +6,7 @@ import glob
 import random
 import os
 import string
+import PIL
 
 from PIL import Image, ImageDraw
 from math import hypot, sin, cos
@@ -57,20 +58,56 @@ def send_img_reply(img, send_file, is_gif, storage_loc):
 
     os.system("rm %s/%s" % (storage_loc, fname))
 
+
+def do_stuff(url, send_file, storage_loc, send_message, func, overlay):
+    r = requests.get(url, stream=True)
+    r.raw.decode_content = True
+
+    try:
+        send_message("Working...")
+        img = Image.open(r.raw).convert("RGB")
+
+        x_scale = 1
+        y_scale = 1
+
+        size_x = img.size[0]
+        size_y = img.size[1]
+
+        if size_x > 800:
+            x_scale = 800 / img.size[0]
+            size_x *= x_scale
+            size_y *= x_scale
+
+        if size_y > 800:
+            y_scale = 800 / img.size[1]
+            size_x *= y_scale
+            size_y *= y_scale
+
+        if x_scale != 1 or y_scale != 1:
+            img = img.resize((int(size_x),
+                int(size_y)), resample=PIL.Image.BICUBIC)
+        print(img.size[0])
+        print(img.size[1])
+
+        out = func(img, overlay)
+    except:
+        import traceback
+        traceback.print_exc()
+        send_message("Something happened :/")
+        return
+
+    if out:
+        send_img_reply(out, send_file, False, storage_loc)
+    else:
+        send_message("No face found")
+
+
 @hook.command()
 def glasses(event, send_file, storage_loc, send_message):
     for url in event.url:
         overlay = random.choice(glob.glob("plugin_data/face_res/glasses/*.png"))
 
-        r = requests.get(url, stream=True)
-        r.raw.decode_content = True
-
-        out = add_glasses(Image.open(r.raw).convert("RGB"), overlay)
-
-        if out:
-            send_img_reply(out, send_file, False, storage_loc)
-        else:
-            send_message("No face found")
+        do_stuff(url, send_file, storage_loc, send_message, add_glasses, overlay)
 
 def add_glasses(image, glasses_img, debug=False):
     # Find all facial features in all the faces in the image
@@ -124,15 +161,7 @@ def moustache(event, send_file, storage_loc, send_message):
     for url in event.url:
         overlay = random.choice(glob.glob("plugin_data/face_res/moustache/*.png"))
 
-        r = requests.get(url, stream=True)
-        r.raw.decode_content = True
-
-        out = add_moustache(Image.open(r.raw).convert("RGB"), overlay)
-
-        if out:
-            send_img_reply(out, send_file, False, storage_loc)
-        else:
-            send_message("No face found")
+        do_stuff(url, send_file, storage_loc, send_message, add_moustache, overlay)
 
 def add_moustache(image, moustache_img, debug=False):
     # Find all facial features in all the faces in the image
@@ -189,15 +218,7 @@ def hat(event, send_file, storage_loc, send_message):
     for url in event.url:
         overlay = random.choice(glob.glob("plugin_data/face_res/hat/*.png"))
 
-        r = requests.get(url, stream=True)
-        r.raw.decode_content = True
-
-        out = add_hat(Image.open(r.raw).convert("RGB"), overlay)
-
-        if out:
-            send_img_reply(out, send_file, False, storage_loc)
-        else:
-            send_message("No face found")
+        do_stuff(url, send_file, storage_loc, send_message, add_hat, overlay)
 
 def add_hat(image, hat_img, debug=False):
     # Find all facial features in all the faces in the image
