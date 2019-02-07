@@ -11,7 +11,7 @@ async def s(text, channel, reply, event, bot):
     """<word replacement> - replace 'word' with replacement"""
     text = text.split()
 
-    messages = await channel.async_get_latest_messages(10)
+    messages = await channel.async_get_latest_messages(MAX_LEN)
 
     for msg in messages:
         if msg.id == event.msg.id or msg.author.id == bot.get_own_id() or msg.text.startswith(".s"):
