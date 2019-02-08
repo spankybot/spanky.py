@@ -7,6 +7,7 @@ import random
 import os
 import string
 import PIL
+import re
 
 from PIL import Image, ImageDraw
 from math import hypot, sin, cos
@@ -58,8 +59,22 @@ def send_img_reply(img, send_file, is_gif, storage_loc):
 
     os.system("rm %s/%s" % (storage_loc, fname))
 
+def get_single_image_url(starturl):
+    finishedurl = []
+    regex = r"href\=\"https://i\.imgur\.com\/([\d\w]*)(\.jpg|\.png|\.gif|\.mp4|\.gifv)"
+    try:
+        imgurHTML = requests.get(starturl)
+    except:
+        raise Exception('Something failed with the download')
+
+    imgurhash = re.findall(regex, imgurHTML.text)
+    finishedurl.append('https://i.imgur.com/{0}{1}'.format(imgurhash[0][0], imgurhash[0][1]))
+    return finishedurl
 
 def do_stuff(url, send_file, storage_loc, send_message, func, overlay):
+    if "imgur.com" in url:
+        url = get_single_image_url(url)[0]
+
     r = requests.get(url, stream=True)
     r.raw.decode_content = True
 
@@ -79,15 +94,13 @@ def do_stuff(url, send_file, storage_loc, send_message, func, overlay):
             size_y *= x_scale
 
         if size_y > 800:
-            y_scale = 800 / img.size[1]
+            y_scale = 800 / size_y
             size_x *= y_scale
             size_y *= y_scale
 
         if x_scale != 1 or y_scale != 1:
             img = img.resize((int(size_x),
                 int(size_y)), resample=PIL.Image.BICUBIC)
-        print(img.size[0])
-        print(img.size[1])
 
         out = func(img, overlay)
     except:
