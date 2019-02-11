@@ -1,0 +1,6 @@
+{
+    "discord_token": "",
+    "plugin_paths": ["plugins"],
+    "api_keys" : {
+    }
+}
