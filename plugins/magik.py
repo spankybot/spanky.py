@@ -3,6 +3,7 @@ import requests
 import os
 import string
 import random
+import time
 from wand.image import Image
 from spanky.plugin import hook
 from oslo_concurrency import lockutils
@@ -57,7 +58,7 @@ def make_magik(url, storage_loc, send_file, send_message):
         send_message("Something went wrong")
 
 @lockutils.synchronized('not_thread_safe')
-def make_gmagik(url, storage_loc, send_file, send_message):
+def make_gmagik(url, storage_loc, send_file, send_message, ratio1=0.5, ratio2=1.5):
     try:
         wand_src = get_image(url)
 
@@ -65,20 +66,20 @@ def make_gmagik(url, storage_loc, send_file, send_message):
         send_message("Working... ")
         frame = wand_src.sequence[0]
 
-        #frame.transform(resize='800x800>')
+        frame.transform(resize='400x400>')
 
         orig_width = frame.width
         orig_height = frame.height
 
-        for i in range(8):
+        for i in range(16):
            frame.liquid_rescale(
-                width=int(frame.width * 0.5),
-                height=int(frame.height * 0.5),
+                width=int(frame.width * ratio1),
+                height=int(frame.height * ratio1),
                 delta_x=1, rigidity=0)
 
            frame.liquid_rescale(
-                width=int(frame.width * 1.5),
-                height=int(frame.height * 1.5),
+                width=int(frame.width * ratio2),
+                height=int(frame.height * ratio2),
                 delta_x=2, rigidity=0)
 
            frame.resize(orig_width, orig_height)
@@ -91,36 +92,21 @@ def make_gmagik(url, storage_loc, send_file, send_message):
         traceback.print_exc()
         send_message("Something went wrong")
 
-def get_url(event, user_id_to_object, str_to_id, get_emoji, text):
-    if len(event.attachments) > 0:
-        return event.attachments[0].url
-    elif len(event.embeds) > 0:
-        return event.embeds[0].url
-    elif user_id_to_object(str_to_id(text)) != None:
-        return user_id_to_object(str_to_id(text)).avatar_url
-    else:
-        try:
-            maybe_emoji = get_emoji(text.split()[0])
-            if maybe_emoji:
-                return maybe_emoji.url
-        except:
-            return "https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(\
-                    codepoint=ord(event.msg.clean_content.split()[1]))
+@hook.command()
+def magik(event, send_file, storage_loc, text, send_message):
+    for url in event.url:
+        if url:
+            make_magik(url, storage_loc, send_file, send_message)
+        else:
+            return "Could not get image"
 
 @hook.command()
-def magik(event, send_file, storage_loc, get_emoji, text, send_message, user_id_to_object, str_to_id):
-    url = get_url(event, user_id_to_object, str_to_id, get_emoji, text)
-    if url:
-        print(url)
-        make_magik(url, storage_loc, send_file, send_message)
-    else:
-        return "Could not get image"
-
-@hook.command()
-def gmagik(event, send_file, storage_loc, get_emoji, text, send_message, user_id_to_object, str_to_id):
-    url = get_url(event, user_id_to_object, str_to_id, get_emoji, text)
-    if url:
-        print(url)
-        make_gmagik(url, storage_loc, send_file, send_message)
-    else:
-        return "Could not get image"
+def gmagik(event, send_file, storage_loc, text, send_message):
+    for url in event.url:
+        if url:
+            print(url)
+            start = int(time.time())
+            make_gmagik(url, storage_loc, send_file, send_message, 0.75, 1.25)
+            print("Time: %d" % (int(time.time()) - start))
+        else:
+            return "Could not get image"
