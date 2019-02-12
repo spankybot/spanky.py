@@ -2,6 +2,7 @@ import datetime
 from spanky.plugin import hook, permissions
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
+from spanky.utils import time_utils
 
 @hook.command(permissions=Permission.admin, format="user")
 def kick(user_id_to_object, str_to_id, text):
@@ -57,9 +58,9 @@ e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 123456
 def do_join(event, storage, send_message, str_to_id, server):
     if storage["on_join_message"]:
         for msg in storage["on_join_message"]:
+            creation_date = datetime.datetime.utcfromtimestamp(int((int(event.member.id) >> 22) + 1420070400000) / 1000)
             args = {
-                "AGE":  datetime.datetime.utcfromtimestamp(\
-                    int((int(event.member.id) >> 22) + 1420070400000) / 1000),
+                "AGE":  time_utils.sec_to_human((datetime.datetime.now() - creation_date).total_seconds()),
                 "USER": event.member.name,
                 "USER_ID": event.member.id
             }
@@ -99,13 +100,17 @@ def del_join_event(storage, text):
     """
     <event> - delete a join event
     """
-    if storage["on_join_message"] and text in storage["on_join_message"]:
-        storage["on_join_message"].remove(text)
-        storage.sync()
-        return "Done."
-    elif storage["on_join_role"] and text in storage["on_join_role"]:
-        storage["on_join_role"].remove(text)
-        storage.sync()
-        return "Done."
+    if storage["on_join_message"]:
+        for item in storage["on_join_message"]:
+            if text == item:
+                storage["on_join_message"].remove(text)
+                storage.sync()
+                return "Done."
+    elif storage["on_join_role"]:
+        for item in storage["on_join_role"]:
+            if text == item:
+                storage["on_join_role"].remove(text)
+                storage.sync()
+                return "Done."
 
     return "Couldn't find it."
