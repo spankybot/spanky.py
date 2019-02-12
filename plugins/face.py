@@ -157,10 +157,12 @@ def add_glasses(image, glasses_img, debug=False):
         x_scale_ratio = glasses.size[0] / eyes_dist / glasses_json["scale"]
 
         # Resize the glasses
-        glasses = glasses.resize((int(glasses.size[0] / x_scale_ratio), int(glasses.size[1] / x_scale_ratio)))
+        glasses = glasses.resize((int(glasses.size[0] / x_scale_ratio), int(glasses.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
+
+        offset = rotate_origin_only((glasses_json["offset_x"], glasses_json["offset_y"]), -eyes_angle)
 
         # Calculate where to paste the glasses
-        glasses_paste = (eyes_avg[0] - glasses.size[0] // 2, eyes_avg[1] - glasses.size[1] // 2)
+        glasses_paste = (eyes_avg[0] - glasses.size[0] // 2 + offset[0], eyes_avg[1] - glasses.size[1] // 2 + offset[1])
 
         image.paste(glasses, glasses_paste, glasses)
 
@@ -206,7 +208,7 @@ def add_moustache(image, moustache_img, debug=False):
 
         # Resize the glasses
         moustache = moustache.resize((int(moustache.size[0] / x_scale_ratio),
-                                      int(moustache.size[1] / x_scale_ratio)))
+                                      int(moustache.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
 
         avg_pos = get_average_pos(face_landmarks["nose_tip"] + face_landmarks["top_lip"])
 
@@ -263,7 +265,7 @@ def add_hat(image, hat_img, debug=False):
 
         # Resize the glasses
         hat = hat.resize((int(hat.size[0] / x_scale_ratio),
-                          int(hat.size[1] / x_scale_ratio)))
+                          int(hat.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
 
         avg_pos = get_average_pos((chin[0], chin[-1]))
         print(-chin_angle)
@@ -277,6 +279,73 @@ def add_hat(image, hat_img, debug=False):
 
         if debug:
             ImageDraw.Draw(image).polygon(face_landmarks["chin"])
+
+    if modified:
+        return image
+    else:
+        return None
+
+
+@hook.command()
+def eyes(event, send_file, storage_loc, send_message):
+    for url in event.url:
+        overlay = random.choice(glob.glob("plugin_data/face_res/eyes/*_l.png"))
+        overlay = overlay.replace("_l.png", ".png")
+
+        do_stuff(url, send_file, storage_loc, send_message, add_eyes, overlay)
+
+def add_eyes(image, eyes_img, debug=False):
+    # Find all facial features in all the faces in the image
+    face_landmarks_list = face_recognition.face_landmarks(np.array(image))
+
+    if debug:
+        print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
+
+    eye_l = Image.open(eyes_img.replace(".png", "_l.png"))
+    eye_r = Image.open(eyes_img.replace(".png", "_r.png"))
+    eyes_json = json.load(open(eyes_img + ".json"))
+
+    modified = False
+    # Cycle through each face
+    for face_landmarks in face_landmarks_list:
+        modified = True
+        left_eye = face_landmarks["left_eye"]
+        right_eye = face_landmarks["right_eye"]
+
+        # Get average positions for the eyes
+        avg_left = get_average_pos(left_eye)
+        avg_right = get_average_pos(right_eye)
+
+        # Get eyes angle - if face is rotated
+        eyes_angle = get_angle(avg_left, avg_right)
+
+        # Get distance between eyes
+        eyes_dist = dist_ab(avg_left, avg_right)
+
+        # Rotate the moustache
+        eye_l = eye_l.rotate(-eyes_angle, expand=True)
+        eye_r = eye_r.rotate(-eyes_angle, expand=True)
+
+        # Calculate the scaling and resize
+        x_scale_ratio_l = eye_l.size[0] / eyes_dist / eyes_json["scale"]
+        eye_l = eye_l.resize((int(eye_l.size[0] / x_scale_ratio_l),
+                          int(eye_l.size[1] / x_scale_ratio_l)), resample=PIL.Image.BICUBIC)
+
+        # Calculate the scaling and resize
+        x_scale_ratio_r = eye_r.size[0] / eyes_dist / eyes_json["scale"]
+        eye_r = eye_r.resize((int(eye_r.size[0] / x_scale_ratio_r),
+                          int(eye_r.size[1] / x_scale_ratio_r)), resample=PIL.Image.BICUBIC)
+
+        offset = rotate_origin_only((eyes_json["offset_x"], eyes_json["offset_y"]), -eyes_angle)
+
+        eye_l_paste = (avg_left[0] - eye_l.size[0] // 2 + offset[0],
+                       avg_left[1] - eye_l.size[1] // 2 + offset[1])
+
+        eye_r_paste = (avg_right[0] - eye_r.size[0] // 2 + offset[0],
+                       avg_right[1] - eye_r.size[1] // 2 + offset[1])
+
+        image.paste(eye_l, eye_l_paste, eye_l)
+        image.paste(eye_r, eye_r_paste, eye_r)
 
     if modified:
         return image
