@@ -151,7 +151,8 @@ def bulaucheck():
             role = get_role_by_id(roddit, role_id)
             new_roles.append(role)
 
-        member.replace_roles(new_roles)
+        if member:
+            member.replace_roles(new_roles)
 
         del rstorage[user]
         rstorage.sync()
