@@ -175,7 +175,7 @@ async def grabl(event, storage, async_send_message, str_to_id, text):
         await async_send_message("Nothing found.")
         return
     else:
-        if total_pages > 0:
+        if total_pages > 1:
             msg = "Grabl page 1/%d: %s\n" % (total_pages, text)
             msg += pages[0]
 
@@ -186,7 +186,7 @@ async def grabl(event, storage, async_send_message, str_to_id, text):
             await message.async_add_reaction(RARROW)
         else:
             msg = "Grab search for user: %s\n" % (text)
-            msg += ", ".join(i for i in content)
+            msg += "\n".join(i for i in content)
 
             message = await async_send_message(msg)
 
@@ -206,7 +206,7 @@ async def grabs(event, storage, async_send_message):
         await async_send_message("Nothing found.")
         return
     else:
-        if total_pages > 0:
+        if total_pages > 1:
             msg = "Grabs page 1/%d: %s\n" % (total_pages, text)
             msg += pages[0]
 
@@ -217,7 +217,7 @@ async def grabs(event, storage, async_send_message):
             await message.async_add_reaction(RARROW)
         else:
             msg = "Grab search for: %s\n" % (text)
-            msg += ", ".join(i for i in content)
+            msg += "\n".join(i for i in content)
 
             message = await async_send_message(msg)
 
