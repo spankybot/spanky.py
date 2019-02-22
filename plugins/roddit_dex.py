@@ -3,36 +3,25 @@ import asyncio
 import sys
 import requests
 import os
+import plugins.paged_content as paged
 from bs4 import BeautifulSoup
 
 RODDIT_ID = "287285563118190592"
 
 @hook.command(server_id=RODDIT_ID)
-def dex(send_message, text):
+async def dex(send_message, async_send_message, text):
     """<cuvant> - Cauta definitia pentru un cuvant in DEX"""
-
-    def_nr = 0
-    stext = text.split()
-
-    r = requests.get('https://dexonline.ro/definitie/%s/expandat' % stext[0])
+    r = requests.get('https://dexonline.ro/definitie/%s/expandat' % text)
     bf = BeautifulSoup(r.content, "html.parser")
-    letters = bf.find_all('div', {'class' : 'defWrapper'})
+    results = bf.find_all('div', {'class' : 'defWrapper'})
 
-    if len(stext) > 1:
-        try:
-            def_nr = int(stext[1])
-        except:
-            return
-        if def_nr < 0 or def_nr >= len(letters):
-            send_message("Cifra trebuie sa fie in [0, %d]" % (len(letters) - 1))
-            return
-
-    if len(letters) == 0:
+    if len(results) == 0:
         send_message("n-am gasit boss")
         return
 
-    msg = letters[def_nr].find_all('span', {'class' : 'def'})[0].text
+    content = []
+    for i in range(len(results)):
+        content.append(results[i].find_all('span', {'class' : 'def'})[0].text)
 
-    send_message(msg)
-    if len(stext) == 1 and len(letters) > 1:
-        send_message("Sau inca %d definitii disponibile. (.dex cuvant nr_definitie)" % (len(letters) - 1))
+    paged_content = paged.element(content, async_send_message, "Definitii pentru %s" % text, max_lines=1, max_line_len=2000)
+    await paged_content.get_crt_page()
