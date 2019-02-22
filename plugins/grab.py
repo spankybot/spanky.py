@@ -5,10 +5,6 @@ import plugins.paged_content as paged
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 
-MAX_LEN = 10
-LARROW=u'⬅'
-RARROW=u'➡'
-
 @hook.command(format="user")
 async def grab(text, channel, str_to_id, storage, reply, event):
     """<user> - grab user's last message"""
