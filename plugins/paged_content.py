@@ -1,11 +1,13 @@
 #-*- coding: utf-8 -*-
 import math
+import random
 from collections import deque
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 
 LARROW=u'⬅'
 RARROW=u'➡'
+RANDOM=u'🔢'
 elements = deque(maxlen = 10)
 
 class element():
@@ -46,6 +48,7 @@ class element():
         if with_arrows:
             await msg.async_add_reaction(LARROW)
             await msg.async_add_reaction(RARROW)
+            await msg.async_add_reaction(RANDOM)
 
     async def get_next_page(self):
         if self.crt_idx + self.max_lines < len(self.parsed_lines):
@@ -63,13 +66,18 @@ class element():
 
         await self.get_crt_page()
 
+    async def get_random_page(self):
+        self.crt_idx = random.randint(0, len(self.parsed_lines) // self.max_lines) * self.max_lines
+        await self.get_crt_page()
+
 @hook.event(EventType.reaction_add)
 async def do_page(bot, event):
     if event.msg.author.id != bot.get_own_id():
         return
 
     if (event.reaction.emoji.name == LARROW or \
-        event.reaction.emoji.name == RARROW):
+        event.reaction.emoji.name == RARROW or \
+        event.reaction.emoji.name == RANDOM):
 
         content = None
         for msg in elements:
@@ -88,9 +96,5 @@ async def do_page(bot, event):
         if event.reaction.emoji.name == RARROW:
             await content.get_next_page()
 
-@hook.command()
-async def test(async_send_message):
-    a = element("a b c d e f".split(" "), max_lines=2, send_func=async_send_message, description="pula")
-
-    add_paged_element(a)
-    await a.get_crt_page()
+        if event.reaction.emoji.name == RANDOM:
+            await content.get_random_page()
