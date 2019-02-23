@@ -50,12 +50,18 @@ class element():
     async def get_next_page(self):
         if self.crt_idx + self.max_lines < len(self.parsed_lines):
             self.crt_idx += self.max_lines
-            await self.get_crt_page()
+        else:
+            self.crt_idx = 0
+
+        await self.get_crt_page()
 
     async def get_prev_page(self):
         if self.crt_idx - self.max_lines >= 0:
             self.crt_idx -= self.max_lines
-            await self.get_crt_page()
+        else:
+            self.crt_idx = len(self.parsed_lines) - len(self.parsed_lines) % self.max_lines - 1
+
+        await self.get_crt_page()
 
 @hook.event(EventType.reaction_add)
 async def do_page(bot, event):
