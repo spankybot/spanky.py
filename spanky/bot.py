@@ -22,8 +22,6 @@ fh = logging.FileHandler('audit.log')
 fh.setLevel(logging.DEBUG)
 audit.addHandler(fh)
 
-cmd_re = re.compile(r"(\W+)")
-
 class Bot():
     def __init__(self, input_type):
         self.user_agent = "spaky.py bot https://github.com/gc-plp/spanky.py"
@@ -185,31 +183,52 @@ class Bot():
 
     def do_text_event(self, event):
         """Process a text event"""
+        # Don't do anything if bot is not connected
         if not self.is_ready:
             return
 
+        # Ignore private messages
         if event.is_pm:
             return
 
         self.run_type_events(event)
 
-        if event.author.bot:
+        # Don't answer to own commands and don't trigger invalid events
+        if event.author.bot or not event.do_trigger:
             return
 
+        is_piped = True
+        piped_cmds = []
         # Check if the command starts with .
-        if event.do_trigger and len(event.msg.text) > 0 and event.msg.text[0] == ".":
-            # Get the actual command
-            cmd_split = re.split(cmd_re, event.msg.text, maxsplit=2)
+        if len(event.msg.text) > 0 and event.msg.text[0] == ".":
+            # Check if commands are piped
+            piped_cmds = event.msg.text.split("|")
 
-            command = cmd_split[2]
+            # Check that each piped split is a command
+            for pos, piped_cmd in enumerate(piped_cmds):
+                if len(piped_cmd) == 0 or piped_cmd.lstrip()[0] != ".":
+                    piped_cmds = [event.msg.text]
+                    is_piped = False
+                    break
+
+                # Clean up the text if it starts with spaces
+                piped_cmds[pos] = piped_cmd.lstrip()
+        else:
+            return
+
+        for cmd_text in piped_cmds:
+            # Get the actual command
+            cmd_split = cmd_text[1:].split(maxsplit=1)
+
+            command = cmd_split[0]
             logger.debug("Got command %s" % str(command))
 
             # Check if it's in the command list
             if command in self.plugin_manager.commands.keys():
                 hook = self.plugin_manager.commands[command]
 
-                if len(cmd_split) > 3:
-                    event_text = cmd_split[4]
+                if len(cmd_split) > 1:
+                    event_text = cmd_split[1]
                 else:
                     event_text = ""
 
