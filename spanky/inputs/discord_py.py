@@ -53,7 +53,7 @@ class Init():
 
 class DiscordUtils():
     def str_to_id(self, string):
-        return string.replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
+        return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
 
     def id_to_user(self, id_str):
         return "<@%s>" % id_str
@@ -114,11 +114,11 @@ class DiscordUtils():
             if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
                     msg = Message(await client.edit_message(old_reply._raw, text))
+                    add_bot_reply(self.server.id, self.msg, msg)
+                    return msg
                 except:
                     print(traceback.format_exc())
-
-                add_bot_reply(self.server.id, self.msg, msg)
-                return msg
+                    return
             try:
                 msg = Message(await client.send_message(channel, text))
             except:
@@ -149,6 +149,7 @@ class DiscordUtils():
                         msg = Message(await client.send_file(channel, file))
                     except:
                         print(traceback.format_exc())
+                    add_bot_reply(self.server.id, self.msg._raw, msg)
                     return msg
 
             try:
@@ -228,31 +229,67 @@ class EventMessage(DiscordUtils):
             # don't trigger hooks on deleted messages
             self.do_trigger = False
 
-        self.attachments = []
-        if len(message.attachments) > 0:
-            for att in message.attachments:
-                self.attachments.append(Attachment(att))
-
-        self.embeds = []
-        if len(message.embeds) > 0:
-            for emb in message.embeds:
-                if emb["type"] == "image":
-                    self.embeds.append(Embed(emb))
-
         self._message = message
 
     @property
+    def attachments(self):
+        for att in self._message.attachments:
+            yield Attachment(att)
+
+    @property
+    def embeds(self):
+        for emb in self._message.embeds:
+            yield Embed(emb)
+
+    @property
     def url(self):
-        if len(self.attachments) > 0:
-            yield self.attachments[0].url
-        elif len(self.embeds) > 0:
-            yield self.embeds[0].url
-        elif self.user_id_to_object(stripped) != None:
+        def strip_url(text):
+            return text.replace("<", "").replace(">", "")
+
+        last_word = self.text.split()[-1]
+
+        stripped = self.str_to_id(last_word).split()[-1]
+
+        for att in self.attachments:
+            yield att.url
+            return
+
+        for emb in self.embeds:
+            yield emb.url
+            return
+
+        if self.user_id_to_object(stripped) != None:
             yield self.user_id_to_object(stripped).avatar_url
-        elif len(stripped) == 1 and requests.get("https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(codepoint=ord(stripped))).status_code == 200:
+            return
+        elif len(stripped) == 1 and requests.get("https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(\
+                codepoint=ord(stripped))).status_code == 200:
             yield "https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(codepoint=ord(stripped))
+            return
+        elif requests.get("https://cdn.discordapp.com/emojis/%s.gif" % stripped).status_code == 200:
+            yield "https://cdn.discordapp.com/emojis/%s.gif" % stripped
+            return
         elif requests.get("https://cdn.discordapp.com/emojis/%s.png" % stripped).status_code == 200:
             yield "https://cdn.discordapp.com/emojis/%s.png" % stripped
+            return
+        elif last_word.startswith("http"):
+            yield strip_url(last_word)
+            return
+        elif self.server.id in bot_replies:
+            for reply in bot_replies[self.server.id].bot_messages():
+                print(reply.id)
+                for att in reply._raw.attachments:
+                    print(att)
+                    yield Attachment(att).url
+                    return
+
+                for emb in reply._raw.embeds:
+                    print(emb)
+                    yield Embed(emb).url
+                    return
+
+                if strip_url(reply.text.split()[-1]).startswith("http"):
+                    yield strip_url(reply.text.split()[-1])
+                    return
 
 class Message():
     def __init__(self, obj):
@@ -285,6 +322,7 @@ class User():
         self.name = obj.name
         self.id = obj.id
         self.bot = obj.bot
+        self.joined_at = obj.joined_at
 
         self.avatar_url = obj.avatar_url
 
@@ -492,6 +530,10 @@ class DictQueue():
                 return elem[1]
 
         return None
+
+    def bot_messages(self):
+        for elem in reversed(self.queue):
+            yield elem[1]
 
 def add_bot_reply(server_id, source, reply):
     if server_id not in bot_replies:
