@@ -12,7 +12,24 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 def get_image(url):
-    return Image(blob=requests.get(url).content)
+    req = requests.get(url, stream=True)
+    req.raise_for_status()
+
+    size = 0
+    start = time.time()
+
+    content = bytes()
+    for chunk in req.iter_content(1024):
+        if time.time() - start > 20:
+            raise()
+
+        content += chunk
+        size += len(chunk)
+
+        if size > 1024 * 1024 * 20:
+            return
+
+    return Image(blob=content)
 
 def send_img_reply(img, send_file, is_gif, storage_loc):
     if is_gif:
