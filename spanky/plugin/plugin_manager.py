@@ -31,24 +31,24 @@ class PluginManager():
         self.run_on_ready = []
         self.bot = bot
         self.db = db
-        
+
         self.loop = asyncio.get_event_loop()
-        
+
         # Load each path
         for path in path_list:
             self.plugins.update(self.load_plugins(path))
-        
+
         self.reloader = {}
         for path in path_list:
             self.reloader[path] = PluginReloader(self)
             self.reloader[path].start([path])
-        
+
         for plugin in self.plugins.values():
             self.finalize_plugin(plugin)
-    
+
     def finalize_plugin(self, plugin):
         plugin.create_tables(self.db)
-        
+
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
             success = self.launch(OnStartEvent(bot=self.bot, hook=on_start_hook))
@@ -58,17 +58,17 @@ class PluginManager():
                 # unregister databases
                 plugin.unregister_tables(self.db)
                 return
-            
+
         # run on_ready hooks if bot ready
         if self.bot.is_ready:
             for server in self.bot.backend.get_servers():
                 for on_ready_hook in plugin.run_on_ready:
                     self.launch(OnReadyEvent(
-                        bot=self.bot, 
-                        hook=on_ready_hook, 
+                        bot=self.bot,
+                        hook=on_ready_hook,
                         permission_mgr=self.bot.get_pmgr(server.id),
                         server=server))
-        
+
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
 
@@ -109,18 +109,18 @@ class PluginManager():
             for regex_match in regex_hook.regexes:
                 self.regex_hooks.append((regex_match, regex_hook))
             logger.debug("Loaded {}".format(repr(regex_hook)))
-            
+
         # register sieves
         for sieve_hook in plugin.sieves:
             self.sieves.append(sieve_hook)
-            
+
         # register sieves
         for on_ready_hook in plugin.run_on_ready:
             self.run_on_ready.append(on_ready_hook)
 
         # sort sieve hooks by priority
         self.sieves.sort(key=lambda x: x.priority)
-            
+
     def _prepare_parameters(self, hook, event):
         """
         Prepares arguments for the given hook
@@ -130,16 +130,16 @@ class PluginManager():
         :rtype: list
         """
         parameters = []
-        
+
         if "storage" in hook.required_args:
             stor_name = hook.plugin.name.replace(".py", "").replace("/","_")
             event.storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
-        
+
         if "storage_loc" in hook.required_args:
             event.storage_loc = \
                 event.permission_mgr.get_data_location(
                     hook.plugin.name.replace(".py", "").replace("/","_"))
-        
+
         for required_arg in hook.required_args:
             if hasattr(event, required_arg):
                 value = getattr(event, required_arg)
@@ -154,7 +154,7 @@ class PluginManager():
                 print(dir(event.event))
                 return None
         return parameters
-    
+
     def _execute_hook(self, hook, event):
         event.prepare()
 
@@ -173,14 +173,14 @@ class PluginManager():
             traceback.print_exc()
         finally:
             event.close()
-            
+
     def execute_hook(self, hook, event):
         """
         Runs the specific hook with the given bot and event.
 
         Returns False if the hook errored, True otherwise.
         """
-        
+
         out = self._execute_hook(hook, event)
 
         if out is not None:
@@ -191,7 +191,7 @@ class PluginManager():
                 event.reply(str(out))
 
         return (True)
-    
+
     def correct_format(self, hook, text):
         """Check if the request has the required format"""
         if hook.format:
@@ -201,21 +201,21 @@ class PluginManager():
                 return False
         else:
             return True
-        
+
         return False
-    
+
     def launch(self, event):
         """
         Dispatch a given event to a given hook using a given bot object.
         Returns False if the hook didn't run successfully, and True if it ran successfully.
         """
-        
+
         hook = event.hook
-        
+
         if hook.type in ("command"):
             if event.hook.server_id and event.event.server.id != event.hook.server_id:
                 return
-            
+
             # Ask the sieves to validate our command
             for sieve in self.sieves:
                 args = {"bot": self.bot, "bot_event":event}
@@ -231,9 +231,9 @@ class PluginManager():
 
             if not self.correct_format(hook, event.text):
                 func_doc = hook.function.__doc__
-                
+
                 msg = "Invalid format"
-                
+
                 if func_doc:
                     msg += ": `" + hook.function.__doc__ + "`"
                 event.event.reply(msg)
@@ -248,7 +248,7 @@ class PluginManager():
 
         # Return the result
         return result
-    
+
     def unload_plugin(self, path):
         """
         Unloads the plugin from the given path, unregistering all hooks from the plugin.
@@ -310,7 +310,7 @@ class PluginManager():
         logger.info("Unloaded all plugins from {}.py".format(plugin.name))
 
         return True
-    
+
     def load_plugin(self, fname):
         """
         Load a whole plugin file
@@ -320,7 +320,7 @@ class PluginManager():
         # Try unloading the file first
         self.unload_plugin(fname)
         plugin = self._load_plugin(fname)
-        
+
         if plugin:
             self.plugins[fname] = Plugin(fname, plugin)
             self.finalize_plugin(self.plugins[fname])
@@ -343,7 +343,7 @@ class PluginManager():
             # If file was previously imported, reload
             if plugin_module in self.modules:
                 plugin_module = importlib.reload(plugin_module)
-            
+
             self.modules.append(plugin_module)
 
             # Return the imported file
@@ -353,7 +353,7 @@ class PluginManager():
             logger.debug("Error loading %s:\n\t%s" %(fname, e))
             traceback.print_exc()
             return None
-        
+
     def load_plugins(self, path):
         """
         Load plugins from a specified path.
@@ -362,16 +362,16 @@ class PluginManager():
         plugin_dict = {}
         for file in plugins:
             plugin_data = self._load_plugin(file)
-            
+
             if plugin_data:
                 plugin_dict[file] = Plugin(file, plugin_data)
 
         return plugin_dict
-    
+
 class Plugin():
     def __init__(self, name, module):
         self.name = name
-        
+
         self.commands, \
             self.regexes, \
             self.raw_hooks, \
@@ -380,7 +380,7 @@ class Plugin():
             self.periodic, \
             self.run_on_start, \
             self.run_on_ready = find_hooks(self, module)
-            
+
         self.tables = find_tables(module)
 
     def create_tables(self, db_data):
@@ -391,7 +391,7 @@ class Plugin():
             for table in self.tables:
                 if not (table.exists(db_data.db_engine)):
                     table.create(db_data.db_engine)
-                    
+
     def unregister_tables(self, db_data):
         """
         Unregisters all sqlalchemy Tables registered to the global metadata by this plugin
