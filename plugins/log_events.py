@@ -123,11 +123,12 @@ def log_message_del(event, send_message, storage):
         return
 
     send_message(target=storage["evt_chan"],
-        text="`Deleted` %s `in` %s `ID: ` %s `by` %s" %
+        text="`Deleted` %s `in` %s `ID: ` %s `by` %s / %s" %
         (escape(event.msg.text),
         event.channel.name,
         event.msg.id,
-        event.author.name
+        event.author.name,
+        event.author.id
         ))
 
 @hook.event(EventType.member_update)
