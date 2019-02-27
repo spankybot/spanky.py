@@ -46,13 +46,13 @@ def get_links_from_sub(r, sub):
     return new_links
 
 def refresh_cache(r, el):
-    print("Refreshing cache for " + el)
+    #print("Refreshing cache for " + el)
     delete = links.delete(links.c.subreddit == el)
     g_db.execute(delete)
     g_db.commit()
 
     new_links =  get_links_from_sub(r, el)
-    print("Adding %d links" % len(new_links))
+    #print("Adding %d links" % len(new_links))
 
     last_fetch = datetime.utcnow()
 
@@ -110,7 +110,8 @@ def _get_links_from_subs(sub):
                 del_sub(el)
                 return ["Error :/"]
         else:
-            print("Cache for %s is %i" %(el, (now - sub_list[el]).total_seconds()))
+            pass
+            #print("Cache for %s is %i" %(el, (now - sub_list[el]).total_seconds()))
 
         db_links = g_db.execute(select([links.c.link, links.c.source]).where(links.c.subreddit == el))
 
@@ -157,7 +158,7 @@ def refresh_porn(db):
     global g_db
     g_db = db
 
-    print("Refreshing...")
+    #print("Refreshing...")
     db_subs = g_db.execute(select([subs.c.subreddit]))
     for el in db_subs:
         fake_list = [el['subreddit']]
