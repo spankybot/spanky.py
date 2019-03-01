@@ -2,39 +2,77 @@ from spanky.plugin import hook
 
 RODDIT_ID = "287285563118190592"
 
-nu_vreau = "Nu vreau culoare".lower()
-
 @hook.command(server_id=RODDIT_ID)
 def color(send_message, server, event, bot, text):
+    return roles_from_list(
+            "- START Culori -",
+            "- END Culori -",
+            "nu vreau culoare",
+            send_message,
+            server,
+            event,
+            bot,
+            text)
+
+@hook.command(server_id=RODDIT_ID)
+def joc(send_message, server, event, bot, text):
+    return roles_from_list(
+            "- START Jocuri -",
+            "- END Jocuri -",
+            "nu vreau joc",
+            send_message,
+            server,
+            event,
+            bot,
+            text)
+
+@hook.command(server_id=RODDIT_ID)
+def rol(send_message, server, event, bot, text):
+    return roles_from_list(
+            "- START Grupuri -",
+            "- END Grupuri -",
+            "nu vreau",
+            send_message,
+            server,
+            event,
+            bot,
+            text)
+
+def roles_from_list(start_role, end_role, remove_text, send_message, server, event, bot, text):
     use_slow_mode = False
 
     bot_roles = bot.get_bot_roles_in_server(server)
 
-    list_colors = {nu_vreau: None}
+    list_colors = {remove_text.lower(): None}
     user_roles = {}
+    # Make list of user roles
     for i in event.author.roles:
         user_roles[i.name.lower()] = i
 
-    # Decide if the bot can use replace_roles or not
+    # Get the highest role that the bot has
     bot_max = 0
     for i in bot_roles:
         if bot_max < i.position:
             bot_max = i.position
 
+    # Decide if the bot can use replace_roles or not
     for i in user_roles:
         if bot_max < user_roles[i].position:
             use_slow_mode = True
 
+    # Get starting and ending positions of listed roles
     for srole in server.get_roles():
-        if "- START Culori -" in srole.name:
+        if start_role in srole.name:
             pos_start = srole.position
-        if "- END Culori -" in srole.name:
+        if end_role in srole.name:
             pos_end = srole.position
 
+    # List available roles
     for i in server.get_roles():
         if i.position > pos_end and i.position < pos_start:
             list_colors[i.name.lower()] = i
 
+    # If no role was specified, just print them
     if text == "":
         send_message("Available colors: `%s`" % (", ".join(i for i in sorted(list_colors))))
         return
@@ -42,10 +80,12 @@ def color(send_message, server, event, bot, text):
     split = text.split()
     role = " ".join(split).lower()
 
+    # Check if the requested role exists
     if role not in list_colors:
         send_message("%s is not a color. Available colors: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
         return
 
+    # If the user wants the role removed
     if role == nu_vreau:
         for i in list_colors:
             if i in user_roles:
@@ -54,7 +94,8 @@ def color(send_message, server, event, bot, text):
                 else:
                     del user_roles[i]
     else:
-        # Check if a role should be removed
+        # Else the user has requested another role
+        # Check if a role from the current list should be removed
         for i in list_colors:
             if i in user_roles and i != role:
                 if use_slow_mode:
@@ -63,6 +104,8 @@ def color(send_message, server, event, bot, text):
                     del user_roles[i]
         user_roles[role] = list_colors[role]
 
+    # Use slow mode is used whenever the bot has lower rights than the user
+    # requesting the roles
     if not use_slow_mode:
         repl_roles = []
         for i in user_roles:
