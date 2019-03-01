@@ -143,11 +143,12 @@ def tag_add(text, event, reply, storage, storage_loc):
     <identifier content> - add tag content as indentifier
     """
     text = text.split()
-    if len(event.attachments) > 0:
+    for att in event.attachments:
         if len(text) != 1:
             return 'Format is: `.tag_add <name> picture`'
 
-        save_picture(event.attachments[0].url, text[0], reply, storage, storage_loc)
+        save_picture(att.url, text[0], reply, storage, storage_loc)
+        return
     else:
         if len(text) < 2:
             return 'If no picture is attached, add more words'
@@ -155,7 +156,7 @@ def tag_add(text, event, reply, storage, storage_loc):
         save_text(text[1:], text[0], reply, storage)
 
 @hook.command(permissions=Permission.admin, format="cmd")
-def tag_del(text, storage):
+def tag_del(text, storage, storage_loc):
     """
     <tag> - delete a tag
     """
@@ -163,7 +164,7 @@ def tag_del(text, storage):
         return "%s is not a tag" % text
 
     if storage[text]["type"] == "picture":
-        os.remove(storage[text]['location'])
+        os.remove(storage_loc + storage[text]['location'])
 
     del storage[text]
     storage.sync()
