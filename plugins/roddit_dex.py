@@ -23,5 +23,5 @@ async def dex(send_message, async_send_message, text):
     for i in range(len(results)):
         content.append(results[i].find_all('span', {'class' : 'def'})[0].text)
 
-    paged_content = paged.element(content, async_send_message, "Definitii pentru %s" % text, max_lines=1, max_line_len=2000)
+    paged_content = paged.element(content, async_send_message, "Definitii pentru %s" % text, max_lines=1, max_line_len=1800)
     await paged_content.get_crt_page()
