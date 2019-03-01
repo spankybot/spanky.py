@@ -24,8 +24,8 @@ class element():
                 while len(line) >= max_line_len:
                     self.parsed_lines.append(line[:max_line_len])
                     line = line[max_line_len:]
-
-            self.parsed_lines.append(line)
+            else:
+                self.parsed_lines.append(line)
 
         elements.append(self)
 
