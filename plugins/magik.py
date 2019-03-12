@@ -5,6 +5,7 @@ import string
 import random
 import time
 from wand.image import Image
+from wand.image import Color
 from spanky.plugin import hook
 from oslo_concurrency import lockutils
 
@@ -46,6 +47,29 @@ def send_img_reply(img, send_file, is_gif, storage_loc):
     os.system("rm %s/%s" % (storage_loc, fname))
 
 @lockutils.synchronized('not_thread_safe')
+def make_df(url, storage_loc, send_file, send_message):
+    try:
+        wand_src = get_image(url)
+
+        wand_img = Image()
+        send_message("Working... %d frames" % len(wand_src.sequence))
+        for frame in wand_src.sequence:
+            frame.transform(resize='800x800>')
+
+            frame.contrast_stretch(black_point=0.4, white_point=0.5)
+            frame.modulate(saturation=800)
+            frame.compression_quality = 2
+
+            wand_img.sequence.append(frame)
+
+        send_img_reply(wand_img, send_file, len(wand_src.sequence) > 1, storage_loc)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        send_message("Something went wrong")
+
+
+@lockutils.synchronized('not_thread_safe')
 def make_magik(url, storage_loc, send_file, send_message):
     try:
         wand_src = get_image(url)
@@ -84,6 +108,8 @@ def make_gmagik(url, storage_loc, send_file, send_message, ratio1=0.5, ratio2=1.
         frame = wand_src.sequence[0]
 
         frame.transform(resize='400x400>')
+        frame.background = Color('black')
+        frame.alpha_channel = 'remove'
 
         orig_width = frame.width
         orig_height = frame.height
@@ -108,6 +134,14 @@ def make_gmagik(url, storage_loc, send_file, send_message, ratio1=0.5, ratio2=1.
         import traceback
         traceback.print_exc()
         send_message("Something went wrong")
+
+@hook.command()
+def df(event, send_file, storage_loc, text, send_message):
+    for url in event.url:
+        if url:
+            make_df(url, storage_loc, send_file, send_message)
+        else:
+            return "Could not get image"
 
 @hook.command()
 def magik(event, send_file, storage_loc, text, send_message):
