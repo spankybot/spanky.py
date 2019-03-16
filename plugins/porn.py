@@ -223,7 +223,7 @@ def tzatze():
 
 @hook.command(server_id=RODDIT_ID)
 def fetish():
-    data = get_links_from_subs(['kinky', 'bdsm', 'bondage', 'collared', 'lesdom'])
+    data = get_links_from_subs(['kinky', 'bdsm', 'bondage', 'collared'])
 
     return format_output_message(data)
 
