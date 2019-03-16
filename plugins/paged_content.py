@@ -1,6 +1,7 @@
 #-*- coding: utf-8 -*-
 import math
 import random
+import time
 from collections import deque
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
@@ -8,6 +9,7 @@ from spanky.plugin.event import EventType
 LARROW=u'⬅'
 RARROW=u'➡'
 RANDOM=u'🔢'
+TIMEOUT = 5
 elements = deque(maxlen = 10)
 
 class element():
@@ -15,6 +17,8 @@ class element():
         self.max_lines = max_lines
         self.crt_idx = 0
         self.description = description
+
+        self.time = time.time()
 
         self.send = send_func
 
@@ -89,6 +93,12 @@ async def do_page(bot, event):
             return
 
         await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
+        # Check timeout
+        if time.time() - content.time < TIMEOUT:
+            return
+        else:
+            content.time = time.time()
 
         if event.reaction.emoji.name == LARROW:
             await content.get_prev_page()
