@@ -122,5 +122,13 @@ def db_log(event, args):
 
     cs = db_conn.cursor()
     cs.execute("""insert into messages (id, date, author, author_id, msg, channel, server, server_id) \
-            values({msg_id}, \'{timestamp}\', \'{author}\', {author_id}, \'{content}\', \'{channel}\', \'{server}\', {server_id})""".format(**args))
+            values(%s, %s, %s, %s, %s, %s, %s, %s);""", (
+            args["msg_id"],
+            args["timestamp"],
+            args["author"],
+            args["author_id"],
+            args["content"],
+            args["channel"],
+            args["server"],
+            args["server_id"]))
     db_conn.commit()
