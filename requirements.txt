@@ -11,3 +11,6 @@ microdata
 wand
 psutil
 oslo.concurrency
+psycopg2-binary
+googlemaps
+forecastiopy
