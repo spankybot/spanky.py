@@ -124,7 +124,7 @@ def _get_links_from_subs(sub):
                 del_sub(el)
     return data
 
-@hook.on_ready
+@hook.on_start
 def init(db):
     global g_db
     g_db = db
