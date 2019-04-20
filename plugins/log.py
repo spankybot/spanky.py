@@ -5,6 +5,7 @@ import psycopg2
 
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
+from spanky.plugin.permissions import Permission
 
 base_formats = {
     EventType.message: "{msg_id}: [{hour}:{minute}:{second}] <{nick}> {content}",
@@ -31,6 +32,7 @@ def get_format_args(event):
         "server": event.server.name,
         "server_id": event.server.id,
         "channel": event.channel.name,
+        "channel_id": event.channel.id,
         "nick": event.author.name + "/" + event.author.nick + "/" + event.author.id,
         "author": event.author.name,
         "author_id": event.author.id,
@@ -121,14 +123,76 @@ def db_log(event, args):
         return
 
     cs = db_conn.cursor()
-    cs.execute("""insert into messages (id, date, author, author_id, msg, channel, server, server_id) \
-            values(%s, %s, %s, %s, %s, %s, %s, %s);""", (
+    cs.execute("""insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
+            values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (
             args["msg_id"],
             args["timestamp"],
             args["author"],
             args["author_id"],
             args["content"],
             args["channel"],
+            args["channel_id"],
             args["server"],
             args["server_id"]))
     db_conn.commit()
+
+def log_msg(msg):
+    args = {}
+    args["msg_id"] = msg.id
+    args["timestamp"] = msg.timestamp
+    args["author"] = msg.author.name
+    args["author_id"] = msg.author.id
+    args["content"] = msg.content
+    args["channel"] = msg.channel.name
+    args["channel_id"] = msg.channel.id
+    args["server"] = msg.server.name
+    args["server_id"] = msg.server.id
+
+    cs = db_conn.cursor()
+    cs.execute("""select * from messages where id = %s;""", (args["msg_id"],))
+    out = cs.fetchall()
+    if len(out) == 0:
+        cs.execute("""insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
+            values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (
+            args["msg_id"],
+            args["timestamp"],
+            args["author"],
+            args["author_id"],
+            args["content"],
+            args["channel"],
+            args["channel_id"],
+            args["server"],
+            args["server_id"]))
+        db_conn.commit()
+
+async def rip_channel(client, ch):
+    before = None
+    old_bef = None
+    import time
+    while True:
+        print("Current timestamp " + str(before))
+        async for i in client.logs_from(ch, limit = 1000, reverse=True, before = before):
+            log_msg(i)
+            before = i.timestamp
+
+        time.sleep(0.5)
+        if old_bef == before:
+            break
+        else:
+            old_bef = before
+
+@hook.command(permissions=Permission.admin)
+async def rip_servers(bot):
+    import discord
+    client = bot.backend.client
+
+    gen = client.get_all_channels()
+
+    for ch in gen:
+        if ch.type == discord.ChannelType.text:
+            print("Ripping " + str(ch))
+            try:
+                await rip_channel(client, ch)
+            except:
+                import traceback
+                traceback.print_exc()
