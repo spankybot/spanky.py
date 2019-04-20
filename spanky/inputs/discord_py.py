@@ -7,6 +7,7 @@ import traceback
 import random
 import collections
 import requests
+import json
 from gc import collect
 
 logger = logging.getLogger('discord')
@@ -18,6 +19,7 @@ logger.addHandler(handler)
 client = discord.Client()
 bot = None
 bot_replies = {}
+emojis = json.load(open("plugin_data/twemoji_800x800.json"))
 
 class Init():
     def __init__(self, bot_inst):
@@ -99,7 +101,7 @@ class DiscordUtils():
         chan = discord.utils.find(lambda m: m.id == chan_id, self.server._raw.channels)
         return chan.name
 
-    async def async_send_message(self, text, target=-1, server=None):
+    async def async_send_message(self, text=None, embed=None, target=-1, server=None):
         channel = self.get_channel(target, server)
         if not channel:
             return
@@ -120,20 +122,33 @@ class DiscordUtils():
                     print(traceback.format_exc())
                     return
             try:
-                msg = Message(await client.send_message(channel, text))
+                if text != None:
+                    msg = Message(await client.send_message(channel, text))
+                elif embed != None:
+                    msg = Message(await client.send_message(channel, embed=embed))
+
+                if type(self) is EventMessage and msg:
+                    add_bot_reply(self.server.id, self.msg._raw, msg)
+
+                return msg
             except:
                 print(traceback.format_exc())
 
-            if type(self) is EventMessage and msg:
-                add_bot_reply(self.server.id, self.msg._raw, msg)
-            return msg
         except:
             print(traceback.format_exc())
 
     def send_message(self, text, target=-1, server=None):
         asyncio.run_coroutine_threadsafe(
-            self.async_send_message(text, target, server),
+            self.async_send_message(text=text, target=target, server=server),
             bot.loop)
+
+    def send_embed(self, title, description, fields):
+        em = discord.Embed(title=title, description=description)
+        for el in fields:
+            em.add_field(name=el, value=fields[el])
+
+        asyncio.run_coroutine_threadsafe(
+            self.async_send_message(embed=em), bot.loop)
 
     def reply(self, text, target=-1):
         self.send_message("(%s) %s" % (self.author.name, text), target)
@@ -261,9 +276,8 @@ class EventMessage(DiscordUtils):
         if self.user_id_to_object(stripped) != None:
             yield self.user_id_to_object(stripped).avatar_url
             return
-        elif len(stripped) == 1 and requests.get("https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(\
-                codepoint=ord(stripped))).status_code == 200:
-            yield "https://twemoji.maxcdn.com/72x72/{codepoint:x}.png".format(codepoint=ord(stripped))
+        elif len(stripped) == 1 and format(ord(stripped), "x") in emojis:
+            yield emojis[format(ord(stripped), "x")]
             return
         elif requests.get("https://cdn.discordapp.com/emojis/%s.gif" % stripped).status_code == 200:
             yield "https://cdn.discordapp.com/emojis/%s.gif" % stripped
@@ -537,7 +551,7 @@ class DictQueue():
 
 def add_bot_reply(server_id, source, reply):
     if server_id not in bot_replies:
-        bot_replies[server_id] = DictQueue(100)
+        bot_replies[server_id] = DictQueue(20)
     bot_replies[server_id][source.id] = reply
 
     print("%s -> %s" % (source.id, reply.id))
