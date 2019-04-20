@@ -53,7 +53,7 @@ def n_rolls(count, n):
                                                (.5 * (1 + n)) ** 2) * count) ** .5))]
 
 
-@hook.command("roll")
+@hook.command()
 def dice(text, notice):
     """<dice roll> - simulates dice rolls. Example: 'dice 2d20-d5+4 roll 2': D20s, subtract 1D5, add 4
     :type text: str
