@@ -74,7 +74,7 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
 
     # If no role was specified, just print them
     if text == "":
-        send_message("Available colors: `%s`" % (", ".join(i for i in sorted(list_colors))))
+        send_message("Available roles: `%s`" % (", ".join(i for i in sorted(list_colors))))
         return
 
     split = text.split()
@@ -82,11 +82,11 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
 
     # Check if the requested role exists
     if role not in list_colors:
-        send_message("%s is not a color. Available colors: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
+        send_message("%s is not a role. Available roles: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
         return
 
     # If the user wants the role removed
-    if role == nu_vreau:
+    if role == remove_text:
         for i in list_colors:
             if i in user_roles:
                 if use_slow_mode:
@@ -114,6 +114,6 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
         event.author.replace_roles(repl_roles)
         return "Done!"
     else:
-        if role != nu_vreau:
+        if role != remove_text:
             event.author.add_role(list_colors[role])
         return "Ai mai multe drepturi decat mine si s-ar putea sa nu fi mers totul OK. Fa-l singur in plm."
