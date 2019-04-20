@@ -32,6 +32,8 @@ def init():
 def ready(server, storage):
     storages[server.id] = storage
     servers[server.id] = server
+
+    # Set the current time for each subreddit
     set_crt_timestamps()
 
 def do_it(thread):
@@ -48,7 +50,6 @@ def do_it(thread):
 
 @hook.periodic(30)
 def checker(send_message):
-    global watching
     global reddit_inst
 
     for server_id, storage in storages.items():
