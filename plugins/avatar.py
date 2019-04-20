@@ -1,4 +1,5 @@
 from spanky.plugin import hook
+from spanky.plugin.permissions import Permission
 
 @hook.command(format="user")
 def avatar(event, text, str_to_id):
@@ -13,3 +14,10 @@ def avatar(event, text, str_to_id):
             return user.avatar_url
         
     return "Not found"
+
+@hook.command(permissions=Permission.admin)
+def set_avatar():
+    """
+    Set bot avatar
+    """
+    pass
