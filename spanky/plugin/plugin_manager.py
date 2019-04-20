@@ -114,7 +114,7 @@ class PluginManager():
         for sieve_hook in plugin.sieves:
             self.sieves.append(sieve_hook)
 
-        # register sieves
+        # register on ready hooks
         for on_ready_hook in plugin.run_on_ready:
             self.run_on_ready.append(on_ready_hook)
 
@@ -204,39 +204,43 @@ class PluginManager():
 
         return False
 
-    def launch(self, event):
+    def launch(self, launch_event):
         """
         Dispatch a given event to a given hook using a given bot object.
         Returns False if the hook didn't run successfully, and True if it ran successfully.
         """
 
-        hook = event.hook
+        hook = launch_event.hook
 
         if hook.type in ("command"):
-            if event.hook.server_id and event.event.server.id != event.hook.server_id:
+            # Run hooks on only the servers where they should run
+            if launch_event.hook.server_id and launch_event.event.server.id != launch_event.hook.server_id:
                 return
 
             # Ask the sieves to validate our command
             for sieve in self.sieves:
-                args = {"bot": self.bot, "bot_event":event}
+                args = {"bot": self.bot, "bot_event":launch_event}
                 if "storage" in sieve.required_args:
                     stor_name = sieve.plugin.name.replace(".py", "").replace("/","_")
-                    storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
+                    storage = launch_event.permission_mgr.get_plugin_storage(stor_name + ".json")
                     args["storage"] = storage
                 can_run, msg = sieve.function(**args)
                 if msg:
-                    event.event.reply(msg)
+                    launch_event.event.reply(msg)
                 if not can_run:
                     return
 
-            if not self.correct_format(hook, event.text):
+            if not self.correct_format(hook, launch_event.text):
                 func_doc = hook.function.__doc__
 
                 msg = "Invalid format"
 
                 if func_doc:
                     msg += ": `" + hook.function.__doc__ + "`"
-                event.event.reply(msg)
+                launch_event.event.reply(msg)
+                return
+        elif hook.type == "on_ready":
+            if launch_event.hook.server_id and launch_event.hook.server_id != launch_event.server.id:
                 return
 
         if hook.single_thread:
@@ -244,7 +248,7 @@ class PluginManager():
             pass
         else:
             # Run the plugin with the message, and wait for it to finish
-            result = self.execute_hook(hook, event)
+            result = self.execute_hook(hook, launch_event)
 
         # Return the result
         return result

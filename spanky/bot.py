@@ -60,12 +60,12 @@ class Bot():
     def run_on_ready_work(self):
         for server in self.backend.get_servers():
             for on_ready in self.plugin_manager.run_on_ready:
-                self.run_in_thread(self.plugin_manager.launch, (
+                self.plugin_manager.launch(
                     OnReadyEvent(
                         bot=self,
                         hook=on_ready,
                         permission_mgr=self.get_pmgr(server.id),
-                        server=server),))
+                        server=server))
 
     def ready(self):
         # Initialize per server permissions
