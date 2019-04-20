@@ -8,6 +8,7 @@ import random
 import collections
 import requests
 import json
+import abc
 from gc import collect
 
 logger = logging.getLogger('discord')
@@ -53,7 +54,15 @@ class Init():
 
         return rlist
 
-class DiscordUtils():
+class DiscordUtils(abc.ABC):
+    @abc.abstractmethod
+    def get_server(self):
+        pass
+
+    @abc.abstractmethod
+    def get_msg(self):
+        pass
+
     def str_to_id(self, string):
         return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
 
@@ -64,13 +73,13 @@ class DiscordUtils():
         return "<#%s>" % id_str
 
     def id_to_role_name(self, id_str):
-        return discord.utils.find(lambda m: m.id == id_str, self.server._raw.roles).name
+        return discord.utils.find(lambda m: m.id == id_str, self.get_server()._raw.roles).name
 
     def user_id_to_name(self, uid):
-        return discord.utils.find(lambda m: m.id == uid, self.server._raw.members).name
+        return discord.utils.find(lambda m: m.id == uid, self.get_server()._raw.members).name
 
     def user_id_to_object(self, uid):
-        user = discord.utils.find(lambda m: m.id == uid, self.server._raw.members)
+        user = discord.utils.find(lambda m: m.id == uid, self.get_server()._raw.members)
         if user:
             return User(user)
         else:
@@ -86,7 +95,7 @@ class DiscordUtils():
         if server:
             target_server = server._raw
         else:
-            target_server = self.server._raw
+            target_server = self.get_server()._raw
 
         if target:
             if target == -1:
@@ -98,7 +107,7 @@ class DiscordUtils():
             return discord.utils.find(lambda m: m.id == target, target_server.channels)
 
     def get_channel_name(self, chan_id):
-        chan = discord.utils.find(lambda m: m.id == chan_id, self.server._raw.channels)
+        chan = discord.utils.find(lambda m: m.id == chan_id, self.get_server()._raw.channels)
         return chan.name
 
     async def async_send_message(self, text=None, embed=None, target=-1, server=None):
@@ -107,16 +116,16 @@ class DiscordUtils():
             return
         try:
             old_reply = None
-            if type(self) is EventMessage and self.server.id in bot_replies:
-                old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
+            if type(self) is EventMessage and self.get_server().id in bot_replies:
+                old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
 
-            if type(self) is EventReact and self.server.id in bot_replies:
-                old_reply = bot_replies[self.server.id].get_bot_message(self.msg)
+            if type(self) is EventReact and self.get_server().id in bot_replies:
+                old_reply = bot_replies[self.get_server().id].get_bot_message(self.msg)
 
             if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
                     msg = Message(await client.edit_message(old_reply._raw, text))
-                    add_bot_reply(self.server.id, self.msg, msg)
+                    add_bot_reply(self.get_server().id, self.msg, msg)
                     return msg
                 except:
                     print(traceback.format_exc())
@@ -128,7 +137,7 @@ class DiscordUtils():
                     msg = Message(await client.send_message(channel, embed=embed))
 
                 if type(self) is EventMessage and msg:
-                    add_bot_reply(self.server.id, self.msg._raw, msg)
+                    add_bot_reply(self.get_server().id, self.msg._raw, msg)
 
                 return msg
             except:
@@ -155,8 +164,8 @@ class DiscordUtils():
 
     def send_file(self, file, target=-1, server=None):
         async def send_file(channel, file):
-            if self.server.id in bot_replies:
-                old_reply = bot_replies[self.server.id].get_old_reply(self.msg)
+            if self.get_server().id in bot_replies:
+                old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
                 if old_reply and old_reply._raw.channel.id == channel.id:
 
                     try:
@@ -164,7 +173,7 @@ class DiscordUtils():
                         msg = Message(await client.send_file(channel, file))
                     except:
                         print(traceback.format_exc())
-                    add_bot_reply(self.server.id, self.msg._raw, msg)
+                    add_bot_reply(self.get_server().id, self.msg._raw, msg)
                     return msg
 
             try:
@@ -172,7 +181,7 @@ class DiscordUtils():
             except:
                 print(traceback.format_exc())
 
-            add_bot_reply(self.server.id, self.msg._raw, msg)
+            add_bot_reply(self.get_server().id, self.msg._raw, msg)
             return msg
 
         asyncio.run_coroutine_threadsafe(send_file(self.get_channel(target, server), file), bot.loop)
@@ -187,6 +196,12 @@ class EventPeriodic(DiscordUtils):
     def __init__(self):
         pass
 
+    def get_server(self):
+        return None
+
+    def get_msg(self):
+        return None
+
 class EventReact(DiscordUtils):
     def __init__(self, event_type, user, reaction):
         self.type = event_type
@@ -197,6 +212,12 @@ class EventReact(DiscordUtils):
 
         self.reaction = Reaction(reaction)
 
+    def get_server(self):
+        return self.server
+
+    def get_msg(self):
+        return self.msg
+
 class EventMember(DiscordUtils):
     def __init__(self, event_type, member, member_after=None):
         self.type = event_type
@@ -206,6 +227,12 @@ class EventMember(DiscordUtils):
         if member_after:
             self.after = EventMember(-1, member_after)
             self.before = EventMember(-1, member)
+
+    def get_server(self):
+        return self.server
+
+    def get_msg(self):
+        return None
 
 class EventMessage(DiscordUtils):
     def __init__(self, event_type, message, before=None, deleted=False):
@@ -245,6 +272,12 @@ class EventMessage(DiscordUtils):
             self.do_trigger = False
 
         self._message = message
+
+    def get_server(self):
+        return self.server
+
+    def get_msg(self):
+        return self.msg
 
     @property
     def attachments(self):
