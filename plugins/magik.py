@@ -4,6 +4,7 @@ import os
 import string
 import random
 import time
+import subprocess
 from wand.image import Image
 from wand.image import Color
 from spanky.plugin import hook
@@ -12,7 +13,7 @@ from oslo_concurrency import lockutils
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-def get_image(url):
+def get_image(url, raw=False):
     req = requests.get(url, stream=True)
     req.raise_for_status()
 
@@ -30,7 +31,10 @@ def get_image(url):
         if size > 1024 * 1024 * 20:
             return
 
-    return Image(blob=content)
+    if raw:
+        return content
+    else:
+        return Image(blob=content)
 
 def send_img_reply(img, send_file, is_gif, storage_loc):
     if is_gif:
@@ -155,9 +159,70 @@ def magik(event, send_file, storage_loc, text, send_message):
 def gmagik(event, send_file, storage_loc, text, send_message):
     for url in event.url:
         if url:
-            print(url)
             start = int(time.time())
             make_gmagik(url, storage_loc, send_file, send_message, 0.75, 1.25)
-            print("Time: %d" % (int(time.time()) - start))
         else:
             return "Could not get image"
+
+def make_gif(effect, url, storage_loc, send_file, send_message):
+    try:
+        wand_src = get_image(url)
+
+        wand_src.transform(resize='400x400>')
+
+        proc = subprocess.Popen(["gif", effect], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+        out = proc.communicate(input=wand_src.make_blob("png"))[0]
+        send_img_reply(Image(blob=out), send_file, True, storage_loc)
+    except:
+        import traceback
+        traceback.print_exc()
+        return "Ble"
+
+@hook.command()
+def ggif(event, send_file, storage_loc, text, send_message):
+    if text == "":
+        return "See: https://github.com/sgreben/yeetgif#usage"
+    for url in event.url:
+        if url:
+            start = int(time.time())
+            make_gif(text, url, storage_loc, send_file, send_message)
+        else:
+            return "Could not get image"
+
+gif_effects = [
+        "wobble",
+        "roll",
+        "pulse",
+        "zoom",
+        "shake",
+        "woke",
+        "fried",
+        "hue",
+        "tint",
+        "crowd",
+        "npc",
+        "rain",
+        "scan",
+        "noise",
+        "cat"
+        ]
+
+def init_funcs():
+    def do_func(effect):
+        def f(event, send_file, storage_loc, text, send_message):
+            for url in event.url:
+                if url:
+                    make_gif(effect, url, storage_loc, send_file, send_message)
+                else:
+                    return "Could not get image"
+
+
+        f.__name__ = effect
+
+        return f
+
+    for i in gif_effects:
+        globals()[i] = hook.command()(do_func(i))
+
+init_funcs()
