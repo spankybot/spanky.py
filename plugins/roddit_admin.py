@@ -107,13 +107,13 @@ def bulau(send_message, text, server, event, bot, str_to_id):
 
     rstorage.sync()
 
-@hook.on_ready
+@hook.on_ready(server_id=RODDIT_ID)
 def get_roddit(server, storage):
     global roddit
     global rstorage
-    if server.id == RODDIT_ID:
-        roddit = server
-        rstorage = storage
+
+    roddit = server
+    rstorage = storage
 
 @hook.command(server_id=RODDIT_ID)
 def bulautime(text, str_to_id, storage):
