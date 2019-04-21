@@ -151,6 +151,13 @@ class DiscordUtils(abc.ABC):
             self.async_send_message(text=text, target=target, server=server),
             bot.loop)
 
+    async def async_send_pm(self, text, user):
+        await client.send_message(user._raw, text)
+
+    def send_pm(self, text, user):
+        asyncio.run_coroutine_threadsafe(
+            self.async_send_pm(text=text, user=user), bot.loop)
+
     def send_embed(self, title, description, fields):
         em = discord.Embed(title=title, description=description)
         for el in fields:
