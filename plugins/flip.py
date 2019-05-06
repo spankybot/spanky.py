@@ -52,7 +52,7 @@ table_flipper = "┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻"
 
 
 @hook.command
-def flip(text, channel, send_message):
+def flip_text(text, channel, send_message):
     """<text> - Flips <text> over."""
     global table_status
     # table_status = defaultdict(False)

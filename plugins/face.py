@@ -4,10 +4,7 @@ import json
 import requests
 import glob
 import random
-import os
-import string
 import PIL
-import re
 
 from PIL import Image, ImageDraw
 from math import hypot, sin, cos
@@ -42,87 +39,37 @@ def rotate_origin_only(xy, angle):
 
     return int(xx), int(yy)
 
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+def prepare_image(img):
+    x_scale = 1
+    y_scale = 1
 
-def send_img_reply(img, send_file, is_gif, storage_loc):
-    if is_gif:
-        ext = ".gif"
-    else:
-        ext = ".png"
+    size_x = img.size[0]
+    size_y = img.size[1]
 
-    os.system("mkdir -p " + storage_loc)
-    fname = id_generator() + ext
-    img.save(open(storage_loc + fname, "wb"))
+    if size_x > 800:
+        x_scale = 800 / img.size[0]
+        size_x *= x_scale
+        size_y *= x_scale
 
-    send_file(open(storage_loc + fname, 'rb'))
+    if size_y > 800:
+        y_scale = 800 / size_y
+        size_x *= y_scale
+        size_y *= y_scale
 
-    os.system("rm %s/%s" % (storage_loc, fname))
+    if x_scale != 1 or y_scale != 1:
+        img = img.resize((int(size_x),
+            int(size_y)), resample=PIL.Image.BICUBIC)
 
-def get_single_image_url(starturl):
-    finishedurl = []
-    regex = r"href\=\"https://i\.imgur\.com\/([\d\w]*)(\.jpg|\.png|\.gif|\.mp4|\.gifv)"
-    try:
-        imgurHTML = requests.get(starturl)
-    except:
-        raise Exception('Something failed with the download')
-
-    imgurhash = re.findall(regex, imgurHTML.text)
-    finishedurl.append('https://i.imgur.com/{0}{1}'.format(imgurhash[0][0], imgurhash[0][1]))
-    return finishedurl
-
-def do_stuff(url, send_file, storage_loc, send_message, func, overlay):
-    if "imgur.com" in url:
-        url = get_single_image_url(url)[0]
-
-    r = requests.get(url, stream=True)
-    r.raw.decode_content = True
-
-    try:
-        send_message("Working...")
-        img = Image.open(r.raw).convert("RGB")
-
-        x_scale = 1
-        y_scale = 1
-
-        size_x = img.size[0]
-        size_y = img.size[1]
-
-        if size_x > 800:
-            x_scale = 800 / img.size[0]
-            size_x *= x_scale
-            size_y *= x_scale
-
-        if size_y > 800:
-            y_scale = 800 / size_y
-            size_x *= y_scale
-            size_y *= y_scale
-
-        if x_scale != 1 or y_scale != 1:
-            img = img.resize((int(size_x),
-                int(size_y)), resample=PIL.Image.BICUBIC)
-
-        out = func(img, overlay)
-    except:
-        import traceback
-        traceback.print_exc()
-        send_message("Something happened :/")
-        return
-
-    if out:
-        send_img_reply(out, send_file, False, storage_loc)
-    else:
-        send_message("No face found")
-
+    return img
 
 @hook.command()
-def glasses(event, send_file, storage_loc, send_message):
-    for url in event.url:
+def glasses(event, send_file, send_message):
+    for img in event.image:
         overlay = random.choice(glob.glob("plugin_data/face_res/glasses/*.png"))
-
-        do_stuff(url, send_file, storage_loc, send_message, add_glasses, overlay)
+        img.proc_each_pil_frame(add_glasses, send_file, send_message, {"glasses_img": overlay})
 
 def add_glasses(image, glasses_img, debug=False):
+    image = prepare_image(image)
     # Find all facial features in all the faces in the image
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
@@ -172,13 +119,14 @@ def add_glasses(image, glasses_img, debug=False):
         return None
 
 @hook.command()
-def moustache(event, send_file, storage_loc, send_message):
-    for url in event.url:
+def moustache(event, send_file, send_message):
+    for img in event.image:
         overlay = random.choice(glob.glob("plugin_data/face_res/moustache/*.png"))
+        img.proc_each_pil_frame(add_moustache, send_file, send_message, {"moustache_img": overlay})
 
-        do_stuff(url, send_file, storage_loc, send_message, add_moustache, overlay)
 
 def add_moustache(image, moustache_img, debug=False):
+    image = prepare_image(image)
     # Find all facial features in all the faces in the image
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
@@ -229,13 +177,14 @@ def add_moustache(image, moustache_img, debug=False):
         return None
 
 @hook.command()
-def hat(event, send_file, storage_loc, send_message):
-    for url in event.url:
+def hat(event, send_file, send_message):
+    for img in event.image:
         overlay = random.choice(glob.glob("plugin_data/face_res/hat/*.png"))
-
-        do_stuff(url, send_file, storage_loc, send_message, add_hat, overlay)
+        img.proc_each_pil_frame(add_hat, send_file, send_message, {"hat_img": overlay})
 
 def add_hat(image, hat_img, debug=False):
+    image = prepare_image(image)
+
     # Find all facial features in all the faces in the image
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
@@ -288,13 +237,15 @@ def add_hat(image, hat_img, debug=False):
 
 @hook.command()
 def eyes(event, send_file, storage_loc, send_message):
-    for url in event.url:
+    for img in event.image:
         overlay = random.choice(glob.glob("plugin_data/face_res/eyes/*_l.png"))
         overlay = overlay.replace("_l.png", ".png")
 
-        do_stuff(url, send_file, storage_loc, send_message, add_eyes, overlay)
+        img.proc_each_pil_frame(add_eyes, send_file, send_message, {"eyes_img": overlay})
 
 def add_eyes(image, eyes_img, debug=False):
+    image = prepare_image(image)
+
     # Find all facial features in all the faces in the image
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
