@@ -3,6 +3,7 @@ import inspect
 import asyncio
 import sqlalchemy
 import logging
+from spanky.plugin.hook_parameters import extract_params
 
 from spanky import database
 
@@ -49,6 +50,11 @@ class Hook:
         self.format = func_hook.kwargs.pop("format", None)
         self.single_thread = func_hook.kwargs.pop("singlethread", False)
         self.server_id = func_hook.kwargs.pop("server_id", None)
+        self.given_cmd_params = func_hook.kwargs.pop("params", None)
+
+        self.param_list = None
+        if self.given_cmd_params is not None:
+            self.param_list = extract_params(self.given_cmd_params)
 
         if func_hook.kwargs:
             # we should have popped all the args, so warn if there are any left

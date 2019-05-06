@@ -9,6 +9,7 @@ from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
 from spanky.plugin.event import OnStartEvent, OnReadyEvent
 from spanky.inputs.console import EventMessage
+from spanky.plugin.hook_parameters import map_params
 
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
@@ -140,6 +141,11 @@ class PluginManager():
                 event.permission_mgr.get_data_location(
                     hook.plugin.name.replace(".py", "").replace("/","_"))
 
+        if "cmd_args" in hook.required_args and hook.param_list is not None:
+            event.cmd_args = map_params(event.text, hook.param_list)
+        else:
+            event.cmd_args = {}
+
         for required_arg in hook.required_args:
             if hasattr(event, required_arg):
                 value = getattr(event, required_arg)
@@ -239,6 +245,7 @@ class PluginManager():
                     msg += ": `" + hook.function.__doc__ + "`"
                 launch_event.event.reply(msg)
                 return
+
         elif hook.type == "on_ready":
             if launch_event.hook.server_id and launch_event.hook.server_id != launch_event.server.id:
                 return
