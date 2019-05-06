@@ -10,6 +10,7 @@ import requests
 import json
 import abc
 from gc import collect
+from spanky.utils.image import Image
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -297,6 +298,11 @@ class EventMessage(DiscordUtils):
             yield Embed(emb)
 
     @property
+    def image(self):
+        for url in self.url:
+            yield Image(url)
+
+    @property
     def url(self):
         def strip_url(text):
             return text.replace("<", "").replace(">", "")
@@ -330,7 +336,7 @@ class EventMessage(DiscordUtils):
             return
         elif self.server.id in bot_replies:
             for reply in bot_replies[self.server.id].bot_messages():
-                print(reply.id)
+
                 for att in reply._raw.attachments:
                     print(att)
                     yield Attachment(att).url
