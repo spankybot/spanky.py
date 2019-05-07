@@ -40,6 +40,20 @@ def flip(event, send_file, send_message):
 
 
 @lockutils.synchronized('not_thread_safe')
+def make_resize(frame, width, height):
+    frame.resize(width, height)
+    return frame
+
+@hook.command(params="int:width int:height")
+def resize(event, send_file, send_message, cmd_args):
+    """
+    Resize image
+    """
+    for img in event.image:
+        img.proc_each_wand_frame(make_resize, send_file, send_message, cmd_args)
+
+
+@lockutils.synchronized('not_thread_safe')
 def make_flop(frame):
     frame.flop()
     return frame
