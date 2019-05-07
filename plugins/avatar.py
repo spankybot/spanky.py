@@ -9,15 +9,22 @@ def avatar(event, text, str_to_id):
     for user in event.server.get_users():
         if text == user.name:
             return user.avatar_url
-        
+
         if text == user.id:
             return user.avatar_url
-        
+
     return "Not found"
 
 @hook.command(permissions=Permission.admin)
-def set_avatar():
+async def set_avatar(event, async_set_avatar):
     """
     Set bot avatar
     """
-    pass
+    try:
+        for img in event.image:
+            img.fetch_url()
+            await async_set_avatar(img._raw[0])
+            return
+    except:
+        import traceback
+        traceback.print_exc()

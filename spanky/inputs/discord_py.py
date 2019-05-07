@@ -200,6 +200,9 @@ class DiscordUtils(abc.ABC):
         except:
             print(traceback.format_exc())
 
+    async def async_set_avatar(self, image):
+        await client.edit_profile(avatar=image)
+
 class EventPeriodic(DiscordUtils):
     def __init__(self):
         pass
