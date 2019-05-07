@@ -11,26 +11,26 @@ from wand.image import Image as wand_image
 from oslo_concurrency import lockutils
 
 @lockutils.synchronized('not_thread_safe')
-def make_magik(frame):
+def make_magik(frame, ratio1=0.5, ratio2=1.5):
     frame.transform(resize='800x800>')
     scale = 0
 
+    print(ratio1)
+
     frame.liquid_rescale(
-        width=int(frame.width * 0.5),
-        height=int(frame.height * 0.5),
+        width=int(frame.width * ratio1),
+        height=int(frame.height * ratio1),
         delta_x=int(0.5 * scale) if scale else 1, rigidity=0)
 
     frame.liquid_rescale(
-        width=int(frame.width * 1.5),
-        height=int(frame.height * 1.5),
+        width=int(frame.width * ratio2),
+        height=int(frame.height * ratio2),
         delta_x=scale if scale else 2, rigidity=0)
 
     return frame
 
-ratio1=0.5
-ratio2=1.5
 @lockutils.synchronized('not_thread_safe')
-def make_gmagik(frame):
+def make_gmagik(frame, ratio1=0.5, ratio2=1.5):
     global wand_image
 
     frame.transform(resize='400x400>')
@@ -56,12 +56,12 @@ def make_gmagik(frame):
         result.sequence.append(frame)
     return result
 
-@hook.command()
-def magik(event, send_file, send_message):
+@hook.command(params="float:ratio1=0.5 float:ratio2=1.5")
+def magik(event, send_file, send_message, cmd_args):
     for img in event.image:
-        img.proc_each_wand_frame(make_magik, send_file, send_message)
+        img.proc_each_wand_frame(make_magik, send_file, send_message, cmd_args)
 
-@hook.command()
-def gmagik(event, send_file, send_message):
+@hook.command(params="float:ratio1=0.5 float:ratio2=1.5")
+def gmagik(event, send_file, send_message, cmd_args):
     for img in event.image:
-        img.proc_each_wand_frame(make_gmagik, send_file, send_message)
+        img.proc_each_wand_frame(make_gmagik, send_file, send_message, cmd_args)
