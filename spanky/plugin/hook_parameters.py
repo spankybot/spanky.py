@@ -70,7 +70,7 @@ def map_params(s, params):
     intoks = deque([None])
     idx_in = 0
     idx_out = 0
-    while idx_in < len(input_toks):
+    while idx_in < len(input_toks) and idx_out < len(output_vals):
         args = input_toks[idx_in][0]
         param = list(output_vals.keys())[idx_out]
 
