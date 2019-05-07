@@ -17,7 +17,7 @@ from PIL import ImageSequence as pil_imagesequence
 from PIL import ImageDraw as pil_imagedraw
 from PIL import GifImagePlugin
 
-MAX_IMG_SIZE = 6 * 1024 * 1024
+MAX_IMG_SIZE = 10 * 1024 * 1024
 MAX_RES_SIZE = 1024 * 1024 * 1024
 
 class Image():
