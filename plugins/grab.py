@@ -4,6 +4,7 @@ import random
 import plugins.paged_content as paged
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
+from spanky.plugin.permissions import Permission
 
 @hook.command(format="user")
 async def grab(text, channel, str_to_id, storage, reply, event):
@@ -115,8 +116,45 @@ async def grabs(event, storage, async_send_message):
     content = get_data(lambda m: text in m["text"], storage)
 
     if len(content) == 0:
+        content = get_data(lambda m: text == m["id"], storage)
+
+    if len(content) == 0:
         await async_send_message("Nothing found.")
         return
     else:
         paged_content = paged.element(content, async_send_message, "Grabs containing %s" % text)
         await paged_content.get_crt_page()
+
+@hook.command(permissions=Permission.admin)
+def del_grab(text, storage):
+    """
+    Delete a grab entry. Specify what the grab message contains or the message ID
+    """
+    # Delete an entry
+    def del_entry(msg_id, storage):
+        for grab in storage["grabs"]:
+            if grab["id"] == msg_id:
+                storage["grabs"].remove(grab)
+                storage.sync()
+
+                return
+
+    to_delete = get_data(lambda m: text in m["text"], storage)
+
+    if len(to_delete) > 1:
+        msg = "Found more than one results (%d). Not deleting." % len(to_delete)
+
+        if len(to_delete) < 3:
+            msg += "\nThe IDs are: "
+            msg += " ".join(i["id"] for i in to_delete)
+
+        return msg
+    elif len(to_delete) == 1:
+        del_entry(to_delete[0]["id"], storage)
+        return "Deleted %s" % to_delete[0]["id"]
+    else:
+        to_delete_by_id = get_data(lambda m: text == m["id"], storage)
+
+        if len(to_delete_by_id) == 1:
+            del_entry(text, storage)
+            return "Deleted %s" % text
