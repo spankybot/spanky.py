@@ -98,6 +98,25 @@ def negate(event, send_file, send_message):
         img.proc_each_wand_frame(make_negate, send_file, send_message)
 
 
+def make_imgtext(frame, text):
+    frame.transform(resize='400x400>')
+
+    proc = subprocess.Popen(["gif", "text", text], stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE)
+
+    out = proc.communicate(wand_img(frame).make_blob("png"))[0]
+
+    result = wand_img(blob=out)
+    return result
+
+@hook.command(params="string:text")
+def img_text(event, send_file, send_message, cmd_args):
+    """
+    Add text to image
+    """
+    for img in event.image:
+        img.proc_each_wand_frame(make_imgtext, send_file, send_message, cmd_args)
+
 def make_gif_app_caller(frame, effect):
     frame.transform(resize='400x400>')
 
