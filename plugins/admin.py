@@ -4,8 +4,6 @@ from spanky.plugin import hook, permissions
 from spanky.plugin.permissions import Permission
 from spanky.utils.setclearfactory import SetClearFactory, data_type_string, data_type_dynamic
 
-user_groups = {}
-users_in_ugroups = {}
 chgroups = {}
 channels_in_chgroups = {}
 cgroups_own_cmds = {}
@@ -30,10 +28,7 @@ class CmdPerms():
             return
 
         if "owner" in storage["commands"][cmd].keys():
-            self.owner_groups.extend(storage["commands"][cmd]["owner"])
-
-            for owner_group in storage["commands"][cmd]["owner"]:
-                self.owners_ids.extend(storage["owners"][owner_group]["users"])
+            self.owners_ids.extend(storage["commands"][cmd]["owner"])
 
         if "groups" in storage["commands"][cmd].keys():
             self.chgroups.extend(storage["commands"][cmd]["groups"])
@@ -51,24 +46,23 @@ class CmdPerms():
 
 @hook.sieve
 def check_permissions(bot, bot_event, storage):
-    user_roles = bot_event.event.author.roles
+    cmd = CmdPerms(storage, bot_event.triggered_command)
+    user_roles = set([i.id for i in bot_event.event.author.roles])
+    allowed_roles = set(storage['admin_roles'] + cmd.owners_ids)
 
     if bot_event.hook.permissions == permissions.Permission.admin:
         if storage["admin_roles"] == None:
             return True, "Warning! Admin not set!"
-        for role in user_roles:
-            if role.id in storage["admin_roles"]:
+        if user_roles & allowed_roles:
                 return True, None
-        return False, "You're not an admin."
-
-    cmd = CmdPerms(storage, bot_event.triggered_command)
+#        if bot_event.event.author.id == "278247547838136320":
+#            return True, None
+        return False, "You're not allowed to use that."
 
     # Check if the command has particular settings
     if cmd.is_customized:
-        if len(cmd.owners_ids) > 0 and bot_event.event.author.id not in cmd.owners_ids:
-            return False, "You can't use this command"
-
         if len(cmd.forbid_channel_ids) > 0 and bot_event.event.channel.id in cmd.forbid_channel_ids:
+            bot_event.event.msg.delete_message()
             return False, "Command can't be used in " + \
                 ", ".join(bot_event.event.id_to_chan(i) for i in cmd.forbid_channel_ids)
 
@@ -83,22 +77,6 @@ def check_permissions(bot, bot_event, storage):
 
 @hook.on_ready
 def map_objects_to_servers(server, storage):
-    user_groups[server.id] = SetClearFactory(name="owners",
-                          description="Manage user groups. A user group can be set to 'own' a command, \
-so that only users of the user group can use that command.",
-                          data_ref=storage,
-                          data_format="group_name",
-                          data_hierarchy='{"group_name":{}}',
-                          group_name=data_type_string())
-
-    users_in_ugroups[server.id] = SetClearFactory(name="owners",
-                                 description="Manage users inside user groups.",
-                                 data_ref=storage,
-                                 data_format="users group_name",
-                                 data_hierarchy='{"group_name":{"users":[]}}',
-                                 group_name=data_type_dynamic(user_groups[server.id]),
-                                 users=data_type_string())
-
     chgroups[server.id] = SetClearFactory(name="chgroups",
                             description="Manages groups of channels.\
 A group of channels can be associated to a command, so that the command can be used only in the channels listed in the group of channels.",
@@ -136,60 +114,8 @@ A group of channels can be associated to a command, so that the command can be u
                                    data_ref=storage,
                                    data_format="cmd owner",
                                    data_hierarchy='{"cmd":{"owner":[]}}',
-                                   owner=data_type_dynamic(user_groups[server.id]),
+                                   owner=data_type_string(),
                                    cmd=data_type_string())
-
-
-
-#
-# User groups
-#
-@hook.command(permissions=Permission.admin, format="user")
-def add_user_group(send_message, text, server):
-    """<group name> - Create a user group"""
-    send_message(user_groups[server.id].add_thing(text))
-
-@hook.command(permissions=Permission.admin)
-def list_user_groups(send_message, server):
-    """List user groups"""
-    ugroups = user_groups[server.id].list_things()
-
-    if len(ugroups) > 0:
-        send_message(", ".join(i for i in ugroups))
-    else:
-        send_message("Empty.")
-
-@hook.command(permissions=Permission.admin, format="user")
-def del_user_group(send_message, text, server, storage):
-    """<group name> - Deletes a user group"""
-    def dummy_send(text):
-        pass
-
-    for cmd in storage["commands"]:
-        del_owner_from_cmd(dummy_send, cmd + " " + text, server)
-
-    send_message(user_groups[server.id].del_thing(text))
-
-#
-# Users in user groups
-#
-@hook.command(permissions=Permission.admin, format="user ugroup")
-def add_user_to_ugroup(send_message, text, server, str_to_id):
-    """<user user-group> - Add user to user group"""
-    send_message(users_in_ugroups[server.id].add_thing(str_to_id(text)))
-
-@hook.command(permissions=Permission.admin, format="ugroup")
-def list_users_in_ugroup(send_message, text, server, user_id_to_name):
-    vals = users_in_ugroups[server.id].list_things_for_thing(text, "users")
-    if vals:
-        send_message(", ".join(user_id_to_name(i) for i in vals))
-    else:
-        send_message("Empty.")
-
-@hook.command(permissions=Permission.admin, format="user ugroup")
-def del_user_from_ugroup(send_message, text, server, str_to_id):
-    """<user user-group> - Delete user from user group"""
-    send_message(users_in_ugroups[server.id].del_thing(str_to_id(text)))
 
 #
 # Channel groups
@@ -289,8 +215,9 @@ def del_fchgroup_from_cmd(send_message, text, server):
 # User groups that own commands
 #
 @hook.command(permissions=Permission.admin, format="cmd owner")
-def add_owner_to_cmd(send_message, text, server):
+def add_owner_to_cmd(send_message, text, server, str_to_id):
     """<command user-group> - Add a user-group to own a command"""
+    text = str_to_id(text)
     send_message(ugroups_own_cmds[server.id].add_thing(text))
 
 @hook.command(permissions=Permission.admin, format="cmd")
@@ -298,7 +225,7 @@ def list_owners_for_cmd(send_message, text, server):
     """<command> - List what user-groups own a command"""
     vals = ugroups_own_cmds[server.id].list_things_for_thing(text, "owner")
     if vals:
-        send_message(", ".join(i for i in vals))
+        send_message(", ".join("<@&" + i + ">" for i in vals))
     else:
         send_message("Empty.")
 
