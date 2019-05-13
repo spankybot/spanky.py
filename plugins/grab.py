@@ -61,6 +61,15 @@ def get_data(func, storage):
 
     return content
 
+def get_all_data(func, storage):
+    content = []
+
+    for msg in storage["grabs"]:
+        if func == None or func(msg):
+            content.append(msg)
+
+    return content
+
 @hook.command()
 def grabr(storage):
     """
@@ -130,31 +139,25 @@ def del_grab(text, storage):
     """
     Delete a grab entry. Specify what the grab message contains or the message ID
     """
-    # Delete an entry
-    def del_entry(msg_id, storage):
-        for grab in storage["grabs"]:
-            if grab["id"] == msg_id:
-                storage["grabs"].remove(grab)
-                storage.sync()
 
-                return
-
-    to_delete = get_data(lambda m: text in m["text"], storage)
+    to_delete = get_all_data(lambda m: text in m["text"], storage)
 
     if len(to_delete) > 1:
         msg = "Found more than one results (%d). Not deleting." % len(to_delete)
 
-        if len(to_delete) < 3:
+        if len(to_delete) < 10:
             msg += "\nThe IDs are: "
             msg += " ".join(i["id"] for i in to_delete)
 
         return msg
     elif len(to_delete) == 1:
-        del_entry(to_delete[0]["id"], storage)
+        storage["grabs"].remove(to_delete[0])
+        storage.sync()
         return "Deleted %s" % to_delete[0]["id"]
     else:
-        to_delete_by_id = get_data(lambda m: text == m["id"], storage)
-
+        to_delete_by_id = get_all_data(lambda m: text == m["id"], storage)
         if len(to_delete_by_id) == 1:
             del_entry(text, storage)
+            storage["grabs"].remove(to_delete_by_id[0])
+            storage.sync()
             return "Deleted %s" % text
