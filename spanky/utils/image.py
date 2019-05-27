@@ -39,6 +39,7 @@ class Image():
         """
         Append a frame to the raw data
         """
+        print("Appending frame - length %d" % len(self._raw))
         self._raw.append(img_data)
 
     def get_first_frame_sz(self):
@@ -236,6 +237,7 @@ class Image():
 
         # If estimated size is larger than the maximum image size, then raise
         if self.get_first_frame_sz() * frame_count > MAX_IMG_SIZE:
+            print("Abort because frame size is %d and frame count is %d" % (self.get_first_frame_sz(), frame_count))
             raise
 
         # If memory consumption for the wand module is too large, exit
@@ -252,6 +254,7 @@ class Image():
         try:
             send_msg("Working...")
             for idx, frame in enumerate(self.wand().sequence):
+                print("Processing frame %d" % idx)
                 # For each frame, call the image processor
                 self.print_memusage("Before func call")
                 result = func(frame, **args)
