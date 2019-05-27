@@ -1,4 +1,9 @@
+import datetime
+
 interval_units = [(60, 'minutes'), (60, 'hour'), (24, 'day'), (365, 'year')]
+
+def tnow():
+    return datetime.datetime.now().timestamp()
 
 def sec_to_human(sec):
     parts = [[int(sec), 'second']]
