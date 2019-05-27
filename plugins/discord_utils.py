@@ -1,3 +1,24 @@
+
+def get_user_by_id(server, uid):
+    for u in server.get_users():
+        if u.id == uid:
+            return u
+    return None
+
+def get_role_by_name(server, rname):
+    for r in server.get_roles():
+        if r.name == rname:
+            return r
+
+    return None
+
+def get_role_by_id(server, rid):
+    for r in server.get_roles():
+        if r.id == rid:
+            return r
+
+    return None
+
 def roles_from_list(start_role, end_role, remove_text, send_message, server, event, bot, text):
     use_slow_mode = False
 
