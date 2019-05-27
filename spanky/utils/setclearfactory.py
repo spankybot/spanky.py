@@ -36,11 +36,11 @@ class data_type_dynamic(data_type):
 class SetClearFactory():
     """
     Class that can manage data in a dictionary data type.
-    All information is stored in a given dictionary, where entries will be added according to a predefined hirearchy. 
-    
+    All information is stored in a given dictionary, where entries will be added according to a predefined hirearchy.
+
     :param name: name of the root dictionary element where data is stored.
     :param description: describe the current class.
-    :param data_ref: dictionary where data will be stored. 
+    :param data_ref: dictionary where data will be stored.
     :param data_format: declares the data types that will be used.
     :param data_hierarchy: how the data types are structured.
     :param **kwargs: each data type declared in data_format must be explicitly referenced here.
@@ -145,7 +145,7 @@ class SetClearFactory():
             return str(e)
 
     def _add_thing(self, text):
-        
+
         # Check if input is according to the format
         text = text.split()
         if len(text) != len(self.format):
@@ -171,7 +171,7 @@ class SetClearFactory():
 
     def del_thing(self, text):
         """
-        
+
         """
         try:
             return self._del_thing(text)
@@ -185,7 +185,7 @@ class SetClearFactory():
         valid_data = {}
         for order, element in enumerate(text):
             valid_data[self.format[order]] = self.kwargs[self.format[order]].validate(element)
-            
+
         data_before = json.dumps(self.data[self.name])
         self.remove_rec(valid_data, self.hierarchy, self.data[self.name])
         data_after = json.dumps(self.data[self.name])
