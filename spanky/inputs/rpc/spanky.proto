@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package spanky;
+
+service Spanky {
+
+    // When a client connects it exposes methods that the server can call
+    rpc ExposeMethods(NewCli) returns (AckCli) {}
+
+    rpc DoWork(stream WorkRequest) returns (stream WorkRequest) {}
+}
+
+message NewCli {
+    string methods = 1;
+}
+
+message AckCli {
+    string methods = 1;
+}
+
+message WorkRequest {
+    string workThis = 1;
+}
+
+message WorkResponse {
+    string workResult = 1;
+}
