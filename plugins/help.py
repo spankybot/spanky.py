@@ -56,34 +56,35 @@ def commit_changes(storage_loc, server_id):
 
 @hook.command(permissions=Permission.admin)
 def gen_documentation(bot, storage_loc, event):
-    files = {}
-    admin_files = {}
+    for server in bot.get_servers():
+        files = {}
+        admin_files = {}
 
-    cmd_dict = bot.plugin_manager.commands
-    for cmd_str in cmd_dict:
-        cmd = cmd_dict[cmd_str]
-        file_name = cmd.plugin.name.split("/")[-1].replace(".py", "")
-        file_cmds = []
+        cmd_dict = bot.plugin_manager.commands
+        for cmd_str in cmd_dict:
+            cmd = cmd_dict[cmd_str]
+            file_name = cmd.plugin.name.split("/")[-1].replace(".py", "")
+            file_cmds = []
 
-        if file_name not in files:
-            files[file_name] = []
+            if file_name not in files:
+                files[file_name] = []
 
-        if file_name not in admin_files:
-            admin_files[file_name] = []
+            if file_name not in admin_files:
+                admin_files[file_name] = []
 
-        if bot.plugin_manager.commands[cmd.name].server_id and \
+            if bot.plugin_manager.commands[cmd.name].server_id and \
                 bot.plugin_manager.commands[cmd.name].server_id != event.server.id:
-            print(cmd.name)
-            continue
+                print(cmd.name)
+                continue
 
-        if bot.plugin_manager.commands[cmd.name].permissions == Permission.admin:
-            admin_files[file_name].append(cmd.name)
-        else:
-            files[file_name].append(cmd.name)
+            if bot.plugin_manager.commands[cmd.name].permissions == Permission.admin:
+                admin_files[file_name].append(cmd.name)
+            else:
+                files[file_name].append(cmd.name)
 
-    prepare_repo(storage_loc)
-    gen_doc(files, "commands.md", "Bot commands:", bot, storage_loc, event.server.id)
-    gen_doc(admin_files, "admin.md", "Admin commands:", bot, storage_loc, event.server.id)
-    commit_changes(storage_loc, event.server.id)
+        prepare_repo(storage_loc)
+        gen_doc(files, "commands.md", "Bot commands:", bot, storage_loc, server.id)
+        gen_doc(admin_files, "admin.md", "Admin commands:", bot, storage_loc, server.id)
+        commit_changes(storage_loc, server.id)
 
     return "Done."
