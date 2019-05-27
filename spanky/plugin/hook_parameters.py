@@ -47,6 +47,12 @@ def extract_params(s):
     return decls
 
 def map_params(s, params):
+    try:
+        if s.split()[-1].startswith("http"):
+            s = " ".join(s.split()[0:-1])
+    except:
+        pass
+
     # TODO: this is discord specific
     if s.endswith(">"):
         s = s[0:s.rfind("<")]
