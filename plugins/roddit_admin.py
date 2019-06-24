@@ -2,6 +2,7 @@ import datetime
 from spanky.plugin import hook
 from spanky.utils import time_utils
 from spanky.plugin.permissions import Permission
+from plugins.discord_utils import *
 
 time_tokens = ['s', 'm', 'h', 'd']
 SEC_IN_MIN = 60
@@ -12,26 +13,6 @@ RODDIT_ID = "287285563118190592"
 
 roddit = None
 rstorage = None
-
-def get_user_by_id(server, uid):
-    for u in server.get_users():
-        if u.id == uid:
-            return u
-    return None
-
-def get_role_by_name(server, rname):
-    for r in server.get_roles():
-        if r.name == rname:
-            return r
-
-    return None
-
-def get_role_by_id(server, rid):
-    for r in server.get_roles():
-        if r.id == rid:
-            return r
-
-    return None
 
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def bulau(send_message, text, server, event, bot, str_to_id):
@@ -156,6 +137,17 @@ def bulaucheck():
 
         del rstorage[user]
         rstorage.sync()
+
+@hook.command
+async def votat(author, event):
+    role = get_role_by_name(roddit, "A votat")
+    author.add_role(role)
+
+    try:
+        await event.msg.async_add_reaction(u"👍")
+    except:
+        import traceback
+        traceback.print_exc()
 
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def ok(text, str_to_id):
