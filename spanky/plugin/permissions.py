@@ -19,7 +19,7 @@ class PermissionMgr():
             self.meta["id"] = server.id
 
     def get_plugin_storage(self, stor_file):
-        if stor_file not in self.stor_cache:
+        if self.server.id + stor_file not in self.stor_cache:
             self.stor_cache[self.server.id + stor_file] = storage.dsdict(self.server.id, stor_file)
 
         return self.stor_cache[self.server.id + stor_file]
