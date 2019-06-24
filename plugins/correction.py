@@ -1,7 +1,7 @@
 #-*- coding: utf-8 -*-
 from spanky.plugin import hook
 
-MAX_LEN = 10
+MAX_LEN = 50
 
 @hook.command(format="word replacement")
 async def s(text, channel, reply, event, bot):
