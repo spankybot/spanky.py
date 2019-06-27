@@ -155,3 +155,22 @@ def ok(text, str_to_id):
     user = get_user_by_id(roddit, str_to_id(text))
 
     user.add_role(role)
+
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
+def list_noobs(reply):
+    noobs = []
+    users = roddit.get_users()
+
+    for user in users:
+        if len(user.roles) == 0:
+            noobs.append(user.id)
+
+    msg = ""
+    for noob in noobs:
+        msg += "<@" + noob + "> "
+
+        if len(msg) > 1000:
+            reply(msg)
+            msg = ""
+
+    reply(msg)
