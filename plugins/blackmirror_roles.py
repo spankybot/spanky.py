@@ -1,8 +1,18 @@
 from spanky.plugin import hook
+from plugins.discord_utils import get_role_by_name
 
 BM_ID = "349583192921079808"
 
 no_role = "no role".lower()
+
+@hook.command(server_id=BM_ID)
+async def verified(server, author, event):
+    """Get server access rights"""
+    verif = get_role_by_name(server, "Verified")
+
+    author.add_role(verif)
+
+    await event.msg.async_add_reaction(u"👍")
 
 @hook.command(server_id=BM_ID)
 def charlie(send_message, server, event, bot, text):
