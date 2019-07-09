@@ -26,20 +26,19 @@ CURRENCY_SYMBOLS = {
 
 
 class Alias:
-    __slots__ = ("name", "cmds")
-
-    def __init__(self, name, *cmds):
+    def __init__(self, name, cmd, nocmd=True):
         self.name = name
-        if name not in cmds:
-            cmds = (name,) + cmds
-
-        self.cmds = cmds
+        self.cmds = cmd
+        self.nocmd = nocmd
 
 
 ALIASES = (
-    Alias('bitcoin', 'btc'),
-    Alias('litecoin', 'ltc'),
-    Alias('dogecoin', 'doge'),
+    Alias('bitcoin', 'btc', False),
+    Alias('litecoin', 'ltc', False),
+    Alias('ethereum', 'eth', False),
+    Alias('bitcoin-cash', 'bch'),
+    Alias('ripple', 'xrp'),
+    Alias('eos', 'eos'),
 )
 
 
@@ -59,9 +58,19 @@ def alias_wrapper(alias):
 
 def init_aliases():
     for alias in ALIASES:
+        if alias.nocmd:
+            continue
         _hook = alias_wrapper(alias)
-        globals()[_hook.__name__] = hook.command(*alias.cmds, autohelp=False)(_hook)
+        globals()[_hook.__name__] = hook.command(alias.cmds, autohelp=False)(_hook)
 
+
+@hook.command()
+def serak():
+    msg = "\n"
+    for cur in ALIASES:
+        msg += crypto_command(cur.name, None) + "\n"
+
+    return msg
 
 # main command
 @hook.command("crypto")
@@ -95,14 +104,6 @@ def crypto_command(text, reply):
         # in these cases we just return a "not found" message
         return "Currency not found."
 
-    change = float(data['percent_change_24h'])
-    if change > 0:
-        change_str = "{}%".format(change)
-    elif change < 0:
-        change_str = "{}%".format(change)
-    else:
-        change_str = "{}%".format(change)
-
     currency_sign = CURRENCY_SYMBOLS.get(currency, '')
 
     try:
@@ -110,9 +111,9 @@ def crypto_command(text, reply):
     except LookupError:
         return "Unable to convert to currency '{}'".format(currency)
 
-    return "{} // {}{:,.2f} {} - {:,.7f} BTC // {} change".format(
+    return "`{} || {}{:,.2f} {} - {:,.7f} BTC || Change 1h {}% || Change 24h: {}%`".format(
         data['symbol'], currency_sign, float(converted_value), currency.upper(),
-        float(data['price_btc']), change_str
+        float(data['price_btc']), data["percent_change_1h"], data["percent_change_24h"]
     )
 
 
