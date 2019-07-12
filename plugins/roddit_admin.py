@@ -167,10 +167,20 @@ def list_noobs(reply):
 
     msg = ""
     for noob in noobs:
-        msg += "<@" + noob + "> "
+        msg += "<@" + noob + "> \n"
 
         if len(msg) > 1000:
             reply(msg)
             msg = ""
 
     reply(msg)
+
+@hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
+def kick_noobs(reply):
+    users = roddit.get_users()
+
+    for user in users:
+        if len(user.roles) == 0:
+            reply("Kicking <@%s>" % user.id)
+
+            user.kick()
