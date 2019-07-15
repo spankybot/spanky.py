@@ -15,7 +15,7 @@ def avatar(event, text, str_to_id):
 
     return "Not found"
 
-@hook.command(permissions=Permission.admin)
+@hook.command(permissions=Permission.bot_owner)
 async def set_avatar(event, async_set_avatar):
     """
     Set bot avatar
