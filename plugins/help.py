@@ -73,11 +73,13 @@ def gen_documentation(bot, storage_loc, event):
                 admin_files[file_name] = []
 
             if bot.plugin_manager.commands[cmd.name].server_id and \
-                bot.plugin_manager.commands[cmd.name].server_id != event.server.id:
+                bot.plugin_manager.commands[cmd.name].server_id != server.id:
                 print(cmd.name)
                 continue
 
             if bot.plugin_manager.commands[cmd.name].permissions == Permission.admin:
+                admin_files[file_name].append(cmd.name)
+            elif bot.plugin_manager.commands[cmd.name].permissions == Permission.bot_owner:
                 admin_files[file_name].append(cmd.name)
             else:
                 files[file_name].append(cmd.name)
