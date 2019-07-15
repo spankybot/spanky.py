@@ -1,3 +1,0 @@
-[submodule "storage_data"]
-	path = storage_data
-	url = git@github.com:gc-plp/discordbot_cfg.git
