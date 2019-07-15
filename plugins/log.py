@@ -165,6 +165,34 @@ def log_msg(msg):
             args["server_id"]))
         db_conn.commit()
 
+@hook.command()
+def seen_user(text, str_to_id):
+    """
+    Get the last time when a user was seen saying something on a server where the bot is also present
+    """
+    uid = str_to_id(text)
+
+    cs = db_conn.cursor()
+
+    try:
+        cs.execute("""select * from messages where author_id=%s order by date desc limit 1""", (str(uid),))
+    except:
+        db_conn.rollback()
+        return "Invalid input"
+
+
+    data = cs.fetchall()
+    _, seen, _, _, _, _, _, _, _ = data[0]
+
+    return "Last seen on: %s UTC" % (str(seen))
+
+
+def get_msg_cnt_for_user(uid):
+    cs = db_conn.cursor()
+    cs.execute("""select count(*) from messages where author_id=%s""", (str(uid),))
+
+    return cs.fetchall()[0][0]
+
 async def rip_channel(client, ch):
     before = None
     old_bef = None
@@ -181,7 +209,7 @@ async def rip_channel(client, ch):
         else:
             old_bef = before
 
-@hook.command(permissions=Permission.admin)
+@hook.command(permissions=Permission.bot_owner)
 async def rip_servers(bot):
     import discord
     client = bot.backend.client
