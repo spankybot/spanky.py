@@ -3,7 +3,8 @@ from spanky.utils import storage
 
 @enum.unique
 class Permission(enum.Enum):
-    admin    = 0
+    admin     = 0   # Can be used by anyone with admin rights in a server
+    bot_owner = 99  # Bot big boss
 
 class PermissionMgr():
     def __init__(self, server):
