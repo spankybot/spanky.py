@@ -2,13 +2,14 @@ import os
 
 from spanky.plugin import hook, permissions
 from spanky.plugin.permissions import Permission
-from spanky.utils.setclearfactory import SetClearFactory, data_type_string, data_type_dynamic
+from spanky.utils.setclearfactory import SetClearFactory, data_type_string, data_type_dynamic, data_type_list
 
 chgroups = {}
 channels_in_chgroups = {}
 cgroups_own_cmds = {}
 cgroups_forbid_cmds = {}
 ugroups_own_cmds = {}
+free_to_use_cmds = {}
 
 class CmdPerms():
     def __init__(self, storage, cmd):
@@ -43,24 +44,36 @@ class CmdPerms():
             for chgroup in storage["commands"][cmd]["fgroups"]:
                 self.forbid_channel_ids.extend(storage["chgroups"][chgroup]["channels"])
 
+        self.unrestricted = False
+        if "unrestricted" in storage["commands"][cmd].keys():
+            self.unrestricted = True
 
 @hook.sieve
 def check_permissions(bot, bot_event, storage):
     cmd = CmdPerms(storage, bot_event.triggered_command)
+    # Get a list of user roles
     user_roles = set([i.id for i in bot_event.event.author.roles])
+
+    # Get a list of administrator roles
     allowed_roles = set(storage['admin_roles'] + cmd.owners_ids)
 
-    if bot_event.hook.permissions == permissions.Permission.admin:
+    if bot_event.hook.permissions == permissions.Permission.bot_owner:
+        if storage["bot_owners"]:
+            if bot_event.event.author.id in storage["bot_owners"]:
+                return True, None
+
+        return False, "Command reserved for bot owners"
+    elif bot_event.hook.permissions == permissions.Permission.admin:
         if storage["admin_roles"] == None:
-            return True, "Warning! Admin not set!"
+            return True, "Warning! Admin not set! Use .add_admin_role to set an administrator."
         if user_roles & allowed_roles:
                 return True, None
-#        if bot_event.event.author.id == "278247547838136320":
-#            return True, None
         return False, "You're not allowed to use that."
 
     # Check if the command has particular settings
     if cmd.is_customized:
+        if cmd.unrestricted:
+            return True, None
         if len(cmd.forbid_channel_ids) > 0 and bot_event.event.channel.id in cmd.forbid_channel_ids:
             bot_event.event.msg.delete_message()
             return False, "Command can't be used in " + \
@@ -102,7 +115,7 @@ A group of channels can be associated to a command, so that the command can be u
                                     cmd=data_type_string())
 
     cgroups_forbid_cmds[server.id] = SetClearFactory(name="commands",
-                                description="Manage channel groups that are associated to a command.",
+                                description="Manage forbidden channel groups that are associated to a command.",
                                 data_ref=storage,
                                 data_format="cmd fgroups",
                                 data_hierarchy='{"cmd":{"fgroups":[]}}',
@@ -116,6 +129,14 @@ A group of channels can be associated to a command, so that the command can be u
                                    data_hierarchy='{"cmd":{"owner":[]}}',
                                    owner=data_type_string(),
                                    cmd=data_type_string())
+
+    free_to_use_cmds[server.id] = SetClearFactory(name="commands",
+                                   description="Don't restrict commands from being used only in certain channels.",
+                                   data_ref=storage,
+                                   data_format="cmd unrestricted",
+                                   data_hierarchy='{"cmd":{"unrestricted":[]}}',
+                                   cmd=data_type_string(),
+                                   unrestricted=data_type_list(["Yes"]))
 
 #
 # Channel groups
@@ -145,6 +166,7 @@ def del_channel_group(send_message, text, server, storage):
         del_chgroup_from_cmd(dummy_send, cmd + " " + text, server)
 
     send_message(chgroups[server.id].del_thing(text))
+
 #
 # Channels in channel groups
 #
@@ -235,6 +257,28 @@ def del_owner_from_cmd(send_message, text, server):
     send_message(ugroups_own_cmds[server.id].del_thing(text))
 
 #
+# Commands that have no channel restrictions
+#
+@hook.command(permissions=Permission.admin, format="cmd")
+def remove_restrictions_for_cmd(send_message, text, server, str_to_id):
+    """<command> - Remove channel restrictions for a command to make it usable on the whole server"""
+    send_message(free_to_use_cmds[server.id].add_thing(text + " Yes"))
+
+@hook.command(permissions=Permission.admin, format="cmd")
+def is_cmd_unrestricted(send_message, text, server):
+    """<command> - Check if command is channel restricted or not"""
+    val = free_to_use_cmds[server.id].list_things_for_thing(text, "unrestricted")
+    if val:
+        send_message("Command is unrestricted")
+    else:
+        send_message("Command is restricted and may be limited by channel groups")
+
+@hook.command(permissions=Permission.admin, format="cmd")
+def restore_restrictions_for_cmd(send_message, text, server):
+    """<command user-group> - Restore channel restrictions for command"""
+    send_message(free_to_use_cmds[server.id].del_thing(text))
+
+#
 # Admin
 #
 @hook.command(permissions=Permission.admin, format="role")
@@ -258,7 +302,14 @@ def get_admin_roles(send_message, id_to_role_name, storage):
     if not roles:
         send_message("Not set.")
     elif roles and len(roles) > 0:
-        send_message(", ".join(id_to_role_name(i) for i in roles))
+        str_roles = []
+        for i in roles:
+            try:
+                str_roles.append(id_to_role_name(i))
+            except:
+                str_roles.append("`Error getting role %s`" % i)
+
+        send_message(", ".join(str_roles))
     else:
         send_message("Empty.")
 
@@ -267,6 +318,10 @@ def get_admin_roles(send_message, id_to_role_name, storage):
 def remove_admin_role(send_message, str_to_id, storage, text):
     role_id = str_to_id(text)
     roles = storage["admin_roles"]
+
+    if len(roles) == 1:
+        send_message("Cannot remove role, because this is the only admin role for this server")
+        return
 
     if roles and role_id in roles:
         roles.remove(role_id)
@@ -310,3 +365,44 @@ def list_default_bot_channel(storage, id_to_chan):
     else:
         return "Not set."
 
+#
+# Bot owners
+#
+@hook.command(permissions=Permission.bot_owner)
+def add_bot_owner(text, str_to_id, storage, send_message):
+    uid = str_to_id(text)
+
+    if "bot_owners" not in storage:
+        storage["bot_owners"] = []
+
+    storage["bot_owners"].append(uid)
+    storage.sync()
+
+    send_message("Done")
+
+@hook.command(permissions=Permission.bot_owner)
+def get_bot_owners(send_message, id_to_role_name, storage):
+    owners = storage["bot_owners"]
+    if not owners:
+        send_message("Not set.")
+    elif owners and len(owners) > 0:
+        send_message(", ".join("<@%s>" % i for i in owners))
+    else:
+        send_message("Empty.")
+
+
+@hook.command(permissions=Permission.bot_owner)
+def remove_bot_owner(send_message, str_to_id, storage, text):
+    uid = str_to_id(text)
+    owners = storage["bot_owners"]
+
+    if len(owners) == 1:
+        send_message("Cannot remove, because there is the only one bot owner left.")
+        return
+
+    if owners and uid in owners:
+        owners.remove(role_id)
+        storage.sync()
+        send_message("Done.")
+    else:
+        send_message("Could not find user in owner list.")
