@@ -3,6 +3,7 @@ from spanky.plugin import hook, permissions
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
+from plugins.log import get_msg_cnt_for_user
 
 @hook.command(permissions=Permission.admin, format="user")
 def kick(user_id_to_object, str_to_id, text):
@@ -33,6 +34,7 @@ The scripted message can contain special words that are replaced when the event 
  * {AGE} - Account age
  * {USER} - User that just joined
  * {USER_ID} - User ID
+ * {SEEN_CNT} - How many times this user has been seen in servers shared with the bot
 
 e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 12345678910 just joined!'
     """
@@ -42,11 +44,17 @@ e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 123456
         if storage["on_join_message"] == None:
             storage["on_join_message"] = []
 
+        if text[0] in storage["on_join_message"]:
+            return "There already is a message with that content"
+
         storage["on_join_message"].append(" ".join(text[1:]))
         storage.sync()
     elif text[0] == "role":
         if storage["on_join_role"] == None:
             storage["on_join_role"] = []
+
+        if text[0] in storage["on_join_role"]:
+            return "There already is a message with that content"
 
         storage["on_join_role"].append(" ".join(text[1:]))
         storage.sync()
@@ -64,6 +72,8 @@ def do_join(event, storage, send_message, str_to_id, server):
                 "USER": event.member.name,
                 "USER_ID": event.member.id
             }
+            if "{SEEN_CNT}" in msg:
+                args["SEEN_CNT"] = get_msg_cnt_for_user(event.member.id)
 
             text = msg.split(" ", maxsplit=1)
             chanid = str_to_id(text[0])
@@ -88,10 +98,10 @@ def list_join_events(storage):
     msg = ""
 
     if storage["on_join_message"]:
-        msg += "\nMessages: " + "; ".join(i for i in storage["on_join_message"])
+        msg += "\nMessages:\n" + "\n".join("-" + i for i in storage["on_join_message"])
 
     if storage["on_join_role"]:
-        msg += "\nRoles: " + "; ".join(i for i in storage["on_join_role"])
+        msg += "\nRoles:\n" + "\n".join("-" + i for i in storage["on_join_role"])
 
     return msg
 
@@ -100,17 +110,25 @@ def del_join_event(storage, text):
     """
     <event> - delete a join event
     """
+    to_delete = []
     if storage["on_join_message"]:
         for item in storage["on_join_message"]:
-            if text == item:
-                storage["on_join_message"].remove(text)
-                storage.sync()
-                return "Done."
-    elif storage["on_join_role"]:
+            if text in item:
+                to_delete.append((storage["on_join_message"], item))
+
+    if storage["on_join_role"]:
         for item in storage["on_join_role"]:
             if text == item:
-                storage["on_join_role"].remove(text)
-                storage.sync()
-                return "Done."
+                to_delete.append((storage["on_join_role"], item))
 
-    return "Couldn't find it."
+    if len(to_delete) > 1:
+        return "Found too many matching entries. Try restricting the search criteria"
+    elif len(to_delete) == 0:
+        return "Entry not found"
+
+    lst, item = to_delete[0]
+
+    lst.remove(item)
+    storage.sync()
+
+    return "Done"
