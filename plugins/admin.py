@@ -50,6 +50,9 @@ class CmdPerms():
 
 @hook.sieve
 def check_permissions(bot, bot_event, storage):
+    if storage['admin_roles'] is None:
+        return True, None
+
     cmd = CmdPerms(storage, bot_event.triggered_command)
     # Get a list of user roles
     user_roles = set([i.id for i in bot_event.event.author.roles])
