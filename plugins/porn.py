@@ -9,6 +9,7 @@ from sqlalchemy.sql import select
 from spanky import database
 
 RODDIT_ID = "287285563118190592"
+FLR_SERVER = "573566494332420123"
 
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
 domains = ['imgur.com', 'gfycat.com', 'redditmedia.com', 'i.redd.it', 'flic.kr', '500px.com']
@@ -257,7 +258,7 @@ def amateur():
 
     return format_output_message(data)
 
-@hook.command(server_id=RODDIT_ID)
+@hook.command(server_id=[RODDIT_ID, FLR_SERVER])
 def traps():
     data = get_links_from_subs(['Tgirls', 'traps', 'gonewildtrans', 'tgifs'])
 
