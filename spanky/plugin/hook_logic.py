@@ -60,6 +60,14 @@ class Hook:
             # we should have popped all the args, so warn if there are any left
             logger.warning("Ignoring extra args {} from {}".format(func_hook.kwargs, self.description))
 
+    def has_server_id(self, sid):
+        if type(self.server_id) == str:
+            return self.server_id == sid
+        elif type(self.server_id) == list:
+            return sid in self.server_id
+
+        return None
+
     @property
     def description(self):
         return "{}:{}".format(self.plugin.name, self.function_name)

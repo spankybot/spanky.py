@@ -220,7 +220,7 @@ class PluginManager():
 
         if hook.type in ("command"):
             # Run hooks on only the servers where they should run
-            if launch_event.hook.server_id and launch_event.event.server.id != launch_event.hook.server_id:
+            if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.event.server.id):
                 return
 
             # Ask the sieves to validate our command
@@ -247,7 +247,7 @@ class PluginManager():
                 return
 
         elif hook.type == "on_ready":
-            if launch_event.hook.server_id and launch_event.hook.server_id != launch_event.server.id:
+            if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.server.id):
                 return
 
         if hook.single_thread:
