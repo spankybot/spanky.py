@@ -45,7 +45,8 @@ class CmdPerms():
                 self.forbid_channel_ids.extend(storage["chgroups"][chgroup]["channels"])
 
         self.unrestricted = False
-        if "unrestricted" in storage["commands"][cmd].keys():
+        if "unrestricted" in storage["commands"][cmd].keys() and \
+                storage["commands"][cmd]["unrestricted"] == "Yes":
             self.unrestricted = True
 
 @hook.sieve
@@ -60,12 +61,11 @@ def check_permissions(bot, bot_event, storage):
     # Get a list of administrator roles
     allowed_roles = set(storage['admin_roles'] + cmd.owners_ids)
 
-    if bot_event.hook.permissions == permissions.Permission.bot_owner:
-        if storage["bot_owners"]:
-            if bot_event.event.author.id in storage["bot_owners"]:
-                return True, None
+    # Grant bot owners that are listed in the bot config the right to run any command
+    if "bot_owners" in bot.config and \
+        bot_event.event.author.id in bot.config["bot_owners"]:
+            return True, None
 
-        return False, "Command reserved for bot owners"
     elif bot_event.hook.permissions == permissions.Permission.admin:
         if storage["admin_roles"] == None:
             return True, "Warning! Admin not set! Use .add_admin_role to set an administrator."
@@ -246,11 +246,11 @@ def add_owner_to_cmd(send_message, text, server, str_to_id):
     send_message(ugroups_own_cmds[server.id].add_thing(text))
 
 @hook.command(permissions=Permission.admin, format="cmd")
-def list_owners_for_cmd(send_message, text, server):
+def list_owners_for_cmd(send_message, text, server, id_to_role_name):
     """<command> - List what user-groups own a command"""
     vals = ugroups_own_cmds[server.id].list_things_for_thing(text, "owner")
     if vals:
-        send_message(", ".join("<@&" + i + ">" for i in vals))
+        send_message(", ".join(id_to_role_name(i) for i in vals))
     else:
         send_message("Empty.")
 
@@ -285,11 +285,24 @@ def restore_restrictions_for_cmd(send_message, text, server):
 # Admin
 #
 @hook.command(permissions=Permission.admin, format="role")
-def add_admin_role(text, str_to_id, storage, send_message):
+def add_admin_role(text, str_to_id, storage, send_message, server):
     """
     <role> - Add role that can run administrative bot commands.
     """
     role_id = str_to_id(text)
+
+    drole = None
+    for role in server.get_roles():
+        if role.id == role_id:
+            drole = role
+            break
+        elif role.name == role_id:
+            drole = role
+            break
+
+    if drole is None:
+        send_message("Not a role. Use either role name or mention the role when running the command")
+        return
 
     if "admin_roles" not in storage:
         storage["admin_roles"] = []
@@ -367,45 +380,3 @@ def list_default_bot_channel(storage, id_to_chan):
         return id_to_chan(chan)
     else:
         return "Not set."
-
-#
-# Bot owners
-#
-@hook.command(permissions=Permission.bot_owner)
-def add_bot_owner(text, str_to_id, storage, send_message):
-    uid = str_to_id(text)
-
-    if "bot_owners" not in storage:
-        storage["bot_owners"] = []
-
-    storage["bot_owners"].append(uid)
-    storage.sync()
-
-    send_message("Done")
-
-@hook.command(permissions=Permission.bot_owner)
-def get_bot_owners(send_message, id_to_role_name, storage):
-    owners = storage["bot_owners"]
-    if not owners:
-        send_message("Not set.")
-    elif owners and len(owners) > 0:
-        send_message(", ".join("<@%s>" % i for i in owners))
-    else:
-        send_message("Empty.")
-
-
-@hook.command(permissions=Permission.bot_owner)
-def remove_bot_owner(send_message, str_to_id, storage, text):
-    uid = str_to_id(text)
-    owners = storage["bot_owners"]
-
-    if len(owners) == 1:
-        send_message("Cannot remove, because there is the only one bot owner left.")
-        return
-
-    if owners and uid in owners:
-        owners.remove(role_id)
-        storage.sync()
-        send_message("Done.")
-    else:
-        send_message("Could not find user in owner list.")
