@@ -98,3 +98,16 @@ def checker(send_message):
                         return
     except BaseException as e:
         print(str(e))
+
+@hook.periodic(10)
+def modmail_check(send_message):
+    r = praw.Reddit("discord_modmail", user_agent="Modmail reader by /u/programatorulupeste")
+
+    subreddit = r.subreddit('DiscordRomania')
+
+    for conv in subreddit.modmail.conversations(sort="unread"):
+        for msg in conv.messages:
+            send_message(target="449899630176632842", text="Mesaj nou in modmail de la `/u/%s`:\n `%s`\nLink: https://mod.reddit.com/mail/all/%s" % (msg.author, msg.body_markdown, str(conv)), server=roddit)
+            break
+        conv.archive()
+
