@@ -4,3 +4,4 @@ bot_config.json
 storage_data
 logs
 *.log
+.pyenv
