@@ -1,7 +1,7 @@
 watchdog
 sqlalchemy
 praw
-discord
+discord.py==0.16.12
 markovify
 cleverwrap
 lxml
@@ -14,3 +14,7 @@ oslo.concurrency
 psycopg2-binary
 googlemaps
 forecastiopy
+idna==2.6
+pillow
+numpy
+pythonwhois
