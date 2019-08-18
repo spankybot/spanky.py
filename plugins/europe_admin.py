@@ -62,4 +62,5 @@ def gulagcheck():
 
 @hook.command(server_id=EUROPE_ID)
 def gulagreasons(text, str_to_id, storage):
+    """<user> - List gulag reasons for user"""
     return get_reasons(text, str_to_id, storage)
