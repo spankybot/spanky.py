@@ -143,9 +143,9 @@ def get_reasons(text, str_to_id, storage):
 
     rtext = "\n"
     for reason in storage["reasons"][user_id]:
-        rtext += "`Date:` %s\n" % reason["date"]
-        rtext += "`Link:` %s\n" % reason["link"]
-        rtext += "`Reason:` %s\n" % reason["reason"]
+        rtext += "`Date:` %s\n" % reason["Date"]
+        rtext += "`Link:` %s\n" % reason["Link"]
+        rtext += "`Reason:` %s\n" % reason["Reason"]
 
     return rtext
 
