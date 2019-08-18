@@ -39,7 +39,7 @@ def save_picture(url, tag_name, message, storage, storage_loc):
         import traceback
         traceback.print_exc()
 
-def save_text(text_list, tag_name, message, storage):
+def save_text(text, tag_name, message, storage):
     if tag_name in storage.keys():
         message("already exists")
         return
@@ -49,7 +49,7 @@ def save_text(text_list, tag_name, message, storage):
     try:
         storage[tag_name] = {}
         storage[tag_name]["type"] = "text"
-        storage[tag_name]["content"] = " ".join(i for i in text_list)
+        storage[tag_name]["content"] = text
         storage.sync()
 
         message("Added text tag")
@@ -142,7 +142,7 @@ def tag_add(text, event, reply, storage, storage_loc):
     """
     <identifier content> - add tag content as indentifier
     """
-    text = text.split()
+    text = text.split(maxsplit=1)
     for att in event.attachments:
         if len(text) != 1:
             return 'Format is: `.tag_add <name> picture`'
@@ -153,7 +153,7 @@ def tag_add(text, event, reply, storage, storage_loc):
         if len(text) < 2:
             return 'If no picture is attached, add more words'
 
-        save_text(text[1:], text[0], reply, storage)
+        save_text(text[1], text[0], reply, storage)
 
 @hook.command(permissions=Permission.admin, format="cmd")
 def tag_del(text, storage, storage_loc):
