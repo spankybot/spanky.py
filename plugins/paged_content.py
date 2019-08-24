@@ -13,12 +13,13 @@ TIMEOUT = 5
 elements = deque(maxlen = 10)
 
 class element():
-    def __init__(self, text_list, send_func, description, max_lines=10, max_line_len=200):
+    def __init__(self, text_list, send_func, description, max_lines=10, max_line_len=200, no_timeout=False):
         self.max_lines = max_lines
         self.crt_idx = 0
         self.description = description
 
         self.time = time.time()
+        self.no_timeout = no_timeout
 
         self.send = send_func
 
@@ -95,7 +96,7 @@ async def do_page(bot, event):
         await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
 
         # Check timeout
-        if time.time() - content.time < TIMEOUT:
+        if not content.no_timeout and time.time() - content.time < TIMEOUT:
             return
         else:
             content.time = time.time()
