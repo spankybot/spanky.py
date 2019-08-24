@@ -24,3 +24,25 @@ Chat-bot overlay framework that can run on top of any python-based bot and call 
                                                                                   | for announcements |
                                                                                   ---------------------
 ```
+
+### Running the bot
+
+#### 1. Using Docker (recommended)
+The easiest way of stating up the bot is to use the tools provided in the `Dockerfile/` folder:
+
+```
+git clone https://github.com/gc-plp/spanky.py.git && \
+  cd spanky.py
+
+# Build container
+./Dockerfile/build.sh
+
+# Start the bot
+./Dockerfile/start.sh
+```
+
+#### 2. Native (not recommended)
+
+There are a lot of system dependencies that need to be installed on the system where you are planning to run the bot.
+
+Some of the prerequisites can be found in `Dockerfile/Dockerfile`. Once you install them, run the bot with Python 3.5.
