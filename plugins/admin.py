@@ -10,6 +10,7 @@ cgroups_own_cmds = {}
 cgroups_forbid_cmds = {}
 ugroups_own_cmds = {}
 free_to_use_cmds = {}
+superpower = {} # Assign superpowers to bot owners on servers
 
 class CmdPerms():
     def __init__(self, storage, cmd):
@@ -63,7 +64,8 @@ def check_permissions(bot, bot_event, storage):
 
     # Grant bot owners that are listed in the bot config the right to run any command
     if "bot_owners" in bot.config and \
-        bot_event.event.author.id in bot.config["bot_owners"]:
+        bot_event.event.author.id in bot.config["bot_owners"] and \
+        bot_event.event.server.id in superpower and superpower[bot_event.event.server.id]:
             return True, None
 
     elif bot_event.hook.permissions == permissions.Permission.admin:
@@ -140,6 +142,16 @@ A group of channels can be associated to a command, so that the command can be u
                                    data_hierarchy='{"cmd":{"unrestricted":[]}}',
                                    cmd=data_type_string(),
                                    unrestricted=data_type_list(["Yes"]))
+
+# Enable superpower for bot owners
+@hook.command(permissions=Permission.bot_owner)
+def irsuperman(server):
+    superpower[server.id] = True
+
+@hook.command(permissions=Permission.bot_owner)
+def irbaboon(server):
+    if server.id in superpower:
+        superpower[server.id] = False
 
 #
 # Channel groups
