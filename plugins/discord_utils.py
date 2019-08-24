@@ -19,13 +19,90 @@ def get_role_by_id(server, rid):
 
     return None
 
+def get_role_names_between(start_role, end_role, server):
+    list_roles = {}
+    # Get starting and ending positions of listed roles
+    for srole in server.get_roles():
+        if start_role in srole.name:
+            pos_start = srole.position
+        if end_role in srole.name:
+            pos_end = srole.position
+
+    # List available roles
+    for i in server.get_roles():
+        if i.position > pos_end and i.position < pos_start:
+            list_roles[i.name.lower()] = i
+
+    return list_roles
+
+def get_roles_between(start_role, end_role, server):
+    list_roles = []
+    # Get starting and ending positions of listed roles
+    for srole in server.get_roles():
+        if start_role in srole.name:
+            pos_start = srole.position
+        if end_role in srole.name:
+            pos_end = srole.position
+
+    # List available roles
+    for i in server.get_roles():
+        if i.position > pos_end and i.position < pos_start:
+            list_roles.append(i)
+
+    return list_roles
+
+def remove_role_from_list(start_role, end_role, server, event, send_message):
+    roles = get_roles_between(start_role, end_role, server)
+
+    user_roles = []
+    for role in event.author.roles:
+        if role.name.lower() not in role.name.lower():
+            user_roles.append(role)
+
+    if len(user_roles) > 0:
+        event.author.replace_roles(user_roles)
+        send_message("Done!")
+    else:
+        send_message("You don't have any of the roles.")
+
+def remove_given_role_from_list(start_role, end_role, server, event, send_message, text):
+    roles = get_roles_between(start_role, end_role, server)
+
+    for role in roles:
+        if role.name.lower() == text:
+            event.author.remove_role(role)
+            send_message("Done!")
+            return
+
+    uroles = set.intersection(set([i.name.lower() for i in event.author.roles]), set([i.name.lower() for i in roles]))
+    send_message("%s is not a role. Try with: %s" % (text, ", ".join("`" + i + "`" for i in uroles)))
+
+def add_role_from_list(start_role, end_role, server, event, send_message, text):
+    roles = get_roles_between(start_role, end_role, server)
+    text = text.strip()
+
+    for role in roles:
+        if role.name.lower() == text:
+            event.author.add_role(role)
+            send_message("Done!")
+            return
+
+    if text != "":
+        send_message("%s is not a role. Try with: %s" % (text, ", ".join("`" + i.name.lower() + "`" for i in roles)))
+    else:
+        send_message("You need to give me a role name. Try: %s" % (", ".join("`" + i.name.lower() + "`" for i in roles)))
+
 def roles_from_list(start_role, end_role, remove_text, send_message, server, event, bot, text):
     use_slow_mode = False
 
     bot_roles = bot.get_bot_roles_in_server(server)
 
-    list_colors = {remove_text.lower(): None}
+    if remove_text:
+        list_colors = {remove_text.lower(): None}
+    else:
+        list_colors = {}
     user_roles = {}
+
     # Make list of user roles
     for i in event.author.roles:
         user_roles[i.name.lower()] = i
@@ -41,21 +118,11 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
         if bot_max < user_roles[i].position:
             use_slow_mode = True
 
-    # Get starting and ending positions of listed roles
-    for srole in server.get_roles():
-        if start_role in srole.name:
-            pos_start = srole.position
-        if end_role in srole.name:
-            pos_end = srole.position
-
-    # List available roles
-    for i in server.get_roles():
-        if i.position > pos_end and i.position < pos_start:
-            list_colors[i.name.lower()] = i
+    list_colors = dict(**list_colors, **get_role_names_between(start_role, end_role, server))
 
     # If no role was specified, just print them
     if text == "":
-        send_message("Available roles: `%s`" % (", ".join(i for i in sorted(list_colors))))
+        send_message("Use the command with one of: `%s`" % (", ".join(i for i in sorted(list_colors))))
         return
 
     split = text.split()
@@ -63,7 +130,7 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
 
     # Check if the requested role exists
     if role not in list_colors:
-        send_message("%s is not a role. Available roles: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
+        send_message("%s is not a role. Use the command with one of: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
         return
 
     # If the user wants the role removed
@@ -97,4 +164,4 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
     else:
         if role != remove_text:
             event.author.add_role(list_colors[role])
-        return "Ai mai multe drepturi decat mine si s-ar putea sa nu fi mers totul OK. Fa-l singur in plm."
+        return "Your user rights are higher than what the bot has. Please check if role assignation worked."

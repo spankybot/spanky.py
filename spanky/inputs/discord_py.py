@@ -385,7 +385,6 @@ class User():
         self.name = obj.name
         self.id = obj.id
         self.bot = obj.bot
-        self.joined_at = obj.joined_at
 
         self.avatar_url = obj.avatar_url
 

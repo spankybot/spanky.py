@@ -7,7 +7,7 @@ import asyncio
 
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
-from spanky.plugin.event import OnStartEvent, OnReadyEvent
+from spanky.plugin.event import EventType, OnStartEvent, OnReadyEvent
 from spanky.inputs.console import EventMessage
 from spanky.plugin.hook_parameters import map_params
 
@@ -248,6 +248,10 @@ class PluginManager():
 
         elif hook.type == "on_ready":
             if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.server.id):
+                return
+
+        elif hook.type == "event" and launch_event.event.type == EventType.message:
+            if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.event.server.id):
                 return
 
         if hook.single_thread:
