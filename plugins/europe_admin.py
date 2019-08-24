@@ -42,8 +42,6 @@ def check_spam(bot, event, send_pm, str_to_id, send_message):
             send_pm("You have been muted in the %s server for spamming with `%s`\nYour confinement will last for one hour." % (event.server.name, ftext),
                 event.author)
 
-            print(ftext)
-
             ret, reason = assign_temp_role(
                 rstorage,
                 roddit,
