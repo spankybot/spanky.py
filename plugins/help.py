@@ -4,12 +4,14 @@ from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
 @hook.command
-def help(bot, text, event):
+def help(bot, text, event, send_embed):
     """Get help for a command or the help document"""
     if text in bot.plugin_manager.commands:
-        return "`%s:` " % text + bot.plugin_manager.commands[text].function.__doc__
+        send_embed(text, "", {"Usage:": bot.plugin_manager.commands[text].function.__doc__})
+        return
 
-    return "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands. For admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)
+    send_embed("Bot help:", "",
+        {"Links:": "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
 
 def prepare_repo(storage_loc):
     dest = storage_loc + "/doc/"
