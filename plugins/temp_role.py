@@ -44,6 +44,7 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
     member = get_user_by_id(server, user)
 
     if brole == None or member == None:
+        print("Internal error " + str(brole) + str(member))
         return "Internal error.", None
 
     extra = False
@@ -67,7 +68,7 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
             break
 
     if not extra:
-        reason_entry = add_reason(rstorage, event, user, reason, server, texp)
+        reason_entry = add_reason(rstorage, event, member, reason, server, texp, brole.name)
 
         new_entry = {}
         new_entry["user"] = user
@@ -103,26 +104,27 @@ def adjust_time(rstorage, event, user_id, command_name, new_time):
     return reason
 
 
-def add_reason(rstorage, event, user_id, reason, server, expire):
+def add_reason(rstorage, event, user, reason, server, expire, rtype):
     if "reasons" not in rstorage:
         rstorage["reasons"] = OrderedDict()
 
     if "case_id" not in rstorage:
         rstorage["case_id"] = 0
 
-    if user_id not in rstorage["reasons"]:
-        rstorage["reasons"][user_id] = []
+    if user.id not in rstorage["reasons"]:
+        rstorage["reasons"][user.id] = []
 
-    user_lst = rstorage["reasons"][user_id]
+    user_lst = rstorage["reasons"][user.id]
 
     new_elem = OrderedDict()
-    new_elem["Type"] = "Timed mute"
+    new_elem["Type"] = rtype
     new_elem["Case ID"] = rstorage["case_id"]
     new_elem["Reason"] = reason
     new_elem["Date"] = datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")
     new_elem["Expire date"] = datetime.datetime.fromtimestamp(expire).strftime("%H:%M:%S %d-%m-%Y")
     new_elem["Link"] = "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id)
     new_elem["Author"] = "%s / %s" % (event.author.name, str(event.author.id))
+    new_elem["User"] = "%s / %s" % (user.name, user.id)
     new_elem["Case ID"] = rstorage["case_id"]
 
     user_lst.append(new_elem)
@@ -131,6 +133,26 @@ def add_reason(rstorage, event, user_id, reason, server, expire):
     rstorage.sync()
 
     return new_elem
+
+def close_case(text, storage):
+    if "reasons" not in storage:
+        return "No reasons set"
+
+    try:
+        case_id = int(text)
+    except:
+        return "%s is not a number. I need a number to identify a case ID." % text
+
+    for user_id in storage["reasons"]:
+        for reason in storage["reasons"][user_id]:
+            if reason["Case ID"] == case_id:
+                if "Closed" in reason and reason["Closed"]:
+                    return "Case already closed."
+                reason["Closed"] = True
+                storage.sync()
+                return "Done"
+
+    return "Case ID %d not found" % case_id
 
 def get_reasons(text, str_to_id, storage):
     if "reasons" not in storage:
@@ -141,13 +163,23 @@ def get_reasons(text, str_to_id, storage):
     if user_id not in storage["reasons"]:
         return "No history for given user"
 
-    rtext = "\n"
+    rlist = []
     for reason in storage["reasons"][user_id]:
-        rtext += "`Date:` %s\n" % reason["Date"]
-        rtext += "`Link:` %s\n" % reason["Link"]
-        rtext += "`Reason:` %s\n" % reason["Reason"]
+        rtype = "No type given"
 
-    return rtext
+        # Skip closed cases
+        if "Closed" in reason and reason["Closed"]:
+            continue
+
+        # Type may be missing
+        if "Type" in reason:
+            rtype = reason["Type"]
+
+        rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % \
+                (reason["Case ID"], rtype, reason["Date"], reason["Author"].split("/")[0])
+        rlist.append(rtext)
+
+    return rlist
 
 def get_rtime(text, str_to_id, storage, command_name):
     user = str_to_id(text)
