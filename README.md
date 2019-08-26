@@ -37,6 +37,12 @@ git clone https://github.com/gc-plp/spanky.py.git && \
 # Build container
 ./Dockerfile/build.sh
 
+# Create bot_config.json
+cp bot_config.json.sample bot_config.json
+
+# Edit the config file
+# vi bot_config.json
+
 # Start the bot
 ./Dockerfile/start.sh
 ```
