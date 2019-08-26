@@ -23,9 +23,9 @@ def get_role_names_between(start_role, end_role, server):
     list_roles = {}
     # Get starting and ending positions of listed roles
     for srole in server.get_roles():
-        if start_role in srole.name:
+        if start_role == srole.name:
             pos_start = srole.position
-        if end_role in srole.name:
+        if end_role == srole.name:
             pos_end = srole.position
 
     # List available roles
@@ -39,9 +39,9 @@ def get_roles_between(start_role, end_role, server):
     list_roles = []
     # Get starting and ending positions of listed roles
     for srole in server.get_roles():
-        if start_role in srole.name:
+        if start_role == srole.name:
             pos_start = srole.position
-        if end_role in srole.name:
+        if end_role == srole.name:
             pos_end = srole.position
 
     # List available roles
@@ -49,14 +49,14 @@ def get_roles_between(start_role, end_role, server):
         if i.position > pos_end and i.position < pos_start:
             list_roles.append(i)
 
-    return list_roles
+    return sorted(list_roles, key=lambda m: m.name)
 
 def remove_role_from_list(start_role, end_role, server, event, send_message):
-    roles = get_roles_between(start_role, end_role, server)
+    roles = get_role_names_between(start_role, end_role, server)
 
     user_roles = []
     for role in event.author.roles:
-        if role.name.lower() not in role.name.lower():
+        if role.name.lower() not in roles:
             user_roles.append(role)
 
     if len(user_roles) > 0:
@@ -75,7 +75,10 @@ def remove_given_role_from_list(start_role, end_role, server, event, send_messag
             return
 
     uroles = set.intersection(set([i.name.lower() for i in event.author.roles]), set([i.name.lower() for i in roles]))
-    send_message("%s is not a role. Try with: %s" % (text, ", ".join("`" + i + "`" for i in uroles)))
+    if text != "":
+        send_message("%s is not a role. Try with: %s" % (text, ", ".join("`" + i + "`" for i in uroles)))
+    else:
+        send_message("You need to specify one of your roles. Try with: %s" % (", ".join("`" + i + "`" for i in uroles)))
 
 def add_role_from_list(start_role, end_role, server, event, send_message, text):
     roles = get_roles_between(start_role, end_role, server)
