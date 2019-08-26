@@ -85,10 +85,12 @@ def check_permissions(bot, bot_event, storage):
                 ", ".join(bot_event.event.id_to_chan(i) for i in cmd.forbid_channel_ids)
 
         if len(cmd.channel_ids) > 0 and bot_event.event.channel.id not in cmd.channel_ids:
+            bot_event.event.msg.delete_message()
             return False, "Command can't be used here. Try using it in " + \
                 ", ".join(bot_event.event.id_to_chan(i) for i in cmd.channel_ids)
 
     elif storage["default_bot_chan"] and bot_event.event.channel.id != storage["default_bot_chan"]:
+        bot_event.event.msg.delete_message()
         return False, "Command can only be used in " + bot_event.event.id_to_chan(storage["default_bot_chan"])
 
     return True, None
