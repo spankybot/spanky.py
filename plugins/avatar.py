@@ -28,3 +28,7 @@ async def set_avatar(event, async_set_avatar):
     except:
         import traceback
         traceback.print_exc()
+
+@hook.command(permissions=Permission.bot_owner)
+async def set_status(async_set_game_status, text):
+    await async_set_game_status(text)
