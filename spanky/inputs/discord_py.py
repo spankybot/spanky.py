@@ -11,6 +11,7 @@ import json
 import abc
 from gc import collect
 from spanky.utils.image import Image
+from spanky.utils import time_utils
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -21,6 +22,7 @@ logger.addHandler(handler)
 client = discord.Client()
 bot = None
 bot_replies = {}
+to_delete = {}
 emojis = json.load(open("plugin_data/twemoji_800x800.json"))
 
 class Init():
@@ -86,6 +88,9 @@ class DiscordUtils(abc.ABC):
         else:
             return None
 
+    async def async_set_game_status(self, game_status):
+        await client.change_presence(game=discord.Game(name=game_status))
+
     def get_channel(self, target, server):
         """
         Returns the target channel
@@ -111,8 +116,16 @@ class DiscordUtils(abc.ABC):
         chan = discord.utils.find(lambda m: m.id == chan_id, self.get_server()._raw.channels)
         return chan.name
 
-    async def async_send_message(self, text=None, embed=None, target=-1, server=None):
+    async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0):
         channel = self.get_channel(target, server)
+        try:
+            if text != None and ("@here" in text or "@everyone" in text):
+                await self.async_send_pm("User tried using: `%s` in <#%s> " %
+                    (text, channel.id), self.user_id_to_object("278247547838136320"))
+                return
+        except:
+            traceback.print_exc()
+
         if not channel:
             return
         try:
@@ -125,7 +138,7 @@ class DiscordUtils(abc.ABC):
 
             if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
-                    msg = Message(await client.edit_message(old_reply._raw, text))
+                    msg = Message(await client.edit_message(old_reply._raw, text), timeout)
                     add_bot_reply(self.get_server().id, self.msg, msg)
                     return msg
                 except:
@@ -133,12 +146,15 @@ class DiscordUtils(abc.ABC):
                     return
             try:
                 if text != None:
-                    msg = Message(await client.send_message(channel, text))
+                    msg = Message(await client.send_message(channel, text), timeout)
                 elif embed != None:
-                    msg = Message(await client.send_message(channel, embed=embed))
+                    msg = Message(await client.send_message(channel, embed=embed), timeout)
 
-                if type(self) is EventMessage and msg:
-                    add_bot_reply(self.get_server().id, self.msg._raw, msg)
+                if msg:
+                    if type(self) is EventMessage:
+                        add_bot_reply(self.get_server().id, self.msg._raw, msg)
+                    else:
+                        add_temporary_reply(msg)
 
                 return msg
             except:
@@ -147,9 +163,9 @@ class DiscordUtils(abc.ABC):
         except:
             print(traceback.format_exc())
 
-    def send_message(self, text, target=-1, server=None):
+    def send_message(self, text, target=-1, server=None, timeout=0):
         asyncio.run_coroutine_threadsafe(
-            self.async_send_message(text=text, target=target, server=server),
+            self.async_send_message(text=text, target=target, server=server, timeout=timeout),
             bot.loop)
 
     async def async_send_pm(self, text, user):
@@ -159,16 +175,16 @@ class DiscordUtils(abc.ABC):
         asyncio.run_coroutine_threadsafe(
             self.async_send_pm(text=text, user=user), bot.loop)
 
-    def send_embed(self, title, description, fields):
+    def send_embed(self, title, description, fields, target=-1):
         em = discord.Embed(title=title, description=description)
         for el in fields:
             em.add_field(name=el, value=fields[el])
 
         asyncio.run_coroutine_threadsafe(
-            self.async_send_message(embed=em), bot.loop)
+            self.async_send_message(embed=em, target=target), bot.loop)
 
-    def reply(self, text, target=-1):
-        self.send_message("(%s) %s" % (self.author.name, text), target)
+    def reply(self, text, target=-1, timeout=0):
+        self.send_message("(%s) %s" % (self.author.name, text), target, timeout=timeout)
 
     def send_file(self, file, target=-1, server=None):
         async def send_file(channel, file):
@@ -340,6 +356,9 @@ class EventMessage(DiscordUtils):
         elif self.server.id in bot_replies:
             for reply in bot_replies[self.server.id].bot_messages():
 
+                if self.channel.id != reply._raw.channel.id:
+                    continue
+
                 for att in reply._raw.attachments:
                     print(att)
                     yield Attachment(att).url
@@ -355,12 +374,15 @@ class EventMessage(DiscordUtils):
                     return
 
 class Message():
-    def __init__(self, obj):
+    def __init__(self, obj, timeout=0):
         self.text = obj.content
         self.id = obj.id
         self.author = User(obj.author)
         self.clean_content = obj.clean_content
         self._raw = obj
+
+        # Delete the message `timeout` seconds after it was created
+        self.timeout = timeout
 
     async def async_add_reaction(self, string):
         try:
@@ -597,12 +619,26 @@ class DictQueue():
         for elem in reversed(self.queue):
             yield elem[1]
 
+def add_temporary_reply(reply):
+    if reply.timeout != 0:
+        to_delete[time_utils.tnow() + reply.timeout] = reply
+
 def add_bot_reply(server_id, source, reply):
     if server_id not in bot_replies:
         bot_replies[server_id] = DictQueue(20)
     bot_replies[server_id][source.id] = reply
 
+    if reply.timeout != 0:
+        print("Add timeout message in " + str(reply.timeout))
+        add_temporary_reply(reply)
+
     print("%s -> %s" % (source.id, reply.id))
+
+def check_to_delete():
+    for key in list(to_delete.keys()):
+        if key < time_utils.tnow():
+            to_delete[key].delete_message()
+            del to_delete[key]
 
 @client.event
 async def on_ready():
@@ -666,6 +702,15 @@ async def on_reaction_remove(reaction, user):
         await call_func(bot.on_reaction_remove, reaction, user)
 ###
 
+### Server
+@client.event
+async def on_server_join(server):
+    await call_func(bot.on_server_join, server)
+
+async def on_server_remove(server):
+    await call_func(bot.on_server_leave, server)
+
+###
 
 async def periodic_task():
     global plugin_manager
@@ -674,6 +719,7 @@ async def periodic_task():
     while not client.is_closed:
         try:
             bot.on_periodic()
+            check_to_delete()
             await asyncio.sleep(1)
         except Exception:
             traceback.print_stack()
