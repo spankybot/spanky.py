@@ -298,7 +298,7 @@ def restore_restrictions_for_cmd(send_message, text, server):
 #
 # Admin
 #
-@hook.command(permissions=Permission.admin, format="role")
+@hook.command(permissions=Permission.admin)
 def add_admin_role(text, str_to_id, storage, send_message, server):
     """
     <role> - Add role that can run administrative bot commands.
@@ -321,7 +321,7 @@ def add_admin_role(text, str_to_id, storage, send_message, server):
     if "admin_roles" not in storage:
         storage["admin_roles"] = []
 
-    storage["admin_roles"].append(role_id)
+    storage["admin_roles"].append(drole.id)
     storage.sync()
 
     send_message("Done")
