@@ -13,7 +13,17 @@ start_trace = None
 
 @hook.command()
 def about():
+    """
+    Get about.
+    """
     return "Bot source code can be found at https://github.com/gc-plp/spanky.py or ask the owner: plp#9999"
+
+@hook.command()
+def invite_me():
+    """
+    Get invitation for bot
+    """
+    return "https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0"
 
 @hook.command(permissions=Permission.admin)
 def start_tracemalloc():
