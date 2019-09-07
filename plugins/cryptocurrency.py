@@ -88,7 +88,7 @@ def crypto_command(text, reply):
         request = get_request(ticker, currency)
         request.raise_for_status()
     except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
-        reply("Could not get value: {}".format(e))
+        reply("Could not get value")
         raise
 
     data = request.json()
