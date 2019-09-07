@@ -87,9 +87,14 @@ class Bot():
 
         # Maybe the bot joined a server later
         if server_id not in self.server_permissions:
-            if server_id in self.backend.get_servers():
+            server_list = {}
+
+            for server in self.backend.get_servers():
+                server_list[server.id] = server
+
+            if server_id in server_list.keys():
                 self.server_permissions[server_id] = \
-                    PermissionMgr(self.backend.get_servers()[server_id])
+                    PermissionMgr(server_list[server_id])
 
         return self.server_permissions[server_id]
 
@@ -105,6 +110,15 @@ class Bot():
     def run_in_thread(self, target, args=()):
         thread = threading.Thread(target=target, args=args)
         thread.start()
+
+# ---------------
+# Server events
+# ---------------
+    def on_server_join(self, server):
+        pass
+
+    def on_server_leave(self, server):
+        pass
 
 # ----------------
 # Message events
