@@ -207,3 +207,7 @@ def unassign(send_message, server, event, text):
             event,
             send_message,
             text)
+
+@hook.command(server_id=EUROPE_ID)
+def iam():
+    return "That command is deprecated, use `.assign` or `.country` to self-assign a role."
