@@ -232,7 +232,7 @@ class PluginManager():
                     args["storage"] = storage
                 can_run, msg = sieve.function(**args)
                 if msg:
-                    launch_event.event.reply(msg)
+                    launch_event.event.reply(msg, timeout=15)
                 if not can_run:
                     return
 
@@ -243,7 +243,7 @@ class PluginManager():
 
                 if func_doc:
                     msg += ": `" + hook.function.__doc__ + "`"
-                launch_event.event.reply(msg)
+                launch_event.event.reply(msg, timeout=15)
                 return
 
         elif hook.type == "on_ready":
