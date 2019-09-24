@@ -19,6 +19,16 @@ def get_role_by_id(server, rid):
 
     return None
 
+def get_channel_by_id(server, cid):
+    for c in server.get_channels():
+        if c.id == cid:
+            return c
+
+    return None
+
+def str_to_id(string):
+    return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
+
 def get_role_names_between(start_role, end_role, server):
     list_roles = {}
     # Get starting and ending positions of listed roles
