@@ -117,7 +117,10 @@ class DiscordUtils(abc.ABC):
         return chan.name
 
     async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0):
+        # Get target, if given
         channel = self.get_channel(target, server)
+
+        # Avoid @here and @everyone
         try:
             if text != None and ("@here" in text or "@everyone" in text):
                 await self.async_send_pm("User tried using: `%s` in <#%s> " %
@@ -126,9 +129,12 @@ class DiscordUtils(abc.ABC):
         except:
             traceback.print_exc()
 
+        # If no target was found, exit
         if not channel:
             return
         try:
+
+            # Find if this message has been replied to before
             old_reply = None
             if type(self) is EventMessage and self.get_server().id in bot_replies:
                 old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
@@ -136,24 +142,31 @@ class DiscordUtils(abc.ABC):
             if type(self) is EventReact and self.get_server().id in bot_replies:
                 old_reply = bot_replies[self.get_server().id].get_bot_message(self.msg)
 
+            # If it was replied within the same channel as now (not chances of this not being true)
             if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
+                    # Send the message
                     msg = Message(await client.edit_message(old_reply._raw, text), timeout)
+                    # Register the bot reply
                     add_bot_reply(self.get_server().id, self.msg, msg)
+
                     return msg
                 except:
                     print(traceback.format_exc())
                     return
             try:
+                # Send anything that we should send
                 if text != None:
                     msg = Message(await client.send_message(channel, text), timeout)
                 elif embed != None:
                     msg = Message(await client.send_message(channel, embed=embed), timeout)
 
+                # Add the bot reply
                 if msg:
                     if type(self) is EventMessage:
                         add_bot_reply(self.get_server().id, self.msg._raw, msg)
                     else:
+                        # Add a temporary reply that will be self-deleted after a timeout
                         add_temporary_reply(msg)
 
                 return msg
@@ -468,10 +481,20 @@ class User():
 
         asyncio.run_coroutine_threadsafe(do_ban(self._raw), bot.loop)
 
+    def unban(self, server):
+        async def do_unban(user, server):
+            try:
+                await client.unban(server, user)
+            except:
+                print(traceback.format_exc())
+
+        asyncio.run_coroutine_threadsafe(do_unban(self._raw, server), bot.loop)
+
 class Channel():
     def __init__(self, obj):
         self.name = obj.name
         self.id = obj.id
+        self.position = obj.position
         self._raw = obj
 
     def delete_messages(self, number):
@@ -510,6 +533,15 @@ class Channel():
     async def async_get_message(self, msg_id):
         return Message(await client.get_message(self._raw, msg_id))
 
+    def move_channel(self, position):
+        async def move_channel(channel, position):
+            try:
+                await client.move_channel(channel, position)
+            except:
+                print(traceback.format_exc())
+
+        asyncio.run_coroutine_threadsafe(move_channel(self._raw, position), bot.loop)
+
 class Server():
     def __init__(self, obj):
         self.name = obj.name
@@ -538,6 +570,23 @@ class Server():
             users.append(User(user))
 
         return users
+
+    def get_channels(self):
+        chans = []
+
+        for chan in self._raw.channels:
+            chans.append(Channel(chan))
+
+        return chans
+
+    async def get_bans(self):
+        bans = await client.get_bans(self._raw)
+
+        ulist = []
+        for user in bans:
+            ulist.append(User(user))
+
+        return ulist
 
 class Role():
     hash = random.randint(0, 2 ** 31)
