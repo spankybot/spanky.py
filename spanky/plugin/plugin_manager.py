@@ -242,7 +242,7 @@ class PluginManager():
                 msg = "Invalid format"
 
                 if func_doc:
-                    msg += ": `" + hook.function.__doc__ + "`"
+                    msg += ": " + "\n`" + hook.function.__doc__.strip() + "`"
                 launch_event.event.reply(msg, timeout=15)
                 return
 
@@ -276,6 +276,7 @@ class PluginManager():
 
         # make sure this plugin is actually loaded
         if not path in self.plugins:
+            print("No such plugin found to unload: %s" % path)
             return False
 
         # get the loaded plugin
