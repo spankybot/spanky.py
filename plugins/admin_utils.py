@@ -5,24 +5,6 @@ from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from plugins.log import get_msg_cnt_for_user
 
-@hook.command(permissions=Permission.admin, format="user")
-def kick(user_id_to_object, str_to_id, text):
-    """
-    <user> - Kick someone
-    """
-    user = user_id_to_object(str_to_id(text))
-    user.kick()
-    return "Okay."
-
-@hook.command(permissions=Permission.admin, format="user")
-def ban(user_id_to_object, str_to_id, text):
-    """
-    <user> - Ban someone
-    """
-    user = user_id_to_object(str_to_id(text))
-    user.ban()
-    return "Okay."
-
 def find_event_by_text(storage, text, str_to_id):
     events = []
     if not "on_join" in storage:
