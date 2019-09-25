@@ -8,15 +8,8 @@ from spanky.plugin.permissions import Permission
 from plugins.temp_role import assign_temp_role, get_rtime, check_exp_time, get_reasons, close_case
 from plugins.discord_utils import roles_from_list, remove_role_from_list, add_role_from_list, remove_given_role_from_list
 
-time_tokens = ['s', 'm', 'h', 'd']
-SEC_IN_MIN = 60
-SEC_IN_HOUR = SEC_IN_MIN * 60
-SEC_IN_DAY = SEC_IN_HOUR * 24
-
 EUROPE_ID = "258012752629596161"
 
-roddit = None
-rstorage = None
 spam_check = {}
 SPAM_LIMIT = 4
 
