@@ -120,6 +120,9 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
 
 @hook.command(permissions=Permission.admin)
 def list_temp_role_cmds(storage):
+    """
+    list temporary role commands
+    """
     if "cmds" not in storage:
         return "No commands created"
     else:
@@ -127,6 +130,9 @@ def list_temp_role_cmds(storage):
 
 @hook.command(permissions=Permission.admin)
 def delete_temp_role_cmd(storage, text, bot):
+    """
+    <command_name> - delete a temporary role command
+    """
     if "cmds" not in storage:
         return "No commands created"
 
@@ -191,9 +197,55 @@ async def userhistory(text, storage, async_send_message, server):
         import traceback
         traceback.print_exc()
 
-@hook.command()
+@hook.command(permissions=Permission.admin)
 def close_user_case(text, storage):
-    return close_case(text, storage)
+    """
+    <id> - mark user case as closed
+    """
+    if "reasons" not in storage:
+        return "No user cases set"
+
+    try:
+        case_id = int(text)
+    except:
+        return "%s is not a number. I need a number to identify a case ID." % text
+
+    for user_id in storage["reasons"]:
+        for reason in storage["reasons"][user_id]:
+            if reason["Case ID"] == case_id:
+                if "Closed" in reason and reason["Closed"]:
+                    return "Case already closed."
+                reason["Closed"] = True
+                storage.sync()
+                return "Done"
+
+    return "Case ID %d not found" % case_id
+
+@hook.command(permissions=Permission.admin)
+def show_user_case(text, storage, send_embed):
+    """
+    <id> - show details for a given user case
+    """
+    if "reasons" not in storage:
+        return "No user cases set"
+
+    try:
+        case_id = int(text)
+    except:
+        return "%s is not a number. I need a number to identify a case ID." % text
+
+    for user_id in storage["reasons"]:
+        for reason in storage["reasons"][user_id]:
+            if reason["Case ID"] == case_id:
+                # Compose the reply
+                log_text = ""
+                for k, v in reason.items():
+                    log_text += "**%s:** %s\n" % (k, v)
+
+                # Send it as embed
+                send_embed(
+                    "Result", "",
+                    {"Details": log_text})
 
 def give_temp_role(text, server, command_name, storage, event):
     # Remove extra whitespace and split
@@ -293,6 +345,9 @@ def give_temp_role(text, server, command_name, storage, event):
 
 @hook.command(permissions=Permission.admin)
 def set_mod_log_chan(server, storage, text):
+    """
+    <channel> - Set channel for moderator actions. When a moderator action will be done through the bot, details about the action will be logged to this channel.
+    """
     channel = get_channel_by_id(server, str_to_id(text))
 
     if not channel:
@@ -305,6 +360,9 @@ def set_mod_log_chan(server, storage, text):
 
 @hook.command(permissions=Permission.admin)
 def get_mod_log_chan(storage):
+    """
+    Return the moderator actions channel
+    """
     if "modlog_chan" in storage:
         return "<#%s>" % storage["modlog_chan"]
     else:
@@ -312,12 +370,43 @@ def get_mod_log_chan(storage):
 
 @hook.command(permissions=Permission.admin)
 def clear_mod_log_chan(storage):
+    """
+    Clear the moderator actions channel. No moderator actions messages will be sent.
+    """
     if "modlog_chan" in storage:
         del storage["modlog_chan"]
         storage.sync()
         return "Done."
     else:
         return "Channel not set"
+
+@hook.command(permissions=Permission.admin)
+def warn(user_id_to_object, str_to_id, text, storage, event, send_embed, server):
+    """
+    <user reason> - Warn a user
+    """
+    text = text.split(maxsplit=1)
+    user = user_id_to_object(str_to_id(text[0]))
+
+    if len(text) < 2:
+        return "Warning also needs a reason. Run the command as `.warn @user reason`"
+
+    reason = text[1]
+
+    if user is None:
+        return "User not found."
+
+    user_entry = create_user_reason(
+            storage,
+            user,
+            event.author,
+            reason,
+            "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id),
+            None,
+            "Warning")
+
+    # Log the action
+    log_action(storage, user_entry, send_embed, "User warned")
 
 @hook.command(permissions=Permission.admin)
 def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server):
@@ -642,26 +731,6 @@ def add_reason(rstorage, event, user, reason, server, expire, rtype):
     rstorage.sync()
 
     return new_elem
-
-def close_case(text, storage):
-    if "reasons" not in storage:
-        return "No reasons set"
-
-    try:
-        case_id = int(text)
-    except:
-        return "%s is not a number. I need a number to identify a case ID." % text
-
-    for user_id in storage["reasons"]:
-        for reason in storage["reasons"][user_id]:
-            if reason["Case ID"] == case_id:
-                if "Closed" in reason and reason["Closed"]:
-                    return "Case already closed."
-                reason["Closed"] = True
-                storage.sync()
-                return "Done"
-
-    return "Case ID %d not found" % case_id
 
 def get_reasons(text, str_to_id, storage):
     if "reasons" not in storage:
