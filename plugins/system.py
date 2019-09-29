@@ -25,18 +25,18 @@ def invite_me():
     """
     return "https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0"
 
-@hook.command(permissions=Permission.admin)
+@hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
     global start_trace
 
     tracemalloc.start(100)
     start_trace = tracemalloc.take_snapshot()
 
-@hook.command(permissions=Permission.admin)
+@hook.command(permissions=Permission.bot_owner)
 def stop_tracemalloc():
     tracemalloc.stop()
 
-@hook.command(permissions=Permission.admin)
+@hook.command(permissions=Permission.bot_owner)
 def mem_snapshot():
     key_type='lineno'
     limit=10
