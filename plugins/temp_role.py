@@ -409,7 +409,7 @@ def warn(user_id_to_object, str_to_id, text, storage, event, send_embed, server)
     log_action(storage, user_entry, send_embed, "User warned")
 
 @hook.command(permissions=Permission.admin)
-def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server):
+def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm):
     """
     <user [reason]> - Kick someone with an optional reason
     """
@@ -436,11 +436,13 @@ def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server)
     log_action(storage, user_entry, send_embed,
         "User kicked")
 
+    send_pm(text="You have been kicked from %s." % server.name, user=user)
+
     user.kick()
     return "Okay."
 
 @hook.command(permissions=Permission.admin)
-def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server):
+def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm):
     """
     <user [,time], reason> - ban someone permanently or for a given amount of time (e.g. `.ban @plp 5m` bans plp for 5 minutes).
     """
@@ -489,10 +491,14 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server):
     new_entry["expire"] = texp
     new_entry["reason_id"] = user_entry["Case ID"]
 
-    if "temp_bans" not in storage:
-        storage["temp_bans"] = []
+    if not permanent:
+        if "temp_bans" not in storage:
+            storage["temp_bans"] = []
 
-    storage["temp_bans"].append(new_entry)
+        storage["temp_bans"].append(new_entry)
+        send_pm(text="You have temporarily banned from %s. The ban will last for %s" % (server.name, text[1]), user=user)
+    else:
+        send_pm(text="You have been permanently banned from %s." % server.name, user=user)
     storage.sync()
 
     user.ban()
@@ -529,6 +535,9 @@ def check_expired_roles(server, storage):
 async def check_expired_bans(server, storage):
     tnow = datetime.datetime.now().timestamp()
     for elem in storage["temp_bans"]:
+        if elem["expire"] == None:
+            storage["temp_bans"].remove(elem)
+            storage.sync()
         if elem["expire"] < tnow:
             for user in await server.get_bans():
                 if elem["user_id"] == user.id:
