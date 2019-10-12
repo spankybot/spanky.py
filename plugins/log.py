@@ -3,6 +3,7 @@ import codecs
 import time
 import psycopg2
 
+from datetime import datetime
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
@@ -12,6 +13,33 @@ base_formats = {
 }
 
 db_conn = None
+
+@hook.command(permissions=Permission.bot_owner)
+def gen_train_src(bot):
+    LIMIT = 10000
+    cs = db_conn.cursor()
+
+    # Get number of messages
+    cs.execute("""select count(*) from messages where server='r/Romania' and author_id!='295665055117344769' and channel_id='295942451041140746'  """)
+    data = cs.fetchall()
+
+    num_msgs = int(data[0][0])
+    print("Training using %d messages" % num_msgs)
+
+    start = 0
+    os.system("mkdir -p models")
+    out = open("models/to_train.txt", "w")
+    while True:
+        cs.execute("""select * from messages where server='r/Romania' and author_id!='295665055117344769' and channel!='335107789049561088' and channel_id='295942451041140746' limit %s offset %s""", (str(LIMIT), start))
+
+        if start > num_msgs:
+            break
+
+        start += LIMIT
+
+        print(start)
+        for msg in cs.fetchall():
+            out.write(msg[4] + "\n")
 
 @hook.on_start()
 def init_db(bot):
@@ -102,7 +130,12 @@ def log(bot, event):
 
     file_log(event, args)
     console_log(bot, event, args)
-    db_log(event, args)
+
+    try:
+        db_log(event, args)
+    except psycopg2.InternalError as e:
+        print(e)
+        init_db(bot)
 
 def file_log(event, args):
     text = format_event(event, args)
@@ -193,10 +226,23 @@ def get_msg_cnt_for_user(uid):
 
     return cs.fetchall()[0][0]
 
+def get_msg_cnt_for_channel(cid):
+    cs = db_conn.cursor()
+    cs.execute("""select count(*) from messages where channel_id=%s""", (str(cid),))
+
+    return cs.fetchall()[0][0]
+
+def get_msg_cnt_for_channel_after(cid, lower):
+    cs = db_conn.cursor()
+
+    cs.execute("""select count(*) from messages where channel_id=%s and date>%s""",
+        (str(cid), str(datetime.fromtimestamp(lower)),))
+
+    return cs.fetchall()[0][0]
+
 async def rip_channel(client, ch):
     before = None
     old_bef = None
-    import time
     while True:
         print("Current timestamp " + str(before))
         async for i in client.logs_from(ch, limit = 1000, reverse=True, before = before):
