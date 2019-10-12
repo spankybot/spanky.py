@@ -157,6 +157,12 @@ class Bot():
         evt = self.input.EventMember(EventType.part, member)
         self.do_non_text_event(evt)
 
+    def on_member_ban(self, member):
+        pass
+
+    def on_member_unban(self, server, member):
+        pass
+
 # ----------------
 # Reaction events
 # ----------------
