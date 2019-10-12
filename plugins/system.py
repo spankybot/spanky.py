@@ -26,6 +26,10 @@ def invite_me():
     return "https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0"
 
 @hook.command(permissions=Permission.bot_owner)
+def restart():
+    os.system('kill %d' % os.getpid())
+
+@hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
     global start_trace
 
