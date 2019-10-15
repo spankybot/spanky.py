@@ -414,6 +414,9 @@ def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server,
     <user [reason]> - Kick someone with an optional reason
     """
     text = text.split()
+    if len(text) == 0:
+        return kick.__doc__
+
     user = user_id_to_object(str_to_id(text[0]))
 
     reason = "Not given"
@@ -447,6 +450,9 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
     <user [,time], reason> - ban someone permanently or for a given amount of time (e.g. `.ban @plp 5m` bans plp for 5 minutes).
     """
     text = text.split()
+    if len(text) == 0:
+        return ban.__doc__
+
     user = user_id_to_object(str_to_id(text[0]))
 
     # Check for valid user
@@ -459,7 +465,10 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
     reason = "Not given"
     # Check if there's a timeout
     if len(text) > 1:
-        timeout_sec = time_utils.timeout_to_sec(text[1])
+        try:
+            timeout_sec = time_utils.timeout_to_sec(text[1])
+        except:
+            timeout_sec = 0
 
         # If there's no timeout, then the reason follows the username
         if timeout_sec == 0:
