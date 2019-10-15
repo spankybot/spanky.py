@@ -475,7 +475,7 @@ class User():
     def ban(self):
         async def do_ban(user):
             try:
-                await client.ban(user)
+                await client.ban(user, delete_message_days=0)
             except:
                 print(traceback.format_exc())
 
