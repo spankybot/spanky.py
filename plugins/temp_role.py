@@ -73,7 +73,7 @@ def init_cmds(storage, server, bot):
         print("Registering " + cmd)
         register_cmd(storage["cmds"][cmd], server)
 
-    if not get_vdata("temp_role_reload_%s" % server.id):
+    if not get_vdata("temp_role_reload_%s" % server.id) and len(storage["cmds"]) != 0:
         print("temp_role_reload_%s" % server.id)
         set_vdata("temp_role_reload_%s" % server.id, True)
         reload_file(bot)
