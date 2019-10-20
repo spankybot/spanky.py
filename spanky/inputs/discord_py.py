@@ -494,7 +494,10 @@ class Channel():
     def __init__(self, obj):
         self.name = obj.name
         self.id = obj.id
-        self.position = obj.position
+        try:
+            self.position = obj.position
+        except:
+            self.position = None
         self._raw = obj
 
     def delete_messages(self, number):
