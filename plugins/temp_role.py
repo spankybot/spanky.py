@@ -5,6 +5,7 @@ from spanky.plugin import hook, permissions
 from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from plugins.discord_utils import *
+from spanky.utils.volatile import set_vdata, get_vdata
 from collections import OrderedDict
 
 time_tokens = ['s', 'm', 'h', 'd']
@@ -31,11 +32,11 @@ def register_cmd(cmd, server):
     Register a user defined command
     """
     def create_it(cmd_name):
-        @hook.command(permissions=Permission.admin)
         def do_cmd(text, server, storage, event, send_embed):
             """
             Temporary role assignment command as defined by server ops.
             """
+            print("Got temp cmd %s" % cmd_name)
             ret_val = give_temp_role(text, server, cmd_name, storage, event)
 
             if type(ret_val) == str:
@@ -50,7 +51,7 @@ def register_cmd(cmd, server):
         do_cmd.__name__ = cmd_name
         return do_cmd
 
-    globals()[cmd["name"]] = hook.command(server_id=server.id)(create_it(cmd["name"]))
+    globals()[cmd["name"]] = hook.command(server_id=server.id, permissions=Permission.admin)(create_it(cmd["name"]))
 
 def reload_file(bot):
     dirname = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
@@ -59,8 +60,9 @@ def reload_file(bot):
     # TODO: use unified way of identifying plugins
     bot.plugin_manager.load_plugin(dirname + "/" + fname)
 
+# TODO: Add on post_ready command to avoid multiple reloads for this file
 @hook.on_ready()
-def init_cmds(storage, server):
+def init_cmds(storage, server, bot):
     """
     Register all commands on bot ready
     """
@@ -68,8 +70,13 @@ def init_cmds(storage, server):
         return
 
     for cmd in storage["cmds"]:
-        print(cmd)
+        print("Registering " + cmd)
         register_cmd(storage["cmds"][cmd], server)
+
+    if not get_vdata("temp_role_reload_%s" % server.id):
+        print("temp_role_reload_%s" % server.id)
+        set_vdata("temp_role_reload_%s" % server.id, True)
+        reload_file(bot)
 
 @hook.command(permissions=Permission.admin)
 def create_temp_role_cmd(text, str_to_id, server, bot, storage):
