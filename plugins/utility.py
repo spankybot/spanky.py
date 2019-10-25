@@ -133,12 +133,12 @@ def base64_encode(text):
 
 
 @hook.command("debase64")
-def base64_decode(text, notice):
+def base64_decode(text):
     """<string> -- Decode <string> with base64."""
     try:
         return " ".join(base64.b64decode(text.encode()).decode().splitlines())
     except binascii.Error:
-        notice("Invalid base64 string '{}'".format(text))
+        return "Invalid base64 string '{}'".format(text)
 
 
 @hook.command("isbase64")
