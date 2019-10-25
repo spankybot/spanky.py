@@ -197,6 +197,7 @@ def check_bad_words(storage, event, bot):
 
     if not storage["bad"]:
         return
+
     for word in storage["bad"]:
-        if re.search(r"\b%s\b" % word, event.msg.text):
+        if re.search(r"(?i)%s" % word, event.msg.text):
             event.msg.delete_message()
