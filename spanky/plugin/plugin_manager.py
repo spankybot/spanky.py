@@ -7,7 +7,7 @@ import asyncio
 
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
-from spanky.plugin.event import EventType, OnStartEvent, OnReadyEvent
+from spanky.plugin.event import EventType, OnStartEvent, OnReadyEvent, OnConnReadyEvent
 from spanky.inputs.console import EventMessage
 from spanky.plugin.hook_parameters import map_params
 
@@ -30,6 +30,8 @@ class PluginManager():
         self.sieves = []
         self.catch_all_triggers = []
         self.run_on_ready = []
+        self.run_on_conn_ready = []
+        self.raw_triggers = []
         self.bot = bot
         self.db = db
 
@@ -62,6 +64,7 @@ class PluginManager():
 
         # run on_ready hooks if bot ready
         if self.bot.is_ready:
+            # Run the on ready hooks per server
             for server in self.bot.backend.get_servers():
                 for on_ready_hook in plugin.run_on_ready:
                     self.launch(OnReadyEvent(
@@ -69,6 +72,13 @@ class PluginManager():
                         hook=on_ready_hook,
                         permission_mgr=self.bot.get_pmgr(server.id),
                         server=server))
+
+            # Run connection ready hooks too
+            for on_conn_ready_hook in plugin.run_on_conn_ready:
+                self.launch(OnConnReadyEvent(
+                    bot=self.bot,
+                    hook=on_conn_ready_hook))
+
 
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
@@ -115,9 +125,13 @@ class PluginManager():
         for sieve_hook in plugin.sieves:
             self.sieves.append(sieve_hook)
 
-        # register on ready hooks
+        # register on connection ready hooks
         for on_ready_hook in plugin.run_on_ready:
             self.run_on_ready.append(on_ready_hook)
+
+        # register on ready hooks
+        for on_conn_ready_hook in plugin.run_on_conn_ready:
+            self.run_on_conn_ready.append(on_conn_ready_hook)
 
         # sort sieve hooks by priority
         self.sieves.sort(key=lambda x: x.priority)
@@ -395,7 +409,8 @@ class Plugin():
             self.events, \
             self.periodic, \
             self.run_on_start, \
-            self.run_on_ready = find_hooks(self, module)
+            self.run_on_ready, \
+            self.run_on_conn_ready = find_hooks(self, module)
 
         self.tables = find_tables(module)
 

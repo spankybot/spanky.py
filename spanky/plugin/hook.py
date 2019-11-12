@@ -329,10 +329,10 @@ def on_start(param=None, **kwargs):
         return _on_start_hook(param)
     else:
         return lambda func: _on_start_hook(func)
-    
+
 def on_ready(param=None, **kwargs):
-    """External on_ready decorator. Can be used directly as a decorator, or with args to return a decorator
-    :type param: function | None
+    """external on_ready decorator. Can be used directly as a decorator, or with args to return a decorator
+    :type param: function | none
     """
 
     def _on_ready_hook(func):
@@ -348,3 +348,22 @@ def on_ready(param=None, **kwargs):
         return _on_ready_hook(param)
     else:
         return lambda func: _on_ready_hook(func)
+
+def on_connection_ready(param=None, **kwargs):
+    """external on_connection_ready decorator. can be used directly as a decorator, or with args to return a decorator
+    :type param: function | none
+    """
+
+    def _on_connection_ready_hook(func):
+        hook = _get_hook(func, "on_connection_ready")
+        if hook is None:
+            hook = _Hook(func, "on_connection_ready")
+            _add_hook(func, hook)
+
+        hook._add_hook(kwargs)
+        return func
+
+    if callable(param):
+        return _on_connection_ready_hook(param)
+    else:
+        return lambda func: _on_connection_ready_hook(func)

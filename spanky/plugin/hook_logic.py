@@ -232,6 +232,16 @@ class OnStartHook(Hook):
     def __str__(self):
         return "on_start {} from {}".format(self.function_name, self.plugin.file_name)
 
+class OnConnReadyHook(Hook):
+    def __init__(self, plugin, on_connection_ready_hook):
+        super().__init__("on_connection_ready", plugin, on_connection_ready_hook)
+
+    def __repr__(self):
+        return "On_ready[{}]".format(Hook.__repr__(self))
+
+    def __str__(self):
+        return "on_connection_readyy {} from {}".format(self.function_name, self.plugin.file_name)
+
 
 class OnReadyHook(Hook):
     def __init__(self, plugin, on_ready_hook):
@@ -259,8 +269,9 @@ def find_hooks(parent, module):
     periodic = []
     on_start = []
     on_ready = []
+    on_conn_ready = []
     type_lists = {"command": command, "regex": regex, "msg_raw": raw, "sieve": sieve, "event": event,
-                  "periodic": periodic, "on_start": on_start, "on_ready": on_ready}
+                  "periodic": periodic, "on_start": on_start, "on_ready": on_ready, "on_connection_ready": on_conn_ready}
     for name, func in module.__dict__.items():
         if hasattr(func, "_cloudbot_hook"):
             # if it has cloudbot hook
@@ -272,7 +283,7 @@ def find_hooks(parent, module):
             # delete the hook to free memory
             del func._cloudbot_hook
 
-    return command, regex, raw, sieve, event, periodic, on_start, on_ready
+    return command, regex, raw, sieve, event, periodic, on_start, on_ready, on_conn_ready
 
 def find_tables(code):
     """
@@ -295,5 +306,6 @@ _hook_name_to_plugin = {
     "event": EventHook,
     "periodic": PeriodicHook,
     "on_start": OnStartHook,
-    "on_ready": OnReadyHook
+    "on_ready": OnReadyHook,
+    "on_connection_ready": OnConnReadyHook
 }

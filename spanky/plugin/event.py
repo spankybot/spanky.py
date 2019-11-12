@@ -17,7 +17,7 @@ class EventType(enum.Enum):
     member_ban      = 8
     member_unban    = 9
     member_update   = 10
-    
+
     reaction_add    = 11
     reaction_remove = 12
 
@@ -28,7 +28,7 @@ class BaseEvent():
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.db
-    
+
     def prepare(self):
         """
         Initializes this event to be run through it's hook
@@ -41,7 +41,7 @@ class BaseEvent():
             logger.debug("Opening database session for {}:threaded=True".format(self.hook.description))
 
             self.db = self.db.db_session()
-            
+
     def close(self):
         """
         Closes this event after running it through it's hook.
@@ -59,7 +59,7 @@ class BaseEvent():
             # be sure the close the database in the database executor, as it is only accessable in that one thread
             self.db.close()
             self.db = None
-            
+
     def reply(self, text):
         self.event.reply(text)
 
@@ -71,7 +71,7 @@ class TextEvent(BaseEvent):
         self.triggered_command = triggered_command
         self.event = event
         self.permission_mgr = permission_mgr
-        
+
         self.doc = self.hook.doc
 
     def notice_doc(self, target=None):
@@ -84,13 +84,19 @@ class OnStartEvent(BaseEvent):
     def __init__(self, bot, hook):
         super().__init__(bot)
         self.hook = hook
-        
+
 class OnReadyEvent(BaseEvent):
     def __init__(self, bot, hook, permission_mgr, server):
         super().__init__(bot)
         self.hook = hook
         self.permission_mgr = permission_mgr
         self.server = server
+        self.event = None
+
+class OnConnReadyEvent(BaseEvent):
+    def __init__(self, bot, hook):
+        super().__init__(bot)
+        self.hook = hook
         self.event = None
 
 class TimeEvent(BaseEvent):

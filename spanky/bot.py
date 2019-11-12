@@ -7,7 +7,7 @@ import time
 import asyncio
 
 from spanky.plugin.plugin_manager import PluginManager
-from spanky.plugin.event import EventType, TextEvent, TimeEvent, RegexEvent, HookEvent, OnReadyEvent
+from spanky.plugin.event import EventType, TextEvent, TimeEvent, RegexEvent, HookEvent, OnReadyEvent, OnConnReadyEvent
 from spanky.database.db import db_data
 from spanky.plugin.permissions import PermissionMgr
 from spanky.plugin.hook_logic import OnStartHook
@@ -66,6 +66,13 @@ class Bot():
                         hook=on_ready,
                         permission_mgr=self.get_pmgr(server.id),
                         server=server))
+
+        # Run on connection ready hooks
+        for on_conn_ready in self.plugin_manager.run_on_conn_ready:
+            self.plugin_manager.launch(
+                    OnConnReadyEvent(
+                        bot=self,
+                        hook=on_conn_ready))
 
     def ready(self):
         # Initialize per server permissions
@@ -217,7 +224,6 @@ class Bot():
         if event.author.bot or not event.do_trigger:
             return
 
-        is_piped = True
         piped_cmds = []
         # Check if the command starts with .
         if len(event.msg.text) > 0 and event.msg.text[0] == ".":
