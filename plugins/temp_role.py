@@ -60,22 +60,26 @@ def reload_file(bot):
     # TODO: use unified way of identifying plugins
     bot.plugin_manager.load_plugin(dirname + "/" + fname)
 
-# TODO: Add on post_ready command to avoid multiple reloads for this file
-@hook.on_ready()
-def init_cmds(storage, server, bot):
+@hook.on_connection_ready()
+def init_cmds(bot):
     """
     Register all commands on bot ready
     """
-    if "cmds" not in storage:
-        return
 
-    for cmd in storage["cmds"]:
-        print("Registering " + cmd)
-        register_cmd(storage["cmds"][cmd], server)
+    for server in bot.backend.get_servers():
+        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_temp_role.json")
 
-    if not get_vdata("temp_role_reload_%s" % server.id) and len(storage["cmds"]) != 0:
-        print("temp_role_reload_%s" % server.id)
-        set_vdata("temp_role_reload_%s" % server.id, True)
+        if "cmds" not in storage:
+            continue
+
+        for cmd in storage["cmds"]:
+            print("[%s] Registering %s" % (server.id, cmd))
+            register_cmd(storage["cmds"][cmd], server)
+
+    # TODO: workaround - look into adding commands dinamically
+    if not get_vdata("temp_role_reload"):
+        print("temp_role_reload")
+        set_vdata("temp_role_reload", True)
         reload_file(bot)
 
 @hook.command(permissions=Permission.admin)
@@ -161,15 +165,15 @@ def delete_temp_role_cmd(storage, text, bot):
 @hook.command(permissions=Permission.admin)
 async def userhistory(text, storage, async_send_message, server):
     """<user> - List confinement reasons for user"""
-    def get_reasons(text, storage, user):
+    def get_reasons(text, storage, user_id):
         if "reasons" not in storage:
             return ["No reasons set"]
 
-        if user.id not in storage["reasons"]:
+        if user_id not in storage["reasons"]:
             return ["No history for given user"]
 
         rlist = []
-        for reason in storage["reasons"][user.id]:
+        for reason in storage["reasons"][user_id]:
             rtype = "No type given"
 
             # Skip closed cases
@@ -188,14 +192,10 @@ async def userhistory(text, storage, async_send_message, server):
 
     try:
         # Get the user
-        user = get_user_by_id(server, str_to_id(text))
-
-        if not user:
-            await async_send_message("Please specify a valid user or user ID")
-            return
+        user_id = str_to_id(text)
 
         # Get reasons
-        usr_hist = get_reasons(text, storage, user)
+        usr_hist = get_reasons(text, storage, user_id)
 
         # Print as pages
         paged_content = paged.element(usr_hist, async_send_message, "User history:", no_timeout=True)
