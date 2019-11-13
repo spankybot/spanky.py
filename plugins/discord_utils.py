@@ -77,6 +77,7 @@ def remove_role_from_list(start_role, end_role, server, event, send_message):
 
 def remove_given_role_from_list(start_role, end_role, server, event, send_message, text):
     roles = get_roles_between(start_role, end_role, server)
+    text = text.lower()
 
     for role in roles:
         if role.name.lower() == text:
@@ -92,7 +93,7 @@ def remove_given_role_from_list(start_role, end_role, server, event, send_messag
 
 def add_role_from_list(start_role, end_role, server, event, send_message, text):
     roles = get_roles_between(start_role, end_role, server)
-    text = text.strip()
+    text = text.lower().strip()
 
     for role in roles:
         if role.name.lower() == text:
@@ -107,6 +108,7 @@ def add_role_from_list(start_role, end_role, server, event, send_message, text):
 
 def roles_from_list(start_role, end_role, remove_text, send_message, server, event, bot, text):
     use_slow_mode = False
+    text = text.lower()
 
     bot_roles = bot.get_bot_roles_in_server(server)
 
