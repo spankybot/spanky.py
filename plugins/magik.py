@@ -61,7 +61,7 @@ def magik(event, send_file, send_message, cmd_args):
     for img in event.image:
         img.proc_each_wand_frame(make_magik, send_file, send_message, cmd_args)
 
-@hook.command(params="int:frames=10 float:ratio1=0.5 float:ratio2=1.5")
+@hook.command(params="int:frames=10 float:ratio1=0.8 float:ratio2=1.2")
 def gmagik(event, send_file, send_message, cmd_args):
     for img in event.image:
         img.proc_each_wand_frame(make_gmagik, send_file, send_message, cmd_args)
