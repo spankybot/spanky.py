@@ -63,10 +63,36 @@ def prepare_image(img):
 
     return img
 
-@hook.command()
-def glasses(event, send_file, send_message):
+def get_overlay(name, location):
+    """
+    Get an overlay or return a random one.
+    If an invalid overlay is requested, return an error.
+    """
+
+    overlay = None
+    if name == "random":
+        overlay = random.choice(glob.glob("%s/*.png.json" % location))
+    else:
+        # CHeck if the file exists
+        if os.path.isfile("%s/%s.png.json" % (location, name)):
+            overlay = "%s/%s.png.json" % (location, name)
+        else:
+            # Enumerate all resources and return
+            resources = glob.glob("%s/*.png.json" % location)
+            return False, "%s is not a valid parameter. Try one of: %s" % \
+                (name,
+                        ", ".join(i.split("/")[-1].replace(".png.json", "") for i in resources))
+
+    return True, overlay.replace(".json", "")
+
+@hook.command(params="string:name=random")
+def glasses(event, send_file, send_message, cmd_args):
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/glasses/")
+
+    if not valid:
+        return overlay
+
     for img in event.image:
-        overlay = random.choice(glob.glob("plugin_data/face_res/glasses/*.png"))
         img.proc_each_pil_frame(add_glasses, send_file, send_message, {"glasses_img": overlay})
 
 def add_glasses(image, glasses_img, debug=False):
@@ -119,10 +145,14 @@ def add_glasses(image, glasses_img, debug=False):
     else:
         return None
 
-@hook.command()
-def moustache(event, send_file, send_message):
+@hook.command(params="string:name=random")
+def moustache(event, send_file, send_message, cmd_args):
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/moustache/")
+
+    if not valid:
+        return overlay
+
     for img in event.image:
-        overlay = random.choice(glob.glob("plugin_data/face_res/moustache/*.png"))
         img.proc_each_pil_frame(add_moustache, send_file, send_message, {"moustache_img": overlay})
 
 
@@ -177,10 +207,14 @@ def add_moustache(image, moustache_img, debug=False):
     else:
         return None
 
-@hook.command()
-def hat(event, send_file, send_message):
+@hook.command(params="string:name=random")
+def hat(event, send_file, send_message, cmd_args):
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/hat/")
+
+    if not valid:
+        return overlay
+
     for img in event.image:
-        overlay = random.choice(glob.glob("plugin_data/face_res/hat/*.png"))
         img.proc_each_pil_frame(add_hat, send_file, send_message, {"hat_img": overlay})
 
 def add_hat(image, hat_img, debug=False):
@@ -235,24 +269,12 @@ def add_hat(image, hat_img, debug=False):
     else:
         return None
 
-
 @hook.command(params="string:name=random")
 def eyes(event, send_file, storage_loc, send_message, cmd_args):
-    # Check if the name is random or a specific file
-    overlay = None
-    if cmd_args["name"] == "random":
-        overlay = random.choice(glob.glob("plugin_data/face_res/eyes/*.png.json"))
-        overlay = overlay.replace(".json", "")
-    else:
-        # CHeck if the file exists
-        if os.path.isfile("plugin_data/face_res/eyes/%s.png.json" % cmd_args["name"]):
-            overlay = "plugin_data/face_res/eyes/%s.png" % cmd_args["name"]
-        else:
-            # Enumerate all resources and return
-            resources = glob.glob("plugin_data/face_res/eyes/*.png.json")
-            return "%s is not a valid parameter. Try one of: %s" % \
-                (cmd_args["name"],
-                        ", ".join(i.split("/")[-1].replace(".png.json", "") for i in resources))
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/eyes/")
+
+    if not valid:
+        return overlay
 
     for img in event.image:
         img.proc_each_pil_frame(add_eyes, send_file, send_message, {"eyes_img": overlay})
