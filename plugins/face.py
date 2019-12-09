@@ -5,6 +5,7 @@ import requests
 import glob
 import random
 import PIL
+import os
 
 from PIL import Image, ImageDraw
 from math import hypot, sin, cos
@@ -235,12 +236,25 @@ def add_hat(image, hat_img, debug=False):
         return None
 
 
-@hook.command()
-def eyes(event, send_file, storage_loc, send_message):
-    for img in event.image:
-        overlay = random.choice(glob.glob("plugin_data/face_res/eyes/*_l.png"))
-        overlay = overlay.replace("_l.png", ".png")
+@hook.command(params="string:name=random")
+def eyes(event, send_file, storage_loc, send_message, cmd_args):
+    # Check if the name is random or a specific file
+    overlay = None
+    if cmd_args["name"] == "random":
+        overlay = random.choice(glob.glob("plugin_data/face_res/eyes/*.png.json"))
+        overlay = overlay.replace(".json", "")
+    else:
+        # CHeck if the file exists
+        if os.path.isfile("plugin_data/face_res/eyes/%s.png.json" % cmd_args["name"]):
+            overlay = "plugin_data/face_res/eyes/%s.png" % cmd_args["name"]
+        else:
+            # Enumerate all resources and return
+            resources = glob.glob("plugin_data/face_res/eyes/*.png.json")
+            return "%s is not a valid parameter. Try one of: %s" % \
+                (cmd_args["name"],
+                        ", ".join(i.split("/")[-1].replace(".png.json", "") for i in resources))
 
+    for img in event.image:
         img.proc_each_pil_frame(add_eyes, send_file, send_message, {"eyes_img": overlay})
 
 def add_eyes(image, eyes_img, debug=False):
