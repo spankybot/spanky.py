@@ -5,6 +5,7 @@ MAX_LEN = 50
 
 @hook.command()
 async def s(text, channel, reply, event, bot):
+    """<word replacement> - replace 'word' with replacement"""
     text = text.split()
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
