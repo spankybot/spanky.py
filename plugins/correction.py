@@ -3,10 +3,19 @@ from spanky.plugin import hook
 
 MAX_LEN = 50
 
-@hook.command(format="word replacement")
+@hook.command()
 async def s(text, channel, reply, event, bot):
     """<word replacement> - replace 'word' with replacement"""
     text = text.split()
+    if len(text) == 0 or len(text) > 2:
+        msg = "Invalid format"
+        msg += ": " + "\n`" + "<word replacement> - replace 'word' with replacement`"
+        msg += "\n`" + "if only one word is specified, it will be replaced with a blankspace`"
+        reply(msg, timeout=15)
+        return
+
+    if len(text) == 1:
+        text.append("")
 
     messages = await channel.async_get_latest_messages(MAX_LEN)
 
