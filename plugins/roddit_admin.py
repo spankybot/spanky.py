@@ -60,19 +60,3 @@ def kick_noobs(reply, server):
             reply("Kicking <@%s>" % user.id)
 
             user.kick()
-
-@hook.event(EventType.reaction_add)
-async def rem_invalid(event):
-    if event.channel.id != "620225520608739348":
-        return
-    try:
-        if event.reaction.emoji.name != u"👍":
-            await event.msg.async_remove_reaction(event.reaction.emoji._raw, event.author)
-    except:
-        import traceback
-        traceback.print_exc()
-
-@hook.event(EventType.message)
-async def concurs(event):
-    if event.channel.id == "620225520608739348":
-        await event.msg.async_add_reaction(u"👍")
