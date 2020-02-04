@@ -126,6 +126,20 @@ def injur():
         except Exception as e:
             return "pula"
 
+
+@hook.command(server_id=RODDIT_ID)
+def manea():
+    with open(TEXTS_REL_PATH + "manele.txt", "r") as f:
+        content = f.read()
+
+        text_model = markovify.Text(content)
+        try:
+            return("lautar: " + text_model.make_short_sentence(max_chars = 300, tries=10000,
+                max_overlap_total=MAX_OVERLAP_TOTAL,
+                max_overlap_ratio=MAX_OVERLAP_RATIO))
+        except Exception as e:
+            return "pula"
+
 @hook.command(server_id=RODDIT_ID)
 def muie(send_message):
     send_message("ia muie!")
