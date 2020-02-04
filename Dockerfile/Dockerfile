@@ -10,7 +10,8 @@ RUN pacman -Sy && \
     gcc \
     awk \
     make \
-    imagemagick
+    imagemagick \
+    re2
 
 # Install go
 RUN mkdir -p /opt && cd /opt && \
