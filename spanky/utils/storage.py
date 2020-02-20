@@ -15,6 +15,7 @@ DS_LOC = "storage_data/"
 
 class dstype():
     def __init__(self, parent, name):
+        parent = str(parent)
         logger.debug("Initializing %s, %s" % (parent, name))
         if platform.system() == "Windows":
             os.makedirs(self.get_win_path(DS_LOC + parent + "/backup"), exist_ok=True)

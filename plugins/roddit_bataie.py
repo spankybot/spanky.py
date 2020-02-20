@@ -95,7 +95,7 @@ def end_bataie(author):
 
 @hook.periodic(1)
 def check_bataie(send_message):
-    if rstorage["bataie_data"] is None:
+    if rstorage is None or rstorage["bataie_data"] is None:
         return
 
     if time_utils.tnow() - rstorage["bataie_data"]["start_time"] > BATAIE_TIME:

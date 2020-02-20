@@ -40,7 +40,7 @@ class Init():
 
     def get_servers(self):
         servers = []
-        for server in client.servers:
+        for server in client.guilds:
             servers.append(Server(server))
 
         return servers
@@ -82,7 +82,7 @@ class DiscordUtils(abc.ABC):
         return discord.utils.find(lambda m: m.id == uid, self.get_server()._raw.members).name
 
     def user_id_to_object(self, uid):
-        user = discord.utils.find(lambda m: m.id == uid, self.get_server()._raw.members)
+        user = discord.utils.find(lambda m: m.id == int(uid), self.get_server()._raw.members)
         if user:
             return User(user)
         else:
@@ -146,7 +146,7 @@ class DiscordUtils(abc.ABC):
             if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
                     # Send the message
-                    msg = Message(await client.edit_message(old_reply._raw, text), timeout)
+                    msg = Message(await old_reply._raw.edit(text), timeout)
                     # Register the bot reply
                     add_bot_reply(self.get_server().id, self.msg, msg)
 
@@ -157,9 +157,9 @@ class DiscordUtils(abc.ABC):
             try:
                 # Send anything that we should send
                 if text != None:
-                    msg = Message(await client.send_message(channel, text), timeout)
+                    msg = Message(await channel.send(text), timeout)
                 elif embed != None:
-                    msg = Message(await client.send_message(channel, embed=embed), timeout)
+                    msg = Message(await channel.send(text, embed=embed), timeout)
 
                 # Add the bot reply
                 if msg:
@@ -182,7 +182,7 @@ class DiscordUtils(abc.ABC):
             bot.loop)
 
     async def async_send_pm(self, text, user):
-        await client.send_message(user._raw, text)
+        await user._raw.send(text)
 
     def send_pm(self, text, user):
         asyncio.run_coroutine_threadsafe(
@@ -199,7 +199,9 @@ class DiscordUtils(abc.ABC):
     def reply(self, text, target=-1, timeout=0):
         self.send_message("(%s) %s" % (self.author.name, text), target, timeout=timeout)
 
-    def send_file(self, file, target=-1, server=None):
+    def send_file(self, file_path, target=-1, server=None):
+        file = discord.File(file_path)
+
         async def send_file(channel, file):
             if self.get_server().id in bot_replies:
                 old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
@@ -207,14 +209,14 @@ class DiscordUtils(abc.ABC):
 
                     try:
                         await client.delete_message(old_reply._raw)
-                        msg = Message(await client.send_file(channel, file))
+                        msg = Message(await channel.send(file))
                     except:
                         print(traceback.format_exc())
                     add_bot_reply(self.get_server().id, self.msg._raw, msg)
                     return msg
 
             try:
-                msg = Message(await client.send_file(channel, file))
+                msg = Message(await channel.send(file=file))
             except:
                 print(traceback.format_exc())
 
@@ -225,7 +227,7 @@ class DiscordUtils(abc.ABC):
 
     async def async_send_file(self, file, target=-1):
         try:
-            return Message(await client.send_file(self.get_channel(target), file))
+            return Message(await self.get_channel(target).send(file=file))
         except:
             print(traceback.format_exc())
 
@@ -262,7 +264,7 @@ class EventMember(DiscordUtils):
     def __init__(self, event_type, member, member_after=None):
         self.type = event_type
         self.member = User(member)
-        self.server = Server(member.server)
+        self.server = Server(member.guild)
 
         if member_after:
             self.after = EventMember(-1, member_after)
@@ -284,8 +286,8 @@ class EventMessage(DiscordUtils):
 
         self.server_replies = None
         self.is_pm = False
-        if hasattr(message, "server") and message.server:
-            self.server = Server(message.server)
+        if hasattr(message, "guild") and message.guild:
+            self.server = Server(message.guild)
 
             if self.server.id in bot_replies:
                 self.server_replies = bot_replies[self.server.id]
@@ -411,7 +413,7 @@ class Message():
 
     def delete_message(self):
         async def delete_message(message):
-            await client.delete_message(message)
+            await self._raw.delete(message)
         asyncio.run_coroutine_threadsafe(delete_message(self._raw), bot.loop)
 
 class User():
@@ -435,7 +437,7 @@ class User():
     def add_role(self, role):
         async def do_add_role(user, role):
             try:
-                await client.add_roles(user, role)
+                await self._raw.add_roles(role)
             except:
                 print(traceback.format_exc())
 
@@ -446,7 +448,7 @@ class User():
             tries = 0
             try:
                 while role in user.roles and tries < 5:
-                    await client.remove_roles(user, role)
+                    await self._raw.remove_roles(role)
                     tries += 1
             except Exception as e:
                 print(e)
@@ -456,7 +458,7 @@ class User():
     def replace_roles(self, roles):
         async def do_repl_role(user, roles):
             try:
-                await client.replace_roles(user, *roles)
+                await self._raw.edit(roles=roles)
             except:
                 print(traceback.format_exc())
 
@@ -466,16 +468,16 @@ class User():
     def kick(self):
         async def do_kick(user):
             try:
-                await client.kick(user)
+                await user.kick()
             except:
                 print(traceback.format_exc())
 
         asyncio.run_coroutine_threadsafe(do_kick(self._raw), bot.loop)
 
-    def ban(self):
+    def ban(self, server):
         async def do_ban(user):
             try:
-                await client.ban(user, delete_message_days=0)
+                await server._raw.ban(user, delete_message_days=0)
             except:
                 print(traceback.format_exc())
 
@@ -484,7 +486,7 @@ class User():
     def unban(self, server):
         async def do_unban(user, server):
             try:
-                await client.unban(server, user)
+                await server._raw.unban(user)
             except:
                 print(traceback.format_exc())
 
@@ -492,12 +494,15 @@ class User():
 
 class Channel():
     def __init__(self, obj):
-        self.name = obj.name
+        self.name = None
+        if hasattr(obj, "name"):
+            self.name = obj.name
+
         self.id = obj.id
-        try:
+        self.position = None
+        if hasattr(obj, "position"):
             self.position = obj.position
-        except:
-            self.position = None
+
         self._raw = obj
 
     def delete_messages(self, number):
@@ -505,16 +510,16 @@ class Channel():
             async def del_bulk(channel, num):
                 list_del = []
 
-                async for m in client.logs_from(channel, limit=num):
+                async for m in self._raw.history(limit=num):
                     if not m.pinned:
                         list_del.append(m)
 
-                await client.delete_messages(list_del)
+                await self._raw.delete_messages(list_del)
 
             async def del_simple(channel, num):
-                async for m in client.logs_from(channel, limit=num):
+                async for m in self._raw.history(limit=num):
                     if not m.pinned:
-                        await client.delete_message(m)
+                        await m.delete()
 
             if num > 2 and num < 100:
                 try:
@@ -528,13 +533,13 @@ class Channel():
 
     async def async_get_latest_messages(self, no_messages):
         msgs = []
-        async for msg in client.logs_from(self._raw, limit=no_messages):
+        async for msg in self._raw.history(limit=no_messages):
             msgs.append(Message(msg))
 
         return msgs
 
     async def async_get_message(self, msg_id):
-        return Message(await client.get_message(self._raw, msg_id))
+        return Message(await self._raw.fetch_message(msg_id))
 
     def move_channel(self, position):
         async def move_channel(channel, position):
@@ -583,11 +588,11 @@ class Server():
         return chans
 
     async def get_bans(self):
-        bans = await client.get_bans(self._raw)
+        bans = await self._raw.bans()
 
         ulist = []
-        for user in bans:
-            ulist.append(User(user))
+        for entry in bans:
+            ulist.append(User(entry.user))
 
         return ulist
 
@@ -610,12 +615,12 @@ class Role():
 
 class Attachment():
     def __init__(self, obj):
-        self.url = obj['url']
+        self.url = obj.url
         self._raw = obj
 
 class Embed():
     def __init__(self, obj):
-        self.url = obj['url']
+        self.url = obj.url
         self._raw = obj
 
 class Reaction():
@@ -735,8 +740,8 @@ async def on_member_update(before, after):
     await call_func(bot.on_member_update, before, after)
 
 @client.event
-async def on_member_ban(member):
-    await call_func(bot.on_member_ban, member)
+async def on_member_ban(server, member):
+    await call_func(bot.on_member_ban, server, member)
 
 @client.event
 async def on_member_unban(server, user):
@@ -765,10 +770,9 @@ async def on_server_remove(server):
 ###
 
 async def periodic_task():
-    global plugin_manager
     await client.wait_until_ready()
 
-    while not client.is_closed:
+    while not client.is_closed():
         try:
             bot.on_periodic()
             check_to_delete()

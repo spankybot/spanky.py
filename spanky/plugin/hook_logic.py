@@ -50,6 +50,9 @@ class Hook:
         self.format = func_hook.kwargs.pop("format", None)
         self.single_thread = func_hook.kwargs.pop("singlethread", False)
         self.server_id = func_hook.kwargs.pop("server_id", None)
+        if isinstance(self.server_id, int):
+            self.server_id = str(self.server_id)
+
         self.given_cmd_params = func_hook.kwargs.pop("params", None)
 
         self.param_list = None
