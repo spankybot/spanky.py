@@ -46,7 +46,7 @@ class Init():
         return servers
 
     def get_own_id(self):
-        return self.client.user.id
+        return str(self.client.user.id)
 
     def get_bot_roles_in_server(self, server):
         roles = server._raw.get_member(client.user.id).roles
@@ -76,10 +76,10 @@ class DiscordUtils(abc.ABC):
         return "<#%s>" % id_str
 
     def id_to_role_name(self, id_str):
-        return discord.utils.find(lambda m: m.id == id_str, self.get_server()._raw.roles).name
+        return discord.utils.find(lambda m: m.id == int(id_str), self.get_server()._raw.roles).name
 
     def user_id_to_name(self, uid):
-        return discord.utils.find(lambda m: m.id == uid, self.get_server()._raw.members).name
+        return discord.utils.find(lambda m: m.id == int(uid), self.get_server()._raw.members).name
 
     def user_id_to_object(self, uid):
         user = discord.utils.find(lambda m: m.id == int(uid), self.get_server()._raw.members)
@@ -110,7 +110,7 @@ class DiscordUtils(abc.ABC):
                 target = target[1:]
                 return discord.utils.find(lambda m: m.name == target, target_server.channels)
 
-            return discord.utils.find(lambda m: m.id == target, target_server.channels)
+            return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
 
     def get_channel_name(self, chan_id):
         chan = discord.utils.find(lambda m: m.id == chan_id, self.get_server()._raw.channels)
@@ -146,11 +146,11 @@ class DiscordUtils(abc.ABC):
             if old_reply and old_reply._raw.channel.id == channel.id:
                 try:
                     # Send the message
-                    msg = Message(await old_reply._raw.edit(text), timeout)
+                    await old_reply._raw.edit(content=text)
                     # Register the bot reply
-                    add_bot_reply(self.get_server().id, self.msg, msg)
+                    #add_bot_reply(self.get_server().id, self.msg, msg)
 
-                    return msg
+                    return Message(old_reply._raw)
                 except:
                     print(traceback.format_exc())
                     return
@@ -248,7 +248,7 @@ class EventReact(DiscordUtils):
     def __init__(self, event_type, user, reaction):
         self.type = event_type
         self.author = User(user)
-        self.server = Server(user.server)
+        self.server = Server(user.guild)
         self.msg = Message(reaction.message)
         self.channel = Channel(reaction.message.channel)
 
@@ -354,7 +354,7 @@ class EventMessage(DiscordUtils):
             return
 
         if self.user_id_to_object(stripped) != None:
-            yield self.user_id_to_object(stripped).avatar_url
+            yield str(self.user_id_to_object(stripped).avatar_url)
             return
         elif len(stripped) == 1 and format(ord(stripped), "x") in emojis:
             yield emojis[format(ord(stripped), "x")]
@@ -391,7 +391,7 @@ class EventMessage(DiscordUtils):
 class Message():
     def __init__(self, obj, timeout=0):
         self.text = obj.content
-        self.id = obj.id
+        self.id = str(obj.id)
         self.author = User(obj.author)
         self.clean_content = obj.clean_content
         self._raw = obj
@@ -401,13 +401,13 @@ class Message():
 
     async def async_add_reaction(self, string):
         try:
-            await client.add_reaction(self._raw, string)
+            await self._raw.add_reaction(string)
         except:
             traceback.print_exc()
 
     async def async_remove_reaction(self, string, author):
         try:
-            await client.remove_reaction(self._raw, string, author._raw)
+            await self._raw.remove_reaction(string, author._raw)
         except:
             traceback.print_exc()
 
@@ -420,7 +420,7 @@ class User():
     def __init__(self, obj):
         self.nick = obj.display_name
         self.name = obj.name
-        self.id = obj.id
+        self.id = str(obj.id)
         self.bot = obj.bot
 
         self.avatar_url = obj.avatar_url
@@ -458,6 +458,21 @@ class User():
     def replace_roles(self, roles):
         async def do_repl_role(user, roles):
             try:
+                nitro = None
+                if self._raw.premium_since:
+                    # get nitro role
+                    for role in self.roles:
+                        if role.name == "Nitro Booster":
+                            nitro = role._raw
+
+                    found = False
+                    for erole in roles:
+                        if erole.id == nitro.id:
+                            found = True
+                            break
+                    if not found:
+                        roles.append(nitro)
+
                 await self._raw.edit(roles=roles)
             except:
                 print(traceback.format_exc())
@@ -498,7 +513,7 @@ class Channel():
         if hasattr(obj, "name"):
             self.name = obj.name
 
-        self.id = obj.id
+        self.id = str(obj.id)
         self.position = None
         if hasattr(obj, "position"):
             self.position = obj.position
@@ -553,7 +568,7 @@ class Channel():
 class Server():
     def __init__(self, obj):
         self.name = obj.name
-        self.id = obj.id
+        self.id = str(obj.id)
         self._raw = obj
 
     def get_roles(self):
@@ -609,7 +624,7 @@ class Role():
 
     def __init__(self, obj):
         self.name = obj.name
-        self.id = obj.id
+        self.id = str(obj.id)
         self.position = obj.position
         self._raw = obj
 
@@ -636,7 +651,7 @@ class Emoji():
             self.url = None
         else:
             self.name = obj.name
-            self.id = obj.id
+            self.id = str(obj.id)
             self.url = obj.url
 
         self._raw = obj
