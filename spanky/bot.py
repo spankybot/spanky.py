@@ -164,7 +164,7 @@ class Bot():
         evt = self.input.EventMember(EventType.part, member)
         self.do_non_text_event(evt)
 
-    def on_member_ban(self, member):
+    def on_member_ban(self, server, member):
         pass
 
     def on_member_unban(self, server, member):
@@ -271,7 +271,7 @@ class Bot():
                     event.server.name,
                     event.msg.id,
                     event.channel.name,
-                    event.author.name + "/" + event.author.id + "/" + event.author.nick,
+                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
                     event.text))
                 self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
 

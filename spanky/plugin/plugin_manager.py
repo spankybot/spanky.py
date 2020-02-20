@@ -182,17 +182,18 @@ class PluginManager():
         if parameters is None:
             return None
 
-        try:
-            if not asyncio.iscoroutinefunction(hook.function):
-                return hook.function(*parameters)
-            else:
-                asyncio.run_coroutine_threadsafe(hook.function(*parameters), self.bot.loop)
-                return None
-        except:
-            import traceback
-            traceback.print_exc()
-        finally:
-            event.close()
+        # shitty workaround
+        async def call_func():
+            try:
+                await hook.function(*parameters)
+            except:
+                import traceback; traceback.print_exc()
+
+        if not asyncio.iscoroutinefunction(hook.function):
+            return hook.function(*parameters)
+        else:
+            asyncio.run_coroutine_threadsafe(call_func(), self.bot.loop)
+            return None
 
     def execute_hook(self, hook, event):
         """
@@ -234,7 +235,7 @@ class PluginManager():
 
         if hook.type in ("command"):
             # Run hooks on only the servers where they should run
-            if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.event.server.id):
+            if launch_event.hook.server_id and not launch_event.hook.has_server_id(str(launch_event.event.server.id)):
                 return
 
             # Ask the sieves to validate our command

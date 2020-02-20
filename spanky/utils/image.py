@@ -226,7 +226,7 @@ class Image():
         # TODO Use BytesIO
         fname = self.fname_generator() + ext
         self.wand().save(filename=storage_loc + fname)
-        send_file(open(storage_loc + fname, 'rb'))
+        send_file(storage_loc + fname)
 
         os.system("rm %s/%s" % (storage_loc, fname))
 

@@ -322,7 +322,7 @@ def give_temp_role(text, server, command_name, storage, event):
 
         # Create command entry
         new_entry = {}
-        new_entry["user_id"] = user.id
+        new_entry["user_id"] = str(user.id)
         new_entry["user_name"] = user.name
         new_entry["expire"] = texp
         new_entry["crt_roles"] = crt_roles
@@ -502,7 +502,7 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
 
     # Create command entry
     new_entry = {}
-    new_entry["user_id"] = user.id
+    new_entry["user_id"] = str(user.id)
     new_entry["user_name"] = user.name
     new_entry["expire"] = texp
     new_entry["reason_id"] = user_entry["Case ID"]
@@ -517,7 +517,7 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
         send_pm(text="You have been permanently banned from %s." % server.name, user=user)
     storage.sync()
 
-    user.ban()
+    user.ban(server)
     return "User banned permanently." if permanent else "User banned temporarily."
 
 def check_expired_roles(server, storage):
@@ -556,7 +556,7 @@ async def check_expired_bans(server, storage):
             storage.sync()
         if elem["expire"] < tnow:
             for user in await server.get_bans():
-                if elem["user_id"] == user.id:
+                if elem["user_id"] == str(user.id):
                     user.unban(server)
 
             storage["temp_bans"].remove(elem)
@@ -606,9 +606,9 @@ def create_user_reason(storage, user, author, reason, message_link, expire, reas
 
     # Add user ID as list
     if user.id not in storage["reasons"]:
-        storage["reasons"][user.id] = []
+        storage["reasons"][str(user.id)] = []
 
-    user_lst = storage["reasons"][user.id]
+    user_lst = storage["reasons"][str(user.id)]
 
     # Create new element
     new_elem = OrderedDict()
@@ -620,7 +620,7 @@ def create_user_reason(storage, user, author, reason, message_link, expire, reas
         new_elem["Expire date"] = datetime.datetime.fromtimestamp(expire).strftime("%H:%M:%S %d-%m-%Y")
     new_elem["Link"] = message_link
     new_elem["Author"] = "%s / %s" % (author.name, str(author.id))
-    new_elem["User"] = "%s / %s" % (user.name, user.id)
+    new_elem["User"] = "%s / %s" % (user.name, str(user.id))
     new_elem["Case ID"] = storage["case_id"]
 
     user_lst.append(new_elem)

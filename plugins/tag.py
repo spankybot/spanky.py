@@ -133,7 +133,7 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
             if storage[tag]['type'] == "text":
                 await async_send_message(msg + storage[tag]['content'])
             elif storage[tag]['type'] == "picture":
-                send_file(open(storage_loc + storage[tag]['location'], 'rb'))
+                send_file(storage_loc + storage[tag]['location'])
         else:
             await async_send_message("Syntax is: `.tag list` or `.tag <name>`")
 

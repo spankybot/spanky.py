@@ -14,33 +14,6 @@ base_formats = {
 
 db_conn = None
 
-@hook.command(permissions=Permission.bot_owner)
-def gen_train_src(bot):
-    LIMIT = 10000
-    cs = db_conn.cursor()
-
-    # Get number of messages
-    cs.execute("""select count(*) from messages where server='r/Romania' and author_id!='295665055117344769' and channel_id='295942451041140746'  """)
-    data = cs.fetchall()
-
-    num_msgs = int(data[0][0])
-    print("Training using %d messages" % num_msgs)
-
-    start = 0
-    os.system("mkdir -p models")
-    out = open("models/to_train.txt", "w")
-    while True:
-        cs.execute("""select * from messages where server='r/Romania' and author_id!='295665055117344769' and channel!='335107789049561088' and channel_id='295942451041140746' limit %s offset %s""", (str(LIMIT), start))
-
-        if start > num_msgs:
-            break
-
-        start += LIMIT
-
-        print(start)
-        for msg in cs.fetchall():
-            out.write(msg[4] + "\n")
-
 @hook.on_start()
 def init_db(bot):
     global db_conn
@@ -48,8 +21,11 @@ def init_db(bot):
     db_name = bot.config.get("db_name", None)
     db_user = bot.config.get("db_user", None)
 
-    if db_name != None and db_user != None:
-        db_conn = psycopg2.connect("dbname=%s user=%s" % (db_name, db_user))
+    try:
+        if db_name != None and db_user != None:
+            db_conn = psycopg2.connect("dbname=%s user=%s" % (db_name, db_user))
+    except:
+        import traceback; traceback.print_exc()
 
 def get_format_args(event):
     # Setup arguments
@@ -61,7 +37,7 @@ def get_format_args(event):
         "server_id": event.server.id,
         "channel": event.channel.name,
         "channel_id": event.channel.id,
-        "nick": event.author.name + "/" + event.author.nick + "/" + event.author.id,
+        "nick": event.author.name + "/" + event.author.nick + "/" + str(event.author.id),
         "author": event.author.name,
         "author_id": event.author.id,
         "hour": hour,
