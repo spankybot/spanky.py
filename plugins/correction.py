@@ -55,7 +55,7 @@ async def ss(text, channel, reply, event, bot):
     messages = await channel.async_get_latest_messages(MAX_LEN)
 
     try:
-        regex = re2.compile(text[0]) 
+        regex = re2.compile(text[0])
     except Exception as e:
         reply("You don't have a valid regex")
         return
