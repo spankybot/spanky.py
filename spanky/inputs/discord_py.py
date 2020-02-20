@@ -76,13 +76,31 @@ class DiscordUtils(abc.ABC):
         return "<#%s>" % id_str
 
     def id_to_role_name(self, id_str):
-        return discord.utils.find(lambda m: m.id == int(id_str), self.get_server()._raw.roles).name
+        iid_str = None
+        try:
+            iid_str = int(id_str)
+        except ValueError:
+            return None
+
+        return discord.utils.find(lambda m: m.id == iid_str, self.get_server()._raw.roles).name
 
     def user_id_to_name(self, uid):
-        return discord.utils.find(lambda m: m.id == int(uid), self.get_server()._raw.members).name
+        iuid = None
+        try:
+            iuid = int(uid)
+        except ValueError:
+            return None
+
+        return discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members).name
 
     def user_id_to_object(self, uid):
-        user = discord.utils.find(lambda m: m.id == int(uid), self.get_server()._raw.members)
+        iuid = None
+        try:
+            iuid = int(uid)
+        except ValueError:
+            return None
+
+        user = discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members)
         if user:
             return User(user)
         else:
@@ -371,7 +389,7 @@ class EventMessage(DiscordUtils):
         elif self.server.id in bot_replies:
             for reply in bot_replies[self.server.id].bot_messages():
 
-                if self.channel.id != reply._raw.channel.id:
+                if self.channel.id != str(reply._raw.channel.id):
                     continue
 
                 for att in reply._raw.attachments:
