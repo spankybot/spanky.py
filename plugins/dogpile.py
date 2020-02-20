@@ -10,8 +10,7 @@ search_url = "https://www.dogpile.com/search"
 
 CERT_PATH = 'dogpile.crt'
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 '
-                  '(KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19'
+        "User-Agent": "Mozilla/5.0 (X11; Linux i586; rv:31.0) Gecko/20100101 Firefox/73.0"
 }
 
 session = requests.Session()
