@@ -166,7 +166,7 @@ class Image():
         finishedurl.append('https://i.imgur.com/{0}{1}'.format(imgurhash[0][0], imgurhash[0][1]))
         return finishedurl
 
-    def fetch_url(self, timeout_sec=20, max_size=1024*1024*20):
+    def fetch_url(self, timeout_sec=60, max_size=1024*1024*20):
         """
         Fetch the class set url
         """

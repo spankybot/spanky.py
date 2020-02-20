@@ -1,7 +1,7 @@
 
 def get_user_by_id(server, uid):
     for u in server.get_users():
-        if u.id == int(uid):
+        if u.id == uid:
             return u
     return None
 
