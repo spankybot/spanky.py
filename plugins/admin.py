@@ -63,12 +63,9 @@ def check_permissions(bot, bot_event, storage):
     allowed_roles = set(storage['admin_roles'] + cmd.owners_ids)
 
     # Grant bot owners that are listed in the bot config the right to run any command
-    if bot_event.hook.permissions == permissions.Permission.bot_owner:
-        if "bot_owners" in bot.config and \
-                bot_event.event.author.id in bot.config["bot_owners"]:
-                return True, None
-
-        return False, ""
+    if "bot_owners" in bot.config and \
+        bot_event.event.author.id in bot.config["bot_owners"]:
+        return True, None
 
     elif bot_event.hook.permissions == permissions.Permission.admin:
         if storage["admin_roles"] == None:
