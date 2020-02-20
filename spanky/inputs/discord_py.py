@@ -716,7 +716,7 @@ def add_temporary_reply(reply):
 def add_bot_reply(server_id, source, reply):
     if server_id not in bot_replies:
         bot_replies[server_id] = DictQueue(20)
-    bot_replies[server_id][source.id] = reply
+    bot_replies[server_id][str(source.id)] = reply
 
     if reply.timeout != 0:
         print("Add timeout message in " + str(reply.timeout))
