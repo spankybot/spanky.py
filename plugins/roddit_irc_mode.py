@@ -334,7 +334,7 @@ def make_nsfw(server, reply, event, text, send_message):
     <topic> - make channel NSFW (only channel OPs can do it)
     """
 
-    target_chan = find_irc_chan(server, chan_id=event.channnel.id)
+    target_chan = find_irc_chan(server, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
@@ -371,7 +371,7 @@ def make_sfw(server, reply, event, text):
     <topic> - make channel SFW (only channel OPs can do it)
     """
 
-    target_chan = find_irc_chan(server, chan_id=event.channnel.id)
+    target_chan = find_irc_chan(server, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
