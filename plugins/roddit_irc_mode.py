@@ -7,9 +7,12 @@ from plugins.discord_utils import get_user_by_id, str_to_id, get_role_by_id, get
 PUB_CAT = "public"
 PRV_CAT = "private"
 CHTYPES = [PUB_CAT, PRV_CAT]
+
+REQUIRED_ACCESS_ROLES = ["Valoare"]
+NSFW_FORBID_ROLE = "Gradi"
+
 POS_START = "680559762760400987"
 POS_END = "680559851474124802"
-
 SRV = "297483005763780613"
 
 async def sort_roles(server):
@@ -24,7 +27,7 @@ async def sort_roles(server):
         return
 
     if not end_marker_role:
-        print("Could not get start marker role")
+        print("Could not get end marker role")
         return
 
     # Get all roles
@@ -61,7 +64,7 @@ async def sort_chans(server, categ):
 
 async def resync_roles(server):
     """
-    Go over all channels and set roles are according to op/user access procedure
+    Go over all channels and set roles according to op/user access procedure
     """
     for chan in server.get_chans_in_cat(PUB_CAT):
         await chan.set_op_role("%s-op" % chan.name)
@@ -233,21 +236,39 @@ def join(text, server, reply, event, send_message):
         reply("Please input a valid channel name")
         return
 
+    # Lookup channel
     chdata = str_to_id(text[0])
+    target_chan = None
     for chan in server.get_chans_in_cat(PRV_CAT):
         if chan.name == chdata or chan.id == chdata:
-            event.author.add_role(
-                get_role_by_name(server, "%s-member" % chan.name))
+            target_chan = chan
+            break
 
-            send_message("Joins <@%s>" % event.author.id, target=chan.id)
-            event.msg.add_reaction("👍")
+    # Check if it's public
+    if target_chan == None:
+        for chan in server.get_chans_in_cat(PUB_CAT):
+            if chan.name == chdata or chan.id == chdata:
+                return "Channel %s is already public. You can view it as is." % chan.name
 
-    for chan in server.get_chans_in_cat(PUB_CAT):
-        if chan.name == chdata or chan.id == chdata:
-            return "Channel %s is already public. You can view it as is." % chan.name
+    # Check for rights
+    has_right = False
+    for urole in event.author.roles:
+        if urole.name in REQUIRED_ACCESS_ROLES:
+            has_right = True
 
-    return "No channel found"
+        if urole.name == NSFW_FORBID_ROLE and target_chan.is_nsfw:
+            return "You can't join a NSFW channel."
 
+    if not has_right:
+        return "You don't have the minumum rights to use this command."
+
+    # Add the role
+    event.author.add_role(
+        get_role_by_name(server, "%s-member" % target_chan.name))
+
+    # Announce on the channel
+    send_message("Joins <@%s>" % event.author.id, target=chan.id)
+    event.msg.add_reaction("👍")
 
 @hook.command(server_id=SRV)
 def part(server, reply, event, send_message):
@@ -266,29 +287,101 @@ def part(server, reply, event, send_message):
         if chan.id == chan_id:
             return "Channel %s is already public. It can't be parted." % chan.name
 
+def find_irc_chan(server, chan_name=None, chan_id=None):
+    if not chan_name and not chan_id:
+        print("Needs one of name or id")
+        return None
+
+    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
+        if chan.id == chan_id or chan.name == chan_name:
+            return chan
+
+    return None
+
+def user_has_role(user, role_name):
+    for urole in user.roles:
+        if urole.name == role_name:
+            return True
+
+    return False
+
 @hook.command(server_id=SRV)
 def set_topic(server, reply, event, text):
     """
     <topic> - set channel topic (only channel OPs can do it)
     """
 
-    target_chan = None
-    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
-        if event.channel.id == chan.id:
-            target_chan = chan
-            break
-
+    target_chan = find_irc_chan(server, chan_id=event.channnel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
-    chan_op_role = "%s-op" % event.channel.name
-    has_right = False
-    for urole in event.author.roles:
-        if urole.name == chan_op_role:
-            has_right = True
-            break
+    # Check if user is OP
+    has_right = user_has_role(
+        event.author,
+        "%s-op" % target_chan.name)
 
     if not has_right:
         return "Only channel OPs can do that"
 
-    event.channel.set_topic(text)
+    if "NSFW" not in text:
+        text += " [NSFW]"
+
+    target_chan.set_topic(text)
+
+@hook.command(server_id=SRV)
+def make_nsfw(server, reply, event, text, send_message):
+    """
+    <topic> - make channel NSFW (only channel OPs can do it)
+    """
+
+    target_chan = find_irc_chan(server, chan_id=event.channnel.id)
+    if not target_chan:
+        return "You're not in a user managed channel"
+
+    # Check if user is OP
+    has_right = user_has_role(
+        event.author,
+        "%s-op" % event.channel.name)
+
+    if not has_right:
+        return "Only channel OPs can do that"
+
+    # Set NSFW
+    target_chan.set_nsfw(True)
+
+    # Add NSFW to topic
+    if "NSFW" not in target_chan.topic:
+        target_chan.set_topic(text + " [NSFW]")
+
+    # Purge non-NSFW users
+    member_role = get_role_by_name(server, "%s-member" % target_chan.name)
+    for user in target_chan.members_accessing_chan():
+        for urole in user.roles:
+            if urole.name == NSFW_FORBID_ROLE:
+                user.remove_role(member_role)
+                send_message("Part <@%s> - because channel was made NSFW" %
+                    user.id, target=target_chan.id)
+
+                user.send_pm("You have been removed from %s, because the channel was made NSFW." %
+                    target_chan.name)
+
+@hook.command(server_id=SRV)
+def make_sfw(server, reply, event, text):
+    """
+    <topic> - make channel SFW (only channel OPs can do it)
+    """
+
+    target_chan = find_irc_chan(server, chan_id=event.channnel.id)
+    if not target_chan:
+        return "You're not in a user managed channel"
+
+    # Check if user is OP
+    has_right = user_has_role(
+        event.author,
+        "%s-op" % event.channel.name)
+
+    if not has_right:
+        return "Only channel OPs can do that"
+
+    # Set NSFW
+    target_chan.set_nsfw(False)

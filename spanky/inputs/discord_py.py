@@ -551,6 +551,7 @@ class Channel():
             self.server = Server(obj.guild)
 
         self.topic = obj.topic
+        self.is_nsfw = obj.is_nsfw()
         self._raw = obj
 
     def delete_messages(self, number):
@@ -635,6 +636,16 @@ class Channel():
             await self._raw.edit(topic=text)
 
         asyncio.run_coroutine_threadsafe(set_topic(text), bot.loop)
+
+    def set_nsfw(self, state):
+        async def set_nsfw(state):
+            await self._raw.edit(nsfw=state)
+
+        asyncio.run_coroutine_threadsafe(set_nsfw(state), bot.loop)
+
+    def members_accessing_chan(self):
+        for user in self._raw.members:
+            yield User(user)
 
 
 class Server():
