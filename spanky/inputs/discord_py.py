@@ -218,30 +218,30 @@ class DiscordUtils(abc.ABC):
         self.send_message("(%s) %s" % (self.author.name, text), target, timeout=timeout)
 
     def send_file(self, file_path, target=-1, server=None):
-        file = discord.File(file_path)
+        dfile = discord.File(file_path)
 
-        async def send_file(channel, file):
+        async def send_file(channel, dfile):
             if self.get_server().id in bot_replies:
                 old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
                 if old_reply and old_reply._raw.channel.id == channel.id:
 
                     try:
-                        await client.delete_message(old_reply._raw)
-                        msg = Message(await channel.send(file))
+                        await channel.delete_message(old_reply._raw)
+                        msg = Message(await channel.send(file=dfile))
                     except:
                         print(traceback.format_exc())
                     add_bot_reply(self.get_server().id, self.msg._raw, msg)
                     return msg
 
             try:
-                msg = Message(await channel.send(file=file))
+                msg = Message(await channel.send(file=dfile))
             except:
                 print(traceback.format_exc())
 
             add_bot_reply(self.get_server().id, self.msg._raw, msg)
             return msg
 
-        asyncio.run_coroutine_threadsafe(send_file(self.get_channel(target, server), file), bot.loop)
+        asyncio.run_coroutine_threadsafe(send_file(self.get_channel(target, server), dfile), bot.loop)
 
     async def async_send_file(self, file, target=-1):
         try:
@@ -429,6 +429,9 @@ class Message():
         except:
             traceback.print_exc()
 
+    def add_reaction(self, string):
+        asyncio.run_coroutine_threadsafe(self.async_add_reaction(string), bot.loop)
+
     def delete_message(self):
         async def delete_message(message):
             await self._raw.delete(message)
@@ -525,6 +528,13 @@ class User():
 
         asyncio.run_coroutine_threadsafe(do_unban(self._raw, server), bot.loop)
 
+    def send_pm(self, text):
+        async def async_send_pm(text):
+            await self._raw.send(text)
+
+        asyncio.run_coroutine_threadsafe(
+            async_send_pm(text=text), bot.loop)
+
 class Channel():
     def __init__(self, obj):
         self.name = None
@@ -536,6 +546,11 @@ class Channel():
         if hasattr(obj, "position"):
             self.position = obj.position
 
+        self.server = None
+        if hasattr(obj, "guild"):
+            self.server = Server(obj.guild)
+
+        self.topic = obj.topic
         self._raw = obj
 
     def delete_messages(self, number):
@@ -574,14 +589,53 @@ class Channel():
     async def async_get_message(self, msg_id):
         return Message(await self._raw.fetch_message(msg_id))
 
-    def move_channel(self, position):
-        async def move_channel(channel, position):
-            try:
-                await client.move_channel(channel, position)
-            except:
-                print(traceback.format_exc())
+    async def set_position(self, position):
+        await self._raw.edit(position=position)
 
-        asyncio.run_coroutine_threadsafe(move_channel(self._raw, position), bot.loop)
+    async def set_category_name(self, categ):
+        cat_raw = self.server.find_category(categ)
+        await self._raw.edit(category=cat_raw, sync_permissions=True)
+
+    async def set_standard_role(self, role_name):
+        role = None
+        for r in self.server.get_roles():
+            if r.name == role_name:
+                role = r
+                break
+
+        if not role:
+            print("Error finding role %s" % role_name)
+            return
+
+        await self._raw.set_permissions(
+            role._raw,
+            send_messages=True,
+            read_messages=True,
+            read_message_history=True)
+
+    async def set_op_role(self, role_name):
+        role = None
+        for r in self.server.get_roles():
+            if r.name == role_name:
+                role = r
+                break
+
+        if not role:
+            print("Error finding role %s" % role_name)
+            return
+
+        await self._raw.set_permissions(
+            role._raw,
+            send_messages=True,
+            read_messages=True,
+            read_message_history=True)
+
+    def set_topic(self, text):
+        async def set_topic(text):
+            await self._raw.edit(topic=text)
+
+        asyncio.run_coroutine_threadsafe(set_topic(text), bot.loop)
+
 
 class Server():
     def __init__(self, obj):
@@ -629,6 +683,44 @@ class Server():
 
         return ulist
 
+    def find_category(self, name):
+        for cat in self._raw.categories:
+            if cat.name.lower() == name.lower():
+                return cat
+
+        return None
+
+    async def create_text_channel(self, name, category):
+
+        raw_cat = self.find_category(category)
+        if not raw_cat:
+            print("Could not find category %s" % category)
+
+        await self._raw.create_text_channel(name, category=raw_cat)
+
+    async def delete_channel(self, chan):
+        await chan._raw.delete()
+
+    def get_chans_in_cat(self, name):
+        raw_cat = self.find_category(name)
+
+        for chan in raw_cat.channels:
+            yield Channel(chan)
+
+    async def create_role(self, name, mentionable):
+        role = await self._raw.create_role(
+            name=name,
+            mentionable=mentionable)
+
+        return Role(role)
+
+    async def delete_role_by_name(self, role_name):
+        for role in self._raw.roles:
+            if role.name == role_name:
+                await role.delete()
+
+        print("Could not find role %s to delete" % role_name)
+
 class Role():
     hash = random.randint(0, 2 ** 31)
 
@@ -645,6 +737,9 @@ class Role():
         self.id = str(obj.id)
         self.position = obj.position
         self._raw = obj
+
+    async def set_position(self, position):
+        await self._raw.edit(position=position)
 
 class Attachment():
     def __init__(self, obj):
