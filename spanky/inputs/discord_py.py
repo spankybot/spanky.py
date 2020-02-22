@@ -131,7 +131,7 @@ class DiscordUtils(abc.ABC):
             return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
 
     def get_channel_name(self, chan_id):
-        chan = discord.utils.find(lambda m: m.id == chan_id, self.get_server()._raw.channels)
+        chan = discord.utils.find(lambda m: m.id == int(chan_id), self.get_server()._raw.channels)
         return chan.name
 
     async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0):

@@ -15,6 +15,23 @@ POS_START = "680771061784117289"
 POS_END = "680771138145747010"
 SRV = "287285563118190592"
 
+@hook.command(server_id=SRV)
+def irc_help():
+    funcs = [
+        list_chans,
+        join,
+        part,
+        set_topic,
+        make_nsfw,
+        make_sfw,
+        request_channel]
+
+    ret = "```\n"
+    for func in funcs:
+        ret += "%s - %s\n" % (func.__name__, func.__doc__.strip())
+
+    return ret + "```"
+
 async def sort_roles(server):
     """
     Sort roles alphabetically
@@ -64,16 +81,41 @@ async def sort_chans(server, categ):
         await chans[cname].set_position(min_pos)
         min_pos += 1
 
+@hook.command(permissions=Permission.admin, server_id=SRV)
 async def resync_roles(server):
     """
     Go over all channels and set roles according to op/user access procedure
     """
     for chan in server.get_chans_in_cat(PUB_CAT):
+        await chan.set_category_name(PUB_CAT)
         await chan.set_op_role("%s-op" % chan.name)
 
     for chan in server.get_chans_in_cat(PRV_CAT):
+        await chan.set_category_name(PRV_CAT)
         await chan.set_op_role("%s-op" % chan.name)
         await chan.set_standard_role("%s-member" % chan.name)
+
+
+@hook.command(server_id=SRV)
+def request_channel(text, event, send_message):
+    """
+    <name type> - request a channel by specifying a 'name', type (either 'public' or 'private')
+    """
+
+    text = text.split(" ")
+    if len(text) != 2:
+        return create_channel.__doc__
+
+    # Parse data
+    chname = text[0].lower()
+    chtype = text[1].lower()
+
+    if chtype not in CHTYPES:
+        return "Channel type must be one of: %s" % str(CHTYPES)
+
+    message = "<@%s> has requested a %s channel named %s" % (event.author.id, chtype, chname)
+    send_message(target="449899630176632842", text=message)
+
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
 async def create_channel(text, server, reply):
@@ -213,21 +255,21 @@ async def make_chan_public(text, server, reply):
 @hook.command(server_id=SRV)
 def list_chans(server):
     """
-    Print a list of channels
+    Print list of user channels
     """
     resp = "```\nPublic channels:\n"
     for chan in server.get_chans_in_cat(PUB_CAT):
         if chan.topic:
-            resp += "%s - %s\n" % (chan.name, chan.topic)
+            resp += "    %s - %s\n" % (chan.name, chan.topic)
         else:
-            resp += "%s\n" % chan.name
+            resp += "    %s\n" % chan.name
 
-    resp += "Private channels:\n"
+    resp += "\nPrivate channels:\n"
     for chan in server.get_chans_in_cat(PRV_CAT):
         if chan.topic:
-            resp += "%s - %s\n" % (chan.name, chan.topic)
+            resp += "    %s - %s\n" % (chan.name, chan.topic)
         else:
-            resp += "%s\n" % chan.name
+            resp += "    %s\n" % chan.name
 
     resp += "```"
     return resp
