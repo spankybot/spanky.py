@@ -434,7 +434,7 @@ class Message():
 
     def delete_message(self):
         async def delete_message(message):
-            await self._raw.delete(message)
+            await self._raw.delete()
         asyncio.run_coroutine_threadsafe(delete_message(self._raw), bot.loop)
 
 class User():
