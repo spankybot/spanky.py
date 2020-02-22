@@ -335,6 +335,9 @@ def give_temp_role(text, server, command_name, storage, event):
 
         storage.sync()
 
+        user.send_pm("You have been given the `%s` role. It will last for %s" %
+            (storage["cmds"][command_name]["role_name"], text[1]))
+
         return reason_entry
 
     else:
@@ -446,7 +449,10 @@ def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server,
     log_action(storage, user_entry, send_embed,
         "User kicked")
 
-    send_pm(text="You have been kicked from %s." % server.name, user=user)
+    details = "\nAuthor: %s" % event.author.name
+    if reason:
+        details += "\nReason: %s" % reason
+    send_pm(text="You have been kicked from %s.\n%s" % (server.name, details), user=user)
 
     user.kick()
     return "Okay."
@@ -507,14 +513,19 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
     new_entry["expire"] = texp
     new_entry["reason_id"] = user_entry["Case ID"]
 
+    details = "\nAuthor: %s" % event.author.name
+    if reason:
+        details += "\nReason: %s" % reason
+
     if not permanent:
         if "temp_bans" not in storage:
             storage["temp_bans"] = []
 
         storage["temp_bans"].append(new_entry)
-        send_pm(text="You have temporarily banned from %s. The ban will last for %s" % (server.name, text[1]), user=user)
+        send_pm(text="You have temporarily banned from %s. The ban will last for %s.\n%s" %
+            (server.name, text[1], details), user=user)
     else:
-        send_pm(text="You have been permanently banned from %s." % server.name, user=user)
+        send_pm(text="You have been permanently banned from %s.\n%s" % (server.name, details), user=user)
     storage.sync()
 
     user.ban(server)
