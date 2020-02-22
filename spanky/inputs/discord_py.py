@@ -550,8 +550,13 @@ class Channel():
         if hasattr(obj, "guild"):
             self.server = Server(obj.guild)
 
-        self.topic = obj.topic
-        self.is_nsfw = obj.is_nsfw()
+        self.topic = None
+        if hasattr(obj, "topic"):
+            self.topic = obj.topic
+
+        self.is_nsfw = None
+        if hasattr(obj, "is_nsfw"):
+            self.is_nsfw = obj.is_nsfw()
         self._raw = obj
 
     def delete_messages(self, number):
@@ -719,11 +724,21 @@ class Server():
             yield Channel(chan)
 
     async def create_role(self, name, mentionable):
-        role = await self._raw.create_role(
-            name=name,
-            mentionable=mentionable)
+        existing = None
+        for crtrole in self.get_roles():
+            if crtrole.name == name:
+                existing = crt_role
 
-        return Role(role)
+        created = None
+        if not existing:
+            created = await self._raw.create_role(
+                name=name,
+                mentionable=mentionable)
+        else:
+            created = existing._raw
+            await created.edit(mentionable=mentionable)
+
+        return Role(created)
 
     async def delete_role_by_name(self, role_name):
         for role in self._raw.roles:

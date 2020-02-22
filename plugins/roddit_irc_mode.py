@@ -8,12 +8,12 @@ PUB_CAT = "public"
 PRV_CAT = "private"
 CHTYPES = [PUB_CAT, PRV_CAT]
 
-REQUIRED_ACCESS_ROLES = ["Valoare"]
+REQUIRED_ACCESS_ROLES = ["Valoare", "Gradi"]
 NSFW_FORBID_ROLE = "Gradi"
 
-POS_START = "680559762760400987"
-POS_END = "680559851474124802"
-SRV = "297483005763780613"
+POS_START = "680771061784117289"
+POS_END = "680771138145747010"
+SRV = "287285563118190592"
 
 async def sort_roles(server):
     """
@@ -36,12 +36,14 @@ async def sort_roles(server):
         rlist["%s-op" % chan.name] = \
             get_role_by_name(server, "%s-op" % chan.name)
 
-        rlist["%s-member" % chan.name] = \
-            get_role_by_name(server, "%s-member" % chan.name)
+        member_role = get_role_by_name(server, "%s-member" % chan.name)
+        if member_role:
+            rlist["%s-member" % chan.name] = member_role
 
     # Sort them and position
     crt_pos = start_marker_role.position - 1
     for rname in sorted(rlist.keys()):
+        print(rname)
         await rlist[rname].set_position(crt_pos)
         crt_pos -= 1
 
@@ -102,18 +104,17 @@ async def create_channel(text, server, reply):
             reply("A channel by that name already exists")
             return
 
-    if chtype == PUB_CAT:
-        await server.create_text_channel(chname, PUB_CAT)
-    elif chtype == PRV_CAT:
-        await server.create_text_channel(chname, PRV_CAT)
-
     await server.create_role(
         "%s-op" % chname,
         mentionable=True)
 
-    await server.create_role(
-        "%s-member" % chname,
-        mentionable=True)
+    if chtype == PUB_CAT:
+        await server.create_text_channel(chname, PUB_CAT)
+    elif chtype == PRV_CAT:
+        await server.create_text_channel(chname, PRV_CAT)
+        await server.create_role(
+            "%s-member" % chname,
+            mentionable=True)
 
     print("Created roles")
     await sort_roles(server)
@@ -123,7 +124,7 @@ async def create_channel(text, server, reply):
 
     # Add the OP
     user.add_role(
-        get_role_by_name(server, "%s-op" % chan.name))
+        get_role_by_name(server, "%s-op" % chname))
     print("Should be done!")
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
@@ -165,6 +166,11 @@ async def make_chan_private(text, server, reply):
         if chan.name == chdata or chan.id == chdata:
             await chan.set_category_name(PRV_CAT)
             await sort_chans(server, PRV_CAT)
+
+            # Create the op role
+            await server.create_role(
+                "%s-op" % chan.name,
+                mentionable=True)
 
             # Create the member role
             await server.create_role(
@@ -250,6 +256,9 @@ def join(text, server, reply, event, send_message):
             if chan.name == chdata or chan.id == chdata:
                 return "Channel %s is already public. You can view it as is." % chan.name
 
+    if not target_chan:
+        return "That channel doesn't exist"
+
     # Check for rights
     has_right = False
     for urole in event.author.roles:
@@ -278,6 +287,11 @@ def part(server, reply, event, send_message):
     chan_id = event.channel.id
     for chan in server.get_chans_in_cat(PRV_CAT):
         if chan.id == chan_id:
+            # Check if user is an OP
+            for urole in event.author.roles:
+                if urole.name == "%s-op" % chan.name:
+                    return "OPs can't leave"
+
             event.author.remove_role(
                 get_role_by_name(server, "%s-member" % chan.name))
             send_message("Part <@%s>" % event.author.id, target=chan.id)
@@ -292,9 +306,13 @@ def find_irc_chan(server, chan_name=None, chan_id=None):
         print("Needs one of name or id")
         return None
 
-    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
+    for chan in server.get_chans_in_cat(PUB_CAT):
         if chan.id == chan_id or chan.name == chan_name:
-            return chan
+            return chan, PUB_CAT
+
+    for chan in server.get_chans_in_cat(PRV_CAT):
+        if chan.id == chan_id or chan.name == chan_name:
+            return chan, PRV_CAT
 
     return None
 
@@ -311,7 +329,7 @@ def set_topic(server, reply, event, text):
     <topic> - set channel topic (only channel OPs can do it)
     """
 
-    target_chan = find_irc_chan(server, chan_id=event.channnel.id)
+    target_chan, _ = find_irc_chan(server, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
@@ -323,7 +341,7 @@ def set_topic(server, reply, event, text):
     if not has_right:
         return "Only channel OPs can do that"
 
-    if "NSFW" not in text:
+    if target_chan.is_nsfw and "NSFW" not in text:
         text += " [NSFW]"
 
     target_chan.set_topic(text)
@@ -334,9 +352,12 @@ def make_nsfw(server, reply, event, text, send_message):
     <topic> - make channel NSFW (only channel OPs can do it)
     """
 
-    target_chan = find_irc_chan(server, chan_id=event.channel.id)
+    target_chan, categ = find_irc_chan(server, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
+
+    if categ == PUB_CAT:
+        return "Only private channels can be made NSFW"
 
     # Check if user is OP
     has_right = user_has_role(
@@ -350,7 +371,7 @@ def make_nsfw(server, reply, event, text, send_message):
     target_chan.set_nsfw(True)
 
     # Add NSFW to topic
-    if "NSFW" not in target_chan.topic:
+    if target_chan.topic and "NSFW" not in target_chan.topic:
         target_chan.set_topic(text + " [NSFW]")
 
     # Purge non-NSFW users
@@ -371,7 +392,7 @@ def make_sfw(server, reply, event, text):
     <topic> - make channel SFW (only channel OPs can do it)
     """
 
-    target_chan = find_irc_chan(server, chan_id=event.channel.id)
+    target_chan, _ = find_irc_chan(server, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
