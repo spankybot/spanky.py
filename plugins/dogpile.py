@@ -37,8 +37,8 @@ def query(endpoint, text):
         return BeautifulSoup(r.content)
 
 
-@hook.command("dpis", "gis")
-def dogpileimage(text):
+@hook.command()
+def gis(text):
     """<query> - Uses the dogpile search engine to search for images."""
     soup = query('images', text)
     results_container = soup.find('div', {'class': 'images-bing__list'})
@@ -53,8 +53,8 @@ def dogpileimage(text):
     return image.find('a', {'class': 'link'})['href']
 
 
-@hook.command("dp", "g", "dogpile")
-def dogpile(text):
+@hook.command()
+def g(text):
     """<query> - Uses the dogpile search engine to find shit on the web."""
     soup = query('web', text)
     results = soup.find_all('div', {'class': 'web-bing__result'})
