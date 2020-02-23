@@ -6,10 +6,10 @@ def getUnixTimestamp(snowflake):
 
 dateString = "%Y-%m-%d at %H:%M"
 
-@hook.command()
+@hook.command(format="mention")
 def userinfo(text, str_to_id, reply, server):
     """
-    userinfo - gets the join date of the mentioned user
+    <mention> - gets various data about the mentioned user
     """
     try:
         output = "```"
