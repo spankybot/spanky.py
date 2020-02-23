@@ -1,11 +1,14 @@
 from itertools import chain
 
+import plugins.paged_content as paged
+
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 from plugins.discord_utils import get_user_by_id, str_to_id, get_role_by_id, get_role_by_name
 
 PUB_CAT = "public"
 PRV_CAT = "private"
+INV_CAT = "invite"
 CHTYPES = [PUB_CAT, PRV_CAT]
 
 REQUIRED_ACCESS_ROLES = ["Valoare", "Gradi"]
@@ -22,8 +25,6 @@ def irc_help():
         join,
         part,
         set_topic,
-        make_nsfw,
-        make_sfw,
         request_channel]
 
     ret = "```\n"
@@ -49,7 +50,9 @@ async def sort_roles(server):
 
     # Get all roles
     rlist = {}
-    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
+    for chan in chain(
+            server.get_chans_in_cat(PUB_CAT),
+            server.get_chans_in_cat(PRV_CAT)):
         rlist["%s-op" % chan.name] = \
             get_role_by_name(server, "%s-op" % chan.name)
 
@@ -60,7 +63,6 @@ async def sort_roles(server):
     # Sort them and position
     crt_pos = start_marker_role.position - 1
     for rname in sorted(rlist.keys()):
-        print(rname)
         await rlist[rname].set_position(crt_pos)
         crt_pos -= 1
 
@@ -82,29 +84,58 @@ async def sort_chans(server, categ):
         min_pos += 1
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
+async def check_irc_stuff(server, reply):
+    reply("Sorting channels")
+    for chtype in CHTYPES:
+        await sort_chans(server, chtype)
+
+    reply("Creating roles")
+    await resync_roles(server)
+    reply("Sorting roles")
+    await sort_roles(server)
+    reply("Done")
+
+@hook.command(permissions=Permission.admin, server_id=SRV)
 async def resync_roles(server):
     """
     Go over all channels and set roles according to op/user access procedure
     """
     for chan in server.get_chans_in_cat(PUB_CAT):
+        ignoring_this = list(chan.get_removed_users())
+        await server.create_role(
+            "%s-op" % chan.name,
+            mentionable=True)
         await chan.set_category_name(PUB_CAT)
         await chan.set_op_role("%s-op" % chan.name)
 
+        for user in ignoring_this:
+            chan.remove_user_by_permission(user)
+
     for chan in server.get_chans_in_cat(PRV_CAT):
+        ignoring_this = list(chan.get_removed_users())
+        await server.create_role(
+            "%s-op" % chan.name,
+            mentionable=True)
+
+        await server.create_role(
+            "%s-member" % chan.name,
+            mentionable=True)
         await chan.set_category_name(PRV_CAT)
         await chan.set_op_role("%s-op" % chan.name)
         await chan.set_standard_role("%s-member" % chan.name)
 
+        for user in ignoring_this:
+            chan.remove_user_by_permission(user)
 
 @hook.command(server_id=SRV)
 def request_channel(text, event, send_message):
     """
-    <name type> - request a channel by specifying a 'name', type (either 'public' or 'private')
+    <name type> - request a channel by specifying a 'name' and a type ('public', 'private' or 'invite')
     """
 
     text = text.split(" ")
     if len(text) != 2:
-        return create_channel.__doc__
+        return request_channel.__doc__
 
     # Parse data
     chname = text[0].lower()
@@ -253,31 +284,37 @@ async def make_chan_public(text, server, reply):
     reply("No private channel named %s" % chdata)
 
 @hook.command(server_id=SRV)
-def list_chans(server):
+async def list_chans(server, async_send_message):
     """
     Print list of user channels
     """
-    resp = "```\nPublic channels:\n"
+    resp = "Public channels:\n"
     for chan in server.get_chans_in_cat(PUB_CAT):
         if chan.topic:
-            resp += "    %s - %s\n" % (chan.name, chan.topic)
+            resp += "  -> %s - %s\n" % (chan.name, chan.topic)
         else:
-            resp += "    %s\n" % chan.name
+            resp += "  -> %s\n" % chan.name
 
-    resp += "\nPrivate channels:\n"
+    resp += "Private channels:\n"
     for chan in server.get_chans_in_cat(PRV_CAT):
         if chan.topic:
-            resp += "    %s - %s\n" % (chan.name, chan.topic)
+            resp += "  -> %s - %s\n" % (chan.name, chan.topic)
         else:
-            resp += "    %s\n" % chan.name
+            resp += "  -> %s\n" % chan.name
 
-    resp += "```"
-    return resp
+    paged_content = paged.element(
+        resp.split("\n"),
+        async_send_message,
+        "Channels:",
+        max_lines=20,
+        max_line_len=800,
+        no_timeout=True)
+    await paged_content.get_crt_page()
 
 @hook.command(server_id=SRV)
 def join(text, server, reply, event, send_message):
     """
-    <channel> - join a private channel
+    <channel> - part a channel - both private and public channels can be parted
     """
     text = text.split(" ")
     if len(text) != 1:
@@ -286,62 +323,75 @@ def join(text, server, reply, event, send_message):
 
     # Lookup channel
     chdata = str_to_id(text[0])
-    target_chan = None
-    for chan in server.get_chans_in_cat(PRV_CAT):
-        if chan.name == chdata or chan.id == chdata:
-            target_chan = chan
-            break
-
-    # Check if it's public
-    if target_chan == None:
-        for chan in server.get_chans_in_cat(PUB_CAT):
-            if chan.name == chdata or chan.id == chdata:
-                return "Channel %s is already public. You can view it as is." % chan.name
+    target_chan, categ = find_irc_chan(server, chan_name=chdata, chan_id=chdata)
 
     if not target_chan:
         return "That channel doesn't exist"
 
-    # Check for rights
-    has_right = False
-    for urole in event.author.roles:
-        if urole.name in REQUIRED_ACCESS_ROLES:
-            has_right = True
+    if categ == PRV_CAT:
+        # Check for rights
+        has_right = False
+        for urole in event.author.roles:
+            if urole.name in REQUIRED_ACCESS_ROLES:
+                has_right = True
 
-        if urole.name == NSFW_FORBID_ROLE and target_chan.is_nsfw:
-            return "You can't join a NSFW channel."
+            if urole.name == NSFW_FORBID_ROLE and target_chan.is_nsfw:
+                return "You can't join a NSFW channel."
 
-    if not has_right:
-        return "You don't have the minumum rights to use this command."
+        if not has_right:
+            return "You don't have the minumum rights to use this command."
 
-    # Add the role
-    event.author.add_role(
-        get_role_by_name(server, "%s-member" % target_chan.name))
+        # Add the role
+        event.author.add_role(
+            get_role_by_name(server, "%s-member" % target_chan.name))
 
-    # Announce on the channel
-    send_message("Joins <@%s>" % event.author.id, target=chan.id)
-    event.msg.add_reaction("👍")
+        # Announce on the channel
+        send_message("Joins <@%s>" % event.author.id, target=target_chan.id)
+        event.msg.add_reaction("👍")
+        return
+    elif categ == PUB_CAT:
+        for user in target_chan.get_removed_users():
+            if user.id == event.author.id:
+                target_chan.add_user_by_permission(event.author)
+                event.msg.add_reaction("👍")
+                return
+
+        return "Channel is already visible. Try accessing <#%s>" % target_chan.id
+
+    return "Invalid channel"
+
 
 @hook.command(server_id=SRV)
-def part(server, reply, event, send_message):
+def part(server, reply, event, send_message, text):
     """
-    <channel> - part a private channel
+    <channel> - part a channel - both private and public channels can be parted
     """
-    chan_id = event.channel.id
-    for chan in server.get_chans_in_cat(PRV_CAT):
-        if chan.id == chan_id:
-            # Check if user is an OP
+    chlist = []
+    if len(text) == 0:
+        chlist = [event.channel.id]
+    else:
+        for chan in text.split(" "):
+            chlist.append(str_to_id(chan))
+
+    for chdata in chlist:
+        # Get channel
+        chan, categ = find_irc_chan(server, chan_name=chdata, chan_id=chdata)
+        if categ == PRV_CAT:
             for urole in event.author.roles:
                 if urole.name == "%s-op" % chan.name:
                     return "OPs can't leave"
 
             event.author.remove_role(
                 get_role_by_name(server, "%s-member" % chan.name))
-            send_message("Part <@%s>" % event.author.id, target=chan.id)
-            event.msg.add_reaction("👍")
+            #event.msg.add_reaction("👍")
+        elif categ == PUB_CAT:
+            chan.remove_user_by_permission(event.author)
+            #event.msg.add_reaction("👍")
 
-    for chan in server.get_chans_in_cat(PUB_CAT):
-        if chan.id == chan_id:
-            return "Channel %s is already public. It can't be parted." % chan.name
+    if len(chlist) > 0:
+        event.msg.delete_message()
+    else:
+        return "Try specifying a channel name or multiple channels"
 
 def find_irc_chan(server, chan_name=None, chan_id=None):
     if not chan_name and not chan_id:
@@ -356,7 +406,7 @@ def find_irc_chan(server, chan_name=None, chan_id=None):
         if chan.id == chan_id or chan.name == chan_name:
             return chan, PRV_CAT
 
-    return None
+    return None, None
 
 def user_has_role(user, role_name):
     for urole in user.roles:
@@ -388,7 +438,7 @@ def set_topic(server, reply, event, text):
 
     target_chan.set_topic(text)
 
-@hook.command(server_id=SRV)
+@hook.command(permissions=Permission.admin, server_id=SRV)
 def make_nsfw(server, reply, event, text, send_message):
     """
     <topic> - make channel NSFW (only channel OPs can do it)
@@ -418,17 +468,19 @@ def make_nsfw(server, reply, event, text, send_message):
 
     # Purge non-NSFW users
     member_role = get_role_by_name(server, "%s-member" % target_chan.name)
+    op_role = get_role_by_name(server, "%s-op" % target_chan.name)
     for user in target_chan.members_accessing_chan():
         for urole in user.roles:
             if urole.name == NSFW_FORBID_ROLE:
                 user.remove_role(member_role)
+                user.remove_role(op_role)
                 send_message("Part <@%s> - because channel was made NSFW" %
                     user.id, target=target_chan.id)
 
                 user.send_pm("You have been removed from %s, because the channel was made NSFW." %
                     target_chan.name)
 
-@hook.command(server_id=SRV)
+@hook.command(permissions=Permission.admin, server_id=SRV)
 def make_sfw(server, reply, event, text):
     """
     <topic> - make channel SFW (only channel OPs can do it)
