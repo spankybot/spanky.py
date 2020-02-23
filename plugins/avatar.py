@@ -32,3 +32,8 @@ async def set_avatar(event, async_set_avatar):
 @hook.command(permissions=Permission.bot_owner)
 async def set_status(async_set_game_status, text):
     await async_set_game_status(text)
+
+@hook.command()
+def e(event):
+    """Expand an emoji"""
+    return " ".join(event.url)

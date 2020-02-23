@@ -364,8 +364,7 @@ class PluginManager():
         basename = os.path.basename(fname)
 
         # Build file name
-        plugin_name = "%s.%s" % (os.path.basename(os.path.dirname(fname)), basename)
-        plugin_name = plugin_name.replace(".py", "")
+        plugin_name = fname.replace("/", ".").replace(".py", "")
 
         try:
             # Import the file

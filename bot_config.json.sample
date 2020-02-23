@@ -1,12 +1,12 @@
 {
     "discord_token": "",
-    "plugin_paths": ["plugins"],
+    "plugin_paths": ["plugins", "plugins/legacy"],
     "api_keys" : {
         "This is a dictionary":""
     },
     "db_name": "PSQL database name to connect to",
     "db_user": "Username to use to connect to the DB",
-    
+
     "bot_owners": [
         "List of user IDs who have special bot owner rights"
     ]

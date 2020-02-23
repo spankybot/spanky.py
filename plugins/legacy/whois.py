@@ -4,15 +4,10 @@ Provides a command to allow users to look up information on domain names.
 """
 
 import sys
+import pythonwhois
 from contextlib import suppress
 
 from spanky.plugin import hook
-
-if sys.version_info < (3, 7, 0):
-    import pythonwhois
-else:
-    pythonwhois = None
-
 
 @hook.command
 def whois(text, reply):
