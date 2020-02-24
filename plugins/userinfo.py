@@ -44,10 +44,3 @@ def userinfo(text, str_to_id, reply, server):
         reply(output + "```")
     except Exception as e:
         print(e)
-#     reply(f"""
-# join date: {rawMember.joined_at}
-# user id: {id}
-# avatar url: {rawMember.avatar_url}
-#     """ % ()    
-        
-    # )
