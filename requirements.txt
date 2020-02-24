@@ -17,4 +17,4 @@ idna==2.6
 pillow
 numpy
 pythonwhois
-sw-re2
+fb-re2
