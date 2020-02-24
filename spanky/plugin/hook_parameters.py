@@ -1,5 +1,5 @@
+import token
 from tokenize import tokenize, OP, ENDMARKER
-from token import N_TOKENS, NUMBER
 from collections import OrderedDict, deque
 from io import BytesIO
 
@@ -62,7 +62,7 @@ def map_params(s, params):
     # Go through the parsed tokens and eliminate tokens used for string formatting
     input_toks = []
     for toknum, tokval, _, _, _ in g:
-        if toknum > N_TOKENS or toknum == ENDMARKER:
+        if toknum > token.N_TOKENS or toknum in [token.ENDMARKER, token.ENCODING, token.NEWLINE]:
             continue
 
         input_toks.append((tokval, toknum))
