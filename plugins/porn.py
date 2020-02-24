@@ -326,6 +326,12 @@ def asians():
     return format_output_message(data) + " NSFW!"
 
 @hook.command(server_id=SERVERS)
+def raton():
+    data = get_links_from_subs(['TrashPandas'])
+
+    return format_output_message(data)
+
+@hook.command(server_id=SERVERS)
 def fetch_image(text):
     if text:
         text = text.split()
