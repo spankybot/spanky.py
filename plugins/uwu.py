@@ -1,24 +1,79 @@
+import random
 from spanky.plugin import hook
+
+# ported from https://github.com/zuzak/owo/blob/master/owo.js
+
+prefixes = [
+  '<3 ',
+  '0w0 ',
+  'H-hewwo?? ',
+  'HIIII! ',
+  'Haiiii! ',
+  'Huohhhh. ',
+  'OWO ',
+  'OwO ',
+  'UwU '
+]
+
+suffixes = [
+  ' :3',
+  ' UwU',
+  ' ÙωÙ',
+  ' ʕʘ‿ʘʔ',
+  ' ʕ•̫͡•ʔ',
+  ' >_>',
+  ' ^_^',
+  '..',
+  ' Huoh.',
+  ' ^-^',
+  ' ;_;',
+  ' ;-;',
+  ' xD',
+  ' x3',
+  ' :D',
+  ' :P',
+  ' ;3',
+  ' XDDD',
+  ', fwendo',
+  ' ㅇㅅㅇ',
+  ' (人◕ω◕)',
+  '（＾ｖ＾）',
+  ' Sigh.',
+  ' x3',
+  ' ._.',
+  ' (　\'◟ \')',
+  ' (• o •)',
+  ' (；ω；)',
+  ' >_<'
+]
+
+substitutions = {
+  'r': 'w',
+  'l': 'w',
+  'R': 'W',
+  'L': 'W',
+  #'ow': 'OwO',
+  'no': 'nu',
+  'has': 'haz',
+  'have': 'haz',
+  'you': 'uu',
+  'the ': 'da ',
+  'The ': 'Da '
+}
+
+def add_affixes(s):
+    return random.choice(prefixes) + s + random.choice(suffixes)
+
+def substitute(s):
+    for key, val in substitutions.items():
+        s = s.replace(key, val)
+
+    return s
 
 @hook.command()
 def uwu(text):
     """
     <text> - translate text to UwU
     """
-    text = text.replace('L', 'W')
-    text = text.replace('R', 'W')
-    text = text.replace('l', 'w')
-    text = text.replace('r', 'w')
-    text = text.replace("no", "nyo")
-    text = text.replace("mo", "myo")
-    text = text.replace("No", "Nyo")
-    text = text.replace("Mo", "Myo")
-    text = text.replace("na", "nya")
-    text = text.replace("ni", "nyi")
-    text = text.replace("nu", "nyu")
-    text = text.replace("ne", "nye")
-    text = text.replace("anye", "ane")
-    text = text.replace("inye", "ine")
-    text = text.replace("onye", "one")
-    text = text.replace("unye", "une")
-    return text + " uwu"
+
+    return add_affixes(substitute(text))
