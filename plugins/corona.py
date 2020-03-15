@@ -14,29 +14,25 @@ def handle_countries():
 
 @hook.command()
 def corona(text, reply):
-    """<option> [country] - available options: [all, country]. If option is country, you must specify a country from <https://worldometers.info/coronavirus#countries>. """
+    """<option> - available options: [all, <country name>]. If option is <country name>, you must specify a country from <https://worldometers.info/coronavirus#countries>. """
 
     args = text.split(" ")
     if len(args) == 0:
-        reply("Usage: `.corona <option> [countries]`")
+        reply("Usage: `.corona <option>`")
         return
 
     if args[0] == "all" or args[0] == "total":
         response = requests.get(base + "all").json()
         reply(
             f"""`Cases: {response['cases']} | Recovered: {response['recovered']}| Deaths: {response['deaths']}`""")
+        return
 
-    elif args[0] == "country" or args[0] == "tara":
-        if len(args) != 2:
-            reply(f"usage: `.corona {args[0]} [countries]`")
-            return
+    countries = handle_countries()
 
-        countries = handle_countries()
-        country_name = args[1]
-        if country_name.lower() not in countries:
-            reply(
-                "Country not found. Check out <https://worldometers.info/coronavirus#countries> for a complete list of countries.")
-            return
-        country_data = countries[country_name.lower()]
+    if text.lower() not in countries:
+        reply(
+            "Country not found. Check out <https://worldometers.info/coronavirus#countries> for a complete list of countries.")
+        return
+    country_data = countries[text.lower()]
 
-        reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) `""")
+    reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) `""")
