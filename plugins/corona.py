@@ -23,10 +23,8 @@ def corona(text, reply):
 
     if args[0] == "all" or args[0] == "total":
         response = requests.get(base + "all").json()
-        reply(f"""```Coronavirus total:
-Cases: {response['cases']}
-Deaths: {response['deaths']}
-Recovered: {response['recovered']}```""")
+        reply(
+            f"""`Cases: {response['cases']} | Recovered: {response['recovered']}| Deaths: {response['deaths']}`""")
 
     elif args[0] == "country" or args[0] == "tara":
         if len(args) != 2:
@@ -41,10 +39,4 @@ Recovered: {response['recovered']}```""")
             return
         country_data = countries[country_name.lower()]
 
-        reply(f"""```{country_data['country']}:
-Total cases: {country_data['cases']}
-Today's cases: {country_data['todayCases']}
-Total deaths: {country_data['deaths']}
-Today's deaths: {country_data['todayDeaths']}
-Total recovered: {country_data['recovered']}
-Total critical: {country_data['critical']}```""")
+        reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) `""")
