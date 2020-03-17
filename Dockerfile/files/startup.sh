@@ -9,8 +9,8 @@ echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
 echo 'eval "$(pyenv init -)"' >> ~/.bashrc
 source ~/.bashrc
 
-pyenv install -s 3.5.7
-pyenv shell 3.5.7
+pyenv install -s 3.7.1
+pyenv shell 3.7.1
 
 cd /botsrc/
 pip3 install -r requirements.txt
