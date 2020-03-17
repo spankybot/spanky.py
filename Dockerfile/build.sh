@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build . -t spanky
+docker build . -t gcplp/spanky
