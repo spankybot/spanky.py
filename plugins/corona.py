@@ -80,7 +80,7 @@ def corona(text, reply):
     if args[0] == "all" or args[0] == "total":
         response = requests.get(base + "all").json()
         reply(
-            f"""`Cases: {response['cases']} | Recovered: {response['recovered']}| Deaths: {response['deaths']}`""")
+            f"""`Cases: {response['cases']} | Recovered: {response['recovered']}| Deaths: {response['deaths']} | Informații actualizate odată pe zi.`""")
         return
 
     countries = handle_countries()
@@ -94,4 +94,4 @@ def corona(text, reply):
         return
     country_data = countries[text.lower()]
 
-    reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) `""")
+    reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) | Informații actualizate odată pe zi.`""")
