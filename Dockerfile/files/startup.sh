@@ -15,4 +15,4 @@ pyenv shell 3.7.1
 cd /botsrc/
 pip3 install -r requirements.txt
 
-while true; do python3.5 main.py && sleep 1; done
+while true; do python3.7 main.py || sleep 1; done

@@ -2,6 +2,11 @@ FROM archlinux/base
 
 RUN pacman -Sy && \
     pacman -S --noconfirm \
+    pkgconf \
+    libffi
+
+RUN pacman -Sy && \
+    pacman -S --noconfirm \
     git \
     wget \
     libqalculate \
