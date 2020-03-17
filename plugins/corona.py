@@ -80,7 +80,7 @@ def corona(text, reply):
     if args[0] == "all" or args[0] == "total":
         response = requests.get(base + "all").json()
         reply(
-            f"""`Cases: {response['cases']} | Recovered: {response['recovered']}| Deaths: {response['deaths']} | Informații actualizate odată pe zi.`""")
+            f"""`Cases: {response['cases']} | Recovered: {response['recovered']}| Deaths: {response['deaths']} | Information updated multiple times a day.`""")
         return
 
     countries = handle_countries()
@@ -90,8 +90,8 @@ def corona(text, reply):
 
     if text.lower() not in countries:
         reply(
-            "Country not found. Check out <https://worldometers.info/coronavirus#countries> for a complete list of countries.")
+            "Country not found. Either the command is dead, or you need to check out <https://worldometers.info/coronavirus#countries> for a complete list of countries.")
         return
     country_data = countries[text.lower()]
 
-    reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) | Informații actualizate odată pe zi.`""")
+    reply(f"""`Cases: {country_data['cases']} (+{country_data['todayCases']} today) | Recovered: {country_data['recovered']} | Critical: {country_data['critical']} | Deaths: {country_data['deaths']} (+{country_data['todayDeaths']} today) | Information updated multiple times a day.`""")

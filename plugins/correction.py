@@ -56,7 +56,7 @@ async def ss(text, channel, reply, event, bot):
 
     try:
         regex = re2.compile(text[0])
-    except Exception as e:
+    except:
         reply("You don't have a valid regex")
         return
 
