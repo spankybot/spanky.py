@@ -340,3 +340,8 @@ def fetch_image(text):
         return format_output_message(data)
     else:
         return "Please specify a sub or a list of subs (e.g.: .fetch_image RomaniaPorn or .fetch_image RomaniaPorn RoGoneWild)"
+
+@hook.command(server_id=SERVERS)
+def plsporn():
+    """pls gib porn"""
+    return fetch_image("randnsfw")
