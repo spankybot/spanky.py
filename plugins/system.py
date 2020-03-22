@@ -4,6 +4,7 @@ import os
 import time
 import tracemalloc
 import linecache
+import subprocess
 from datetime import timedelta
 from spanky.utils.filesize import size as format_bytes
 from spanky.plugin.permissions import Permission
@@ -34,11 +35,15 @@ def invite_me():
     """
     Get invitation for bot
     """
-    return "https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0"
+    return "Use the invite link here <https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0> and join the bot support server at https://discord.gg/RcRUybU"
 
 @hook.command(permissions=Permission.bot_owner)
 def restart():
     os.system('kill %d' % os.getpid())
+
+@hook.command(permissions=Permission.bot_owner)
+def gitpull():
+    return subprocess.check_output("git pull", shell=True).decode("utf-8")
 
 @hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
