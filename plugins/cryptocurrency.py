@@ -16,14 +16,7 @@ import requests
 
 from spanky.plugin import hook
 
-API_URL = "https://api.coinmarketcap.com/v1/ticker/{}"
-
-CURRENCY_SYMBOLS = {
-    'USD': '$',
-    'GBP': '£',
-    'EUR': '€',
-}
-
+API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
 
 class Alias:
     def __init__(self, name, cmd, nocmd=True):
@@ -33,17 +26,17 @@ class Alias:
 
 
 ALIASES = (
-    Alias('bitcoin', 'btc', False),
-    Alias('litecoin', 'ltc', False),
-    Alias('ethereum', 'eth', False),
-    Alias('bitcoin-cash', 'bch'),
-    Alias('ripple', 'xrp'),
+    Alias('btc', 'btc', False),
+    Alias('ltc', 'ltc', False),
+    Alias('eth', 'eth', False),
+    Alias('bch', 'bch'),
+    Alias('xrp', 'xrp'),
     Alias('eos', 'eos'),
 )
 
 
 def get_request(ticker, currency):
-    return requests.get(API_URL.format(quote_plus(ticker)), params={'convert': currency})
+    return requests.get(API_URL.format(quote_plus(currency)))
 
 
 def alias_wrapper(alias):
@@ -93,27 +86,21 @@ def crypto_command(text, reply):
 
     data = request.json()
 
-    if "error" in data:
-        return "{}.".format(data['error'])
+    elem = None
+    for el in data["data"]:
+        if el["base"].lower() == ticker:
+            elem = el
+            break
 
-    data = data[0]
+    if not elem:
+        return "Could not find ticker"
 
-    updated_time = datetime.fromtimestamp(float(data['last_updated']))
-    if (datetime.today() - updated_time).days > 2:
-        # the API retains data for old ticker names that are no longer updated
-        # in these cases we just return a "not found" message
-        return "Currency not found."
-
-    currency_sign = CURRENCY_SYMBOLS.get(currency, '')
-
-    try:
-        converted_value = data['price_' + currency.lower()]
-    except LookupError:
-        return "Unable to convert to currency '{}'".format(currency)
-
-    return "`{} || {}{:,.2f} {} - {:,.7f} BTC || Change 1h {}% || Change 24h: {}%`".format(
-        data['symbol'], currency_sign, float(converted_value), currency.upper(),
-        float(data['price_btc']), data["percent_change_1h"], data["percent_change_24h"]
+    return "`{} || {:.2f} {} || Change 1h {:.3f}% || Change 24h: {:.3f}%`".format(
+        elem['base'],
+        float(elem["prices"]["latest"]),
+        currency,
+        float(elem["prices"]["latest_price"]["percent_change"]["hour"]) * 100,
+        float(elem["prices"]["latest_price"]["percent_change"]["day"]) * 100,
     )
 
 
