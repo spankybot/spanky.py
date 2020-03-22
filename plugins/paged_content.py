@@ -46,7 +46,7 @@ class element():
             with_arrows = True
             page_header += "Page %d/%d\n" % (self.crt_idx / self.max_lines + 1, math.ceil(len(self.parsed_lines) / self.max_lines))
 
-        msg = await self.send(page_header + '\n'.join("`%s`" % i for i in tlist))
+        msg = await self.send(page_header + "```" + '\n'.join(tlist) + "```")
         self.set_msg_id(msg.id)
 
         # Add arrow emojis
