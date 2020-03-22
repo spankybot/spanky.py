@@ -288,17 +288,27 @@ async def list_chans(server, async_send_message):
     """
     Print list of user channels
     """
+    TOPIC_LEN = 80
+
     resp = "Public channels:\n"
     for chan in server.get_chans_in_cat(PUB_CAT):
         if chan.topic:
-            resp += "  -> %s - %s\n" % (chan.name, chan.topic)
+            topic = chan.topic
+            if len(topic) > TOPIC_LEN:
+                topic = topic[:TOPIC_LEN] + "..."
+
+            resp += "  -> %s - %s\n" % (chan.name, topic)
         else:
             resp += "  -> %s\n" % chan.name
 
     resp += "Private channels:\n"
     for chan in server.get_chans_in_cat(PRV_CAT):
         if chan.topic:
-            resp += "  -> %s - %s\n" % (chan.name, chan.topic)
+            topic = chan.topic
+            if len(topic) > TOPIC_LEN:
+                topic = topic[:TOPIC_LEN] + "..."
+
+            resp += "  -> %s - %s\n" % (chan.name, topic)
         else:
             resp += "  -> %s\n" % chan.name
 
@@ -500,3 +510,59 @@ def make_sfw(server, reply, event, text):
 
     # Set NSFW
     target_chan.set_nsfw(False)
+
+rc = 0
+ms = 0
+
+async def pmsg(msg):
+    global rc
+    global ms
+   # if "446818086381944832" in msg.content \
+   #     or "679672489223389285" in msg.content \
+   #     or "677927397923880972" in msg.content \
+   #     or "679381304864931891" in msg.content:
+    if "<:sebyk:" in msg.content:
+        try:
+            print(msg.content)
+            await msg.delete()
+            ms += 1
+        except:
+            print(msg.content)
+    for react in msg.reactions:
+        if react.custom_emoji == False:
+            continue
+
+        if "sebyk" in react.emoji.name:
+            rc += 1
+            await react.clear()
+
+import discord
+@hook.command(permissions=Permission.admin, server_id=SRV)
+async def asd1(server, reply):
+    for ch in server._raw.channels:
+        if type(ch) != discord.TextChannel:
+            continue
+        reply(str(ch))
+
+        try:
+            bef = None
+            oldb = None
+            while True:
+                async for msg in ch.history(limit=1000, before = bef):
+                    await pmsg(msg)
+                    bef = msg.created_at
+
+                reply("%s %s reacts %d msgs %d" % (ch, str(bef), rc, ms))
+                print("%s %s" % (ch, str(bef)))
+
+                if oldb == bef:
+                    break
+                else:
+                    oldb = bef
+        except:
+            import traceback
+            traceback.print_exc()
+
+
+
+    reply("Done")
