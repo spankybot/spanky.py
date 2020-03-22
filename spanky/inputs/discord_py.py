@@ -620,7 +620,8 @@ class Channel():
             read_message_history=True,
             attach_files=True,
             embed_links=True,
-            external_emojis=True)
+            external_emojis=True,
+            add_reactions=True)
 
     async def set_op_role(self, role_name):
         role = None
@@ -641,7 +642,8 @@ class Channel():
             manage_messages=True,
             attach_files=True,
             embed_links=True,
-            external_emojis=True)
+            external_emojis=True,
+            add_reactions=True)
 
     def set_topic(self, text):
         async def set_topic(text):
