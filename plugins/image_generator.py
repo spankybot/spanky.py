@@ -345,3 +345,10 @@ def fetch_image(text):
 def plsporn():
     """pls gib porn"""
     return fetch_image("randnsfw")
+
+@hook.command(server_id=SERVERS)
+def plsgayporn():
+    """pls gib porn"""
+    data = get_links_from_subs(['AmateurGayPorn', 'DickPics4Freedom', 'foreskin', 'GaybrosGoneWild', 'gayporn', 'MassiveCock', 'penis', 'ratemycock', 'selfservice', 'totallystraight'])
+
+    return format_output_message(data)
