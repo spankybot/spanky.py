@@ -81,7 +81,7 @@ def kick_noobs(reply, server):
             user.kick()
 
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
-def list_joins_between(server, text, reply):
+async def list_joins_between(server, text, async_send_message):
     import datetime
     import spanky.utils.formatting as fmt
     text = text.split(" ")
@@ -104,7 +104,7 @@ def list_joins_between(server, text, reply):
        msg_lst = fmt.chunk_str(msg_ret)
 
     for msg in msg_lst:
-        reply(msg)
+        await async_send_message(msg)
 
 @hook.periodic(interval=60 * 60)
 def assign_old(bot):
@@ -134,10 +134,6 @@ def assign_old(bot):
             if user.id not in joins_2weeks_ids:
                 print("remove " + str(user.id))
                 user.remove_role(joinrole)
-        else:
-            if user.id in joins_2weeks_ids:
-                print("add " + str(user.id))
-                user.add_role(joinrole)
 
 def get_joins_between(server, d1, d2):
     users = []
