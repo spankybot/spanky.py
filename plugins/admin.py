@@ -399,3 +399,12 @@ def list_default_bot_channel(storage, id_to_chan):
         return id_to_chan(chan)
     else:
         return "Not set."
+
+@hook.command(permissions=Permission.bot_owner)
+def list_bot_servers(bot):
+    msg = ""
+    for server in bot.backend.get_servers():
+        msg += "Name: %s, ID: %s\n" % (server.name, server.id)
+
+    return msg
+
