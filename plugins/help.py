@@ -59,7 +59,7 @@ def commit_changes(storage_loc, server_id):
     os.system("git -C %s commit -m \"Update documentation for %s\"" % (server_path, server_id))
     os.system("git -C %s push" % (server_path))
 
-@hook.command(permissions=Permission.admin)
+@hook.command(permissions=Permission.bot_owner)
 def gen_documentation(bot, storage_loc, event):
     for server in bot.get_servers():
         files = {}
