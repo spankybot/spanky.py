@@ -1,7 +1,7 @@
 from spanky.plugin import hook
 import requests
 
-base = "https://corona.lmao.ninja/"
+base = "https://corona.lmao.ninja/v2/"
 
 country_codes = {
     'ae': 'uae',
