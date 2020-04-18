@@ -68,6 +68,8 @@ def check_permissions(bot, bot_event, storage):
             bot_event.event.author.id in bot.config["bot_owners"]:
             return True, None
 
+        return False, "Command restricted to bot owners only"
+
     elif bot_event.hook.permissions == permissions.Permission.admin:
         if storage["admin_roles"] == None:
             return True, "Warning! Admin not set! Use .add_admin_role to set an administrator."
