@@ -335,8 +335,8 @@ def give_temp_role(text, server, command_name, storage, event):
 
         storage.sync()
 
-        user.send_pm("You have been given the `%s` role. It will last for %s" %
-            (storage["cmds"][command_name]["role_name"], text[1]))
+        user.send_pm("You have been given the `%s` role. It will last for %s.\nReason: %s\nAuthor: %s" %
+            (storage["cmds"][command_name]["role_name"], text[1], reason, event.author.name))
 
         return reason_entry
 
