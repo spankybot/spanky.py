@@ -8,7 +8,7 @@ RUN pacman -Sy && \
 RUN pacman -Sy && \
     pacman -S --noconfirm \
     git \
-    wget \
+    curl \
     libqalculate \
     liblqr \
     tar \
@@ -20,7 +20,7 @@ RUN pacman -Sy && \
 
 # Install go
 RUN mkdir -p /opt && cd /opt && \
-    wget https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz -O go.tar.gz && \
+    curl https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz --output go.tar.gz && \
     tar -zxf go.tar.gz
 
 ENV GOPATH="/opt/goproj"
