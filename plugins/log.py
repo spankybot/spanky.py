@@ -1,3 +1,4 @@
+import re
 import os
 import codecs
 import time
@@ -216,12 +217,47 @@ def get_msg_cnt_for_channel_after(cid, lower):
 
     return cs.fetchall()[0][0]
 
+
+def get_msgs_for_user_in_chan(uid, cid, limit):
+    cs = db_conn.cursor()
+    try:
+        cs.execute("""select msg from messages where author_id=%s and channel_id=%s order by date desc limit %s""",
+                   (str(uid), str(cid), str(limit)))
+    except:
+        import traceback
+        traceback.print_exc()
+        db_conn.rollback()
+        print("Error getting messages for %s in %s" % (uid, cid))
+        return []
+
+    data = cs.fetchall()
+
+    return [i[0] for i in data]
+
+
+def get_msgs_in_chan(cid, limit):
+    cs = db_conn.cursor()
+    try:
+        cs.execute("""select msg from messages where channel_id=%s order by date desc limit %s""",
+                   (str(cid), str(limit)))
+    except:
+        import traceback
+        traceback.print_exc()
+        db_conn.rollback()
+        print("Error getting messages for %s in %s" % (uid, cid))
+        return []
+
+    data = cs.fetchall()
+
+    return [i[0] for i in data]
+
+
 async def rip_channel(client, ch):
     before = None
     old_bef = None
     while True:
         print("Current timestamp " + str(before))
-        async for i in client.logs_from(ch, limit = 1000, reverse=True, before = before):
+        async for i in client.logs_from(ch, limit=1000, reverse=True, before=before):
             log_msg(i)
             before = i.timestamp
 
@@ -230,6 +266,29 @@ async def rip_channel(client, ch):
             break
         else:
             old_bef = before
+
+
+@hook.command(permissions=Permission.bot_owner)
+async def ripmusic(event, reply):
+    link = re.compile(
+        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})")
+
+    out = open("music.csv", "w")
+    total = 0
+    async for i in event.channel._raw.history(limit=None):
+        finds = re.findall(link, i.content)
+        print(i.content)
+
+        for finding in finds:
+            data = "%s, %s, %s\n" % (
+                i.author.name, i.created_at, "".join(finding))
+            out.write(data)
+
+            total += 1
+
+        if total % 100 == 0 and total != 0:
+            reply("Found %d links" % total)
+
 
 @hook.command(permissions=Permission.bot_owner)
 async def rip_servers(bot):
