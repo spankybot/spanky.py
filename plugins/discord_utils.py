@@ -29,6 +29,11 @@ def get_channel_by_id(server, cid):
 def str_to_id(string):
     return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
 
+
+def code_block(msg):
+    return "```\n%s\n```" % msg
+
+
 def get_role_names_between(start_role, end_role, server):
     list_roles = {}
     # Get starting and ending positions of listed roles
@@ -91,9 +96,21 @@ def remove_given_role_from_list(start_role, end_role, server, event, send_messag
     else:
         send_message("You need to specify one of your roles. Try with: %s" % (", ".join("`" + i + "`" for i in uroles)))
 
-def add_role_from_list(start_role, end_role, server, event, send_message, text):
+def add_role_from_list(start_role, end_role, server, event, send_message, text, max_assignable=1000):
     roles = get_roles_between(start_role, end_role, server)
     text = text.lower().strip()
+
+    uroles = set.intersection(set([i.name.lower() for i in event.author.roles]), set(
+        [i.name.lower() for i in roles]))
+    if len(uroles) >= max_assignable:
+        send_message(
+            "You can assign a maximum %d roles. Try removing one of your roles before assigning a new one." % max_assignable)
+        return
+
+    if text == "":
+        send_message("You need to give me a role name. Try: %s" %
+                     (", ".join("`" + i.name.lower() + "`" for i in roles)))
+        return
 
     for role in roles:
         if role.name.lower() == text:
@@ -101,10 +118,8 @@ def add_role_from_list(start_role, end_role, server, event, send_message, text):
             send_message("Done!")
             return
 
-    if text != "":
-        send_message("%s is not a role. Try with: %s" % (text, ", ".join("`" + i.name.lower() + "`" for i in roles)))
-    else:
-        send_message("You need to give me a role name. Try: %s" % (", ".join("`" + i.name.lower() + "`" for i in roles)))
+    send_message("%s is not a role. Try with: %s" % (
+        text, ", ".join("`" + i.name.lower() + "`" for i in roles)))
 
 def roles_from_list(start_role, end_role, remove_text, send_message, server, event, bot, text):
     use_slow_mode = False
