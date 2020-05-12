@@ -140,6 +140,7 @@ class DiscordUtils(abc.ABC):
 
         # Avoid @here and @everyone
         try:
+            # TODO remove user ID hack
             if text != None and ("@here" in text or "@everyone" in text):
                 await self.async_send_pm("User tried using: `%s` in <#%s> " %
                     (text, channel.id), self.user_id_to_object("278247547838136320"))
@@ -417,6 +418,10 @@ class Message():
         # Delete the message `timeout` seconds after it was created
         self.timeout = timeout
 
+    @property
+    def created_at(self):
+        return self._raw.created_at.timestamp()
+
     async def async_add_reaction(self, string):
         try:
             await self._raw.add_reaction(string)
@@ -683,6 +688,14 @@ class Channel():
             if type(thing) == discord.Member:
                 yield User(thing)
 
+
+class Category():
+    def __init__(self, obj):
+        self._raw = obj
+        self.name = obj.name
+        self.id = obj.id
+
+
 class Server():
     def __init__(self, obj):
         self.name = obj.name
@@ -728,6 +741,10 @@ class Server():
             ulist.append(User(entry.user))
 
         return ulist
+
+    def get_categories(self):
+        for cat in self._raw.categories:
+            yield Category(cat)
 
     def find_category(self, name):
         for cat in self._raw.categories:
