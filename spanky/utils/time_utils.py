@@ -4,6 +4,7 @@ time_tokens = ['s', 'm', 'h', 'd']
 SEC_IN_MIN = 60
 SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
+SEC_IN_YEAR = SEC_IN_HOUR * 24 * 365 # yeah, maybe there aren't 365 days in one year
 
 interval_units = [(60, 'minutes'), (60, 'hour'), (24, 'day'), (365, 'year')]
 
@@ -11,6 +12,9 @@ def tnow():
     return datetime.datetime.now().timestamp()
 
 def timeout_to_sec(stime):
+    """
+    Convert expressions such as 1h10s or 1d to seconds
+    """
     total_seconds = 0
 
     last_start = 0
@@ -25,12 +29,20 @@ def timeout_to_sec(stime):
                 total_seconds += value * SEC_IN_HOUR
             elif char == 'd':
                 total_seconds += value * SEC_IN_DAY
+            elif char == 'y':
+                total_seconds += value * SEC_IN_YEAR
 
             last_start = pos + 1
 
     return total_seconds
 
 def sec_to_human(sec):
+    """
+    Convert seconds to human readable strings (e.g. 100 seconds to 1 minute, 40 seconds)
+    """
+    if sec == 0:
+        return "0 seconds"
+
     parts = [[int(sec), 'second']]
     for (dur, unit) in interval_units:
         last = parts[-1]
