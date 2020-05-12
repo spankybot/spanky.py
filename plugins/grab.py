@@ -157,7 +157,6 @@ def del_grab(text, storage):
     else:
         to_delete_by_id = get_all_data(lambda m: text == m["id"], storage)
         if len(to_delete_by_id) == 1:
-            del_entry(text, storage)
             storage["grabs"].remove(to_delete_by_id[0])
             storage.sync()
             return "Deleted %s" % text
