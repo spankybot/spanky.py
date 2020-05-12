@@ -7,9 +7,9 @@ import plugins.paged_content as paged
 from bs4 import BeautifulSoup
 
 RODDIT_ID = "287285563118190592"
-TESTOSTERON = "611894947024470027"
+ROBAC_ID = "456496203040030721"
 
-@hook.command(server_id=[RODDIT_ID, TESTOSTERON])
+@hook.command(server_id=[RODDIT_ID, ROBAC_ID])
 async def dex(send_message, async_send_message, text):
     """<cuvant> - Cauta definitia pentru un cuvant in DEX"""
     r = requests.get('https://dexonline.ro/definitie/%s/expandat' % text)
