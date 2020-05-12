@@ -233,13 +233,18 @@ def add_hat(image, hat_img, debug=False):
     # Cycle through each face
     for face_landmarks in face_landmarks_list:
         modified = True
-        chin = face_landmarks["chin"]
+        left_eye = face_landmarks["left_eye"]
+        right_eye = face_landmarks["right_eye"]
+
+        # Get average positions for the eyes
+        avg_left = get_average_pos(left_eye)
+        avg_right = get_average_pos(right_eye)
 
         # Get angle - if face is rotated
-        chin_angle = get_angle(chin[0], chin[-1])
+        chin_angle = get_angle(avg_left, avg_right)
 
         # Get size
-        chin_sizex = dist_ab(chin[0], chin[-1])
+        chin_sizex = dist_ab(avg_left, avg_right)
 
         # Rotate the moustache
         hat = hat.rotate(-chin_angle, expand=True)
@@ -251,10 +256,11 @@ def add_hat(image, hat_img, debug=False):
         hat = hat.resize((int(hat.size[0] / x_scale_ratio),
                           int(hat.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
 
-        avg_pos = get_average_pos((chin[0], chin[-1]))
+        avg_pos = avg_pos_rel_p1(avg_left, avg_right)
         print(-chin_angle)
 
-        offset = rotate_origin_only((hat_json["offset_x"], hat_json["offset_y"]), -chin_angle)
+        offset = rotate_origin_only(
+            (hat_json["offset_x"], hat_json["offset_y"]), -chin_angle)
 
         moustache_paste = (avg_pos[0] - hat.size[0] // 2 + offset[0],
                            avg_pos[1] - hat.size[1] // 2 + offset[1])
