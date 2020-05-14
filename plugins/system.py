@@ -9,12 +9,11 @@ from datetime import timedelta
 from spanky.utils.filesize import size as format_bytes
 from spanky.plugin.permissions import Permission
 from spanky.plugin import hook
+from spanky.utils.discord_utils import get_user_by_id
 
 start_trace = None
 
-
 # TODO fix this eventually
-from plugins.discord_utils import get_user_by_id
 @hook.periodic(10)
 def debugme(bot, send_pm):
     for server in bot.backend.get_servers():

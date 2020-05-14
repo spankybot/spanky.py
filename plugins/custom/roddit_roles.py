@@ -1,4 +1,4 @@
-from plugins.discord_utils import add_role_from_list, remove_role_from_list, roles_from_list, remove_given_role_from_list
+from spanky.utils.discord_utils import add_role_from_list, remove_role_from_list, roles_from_list, remove_given_role_from_list
 from spanky.plugin import hook
 
 RODDIT_ID = "287285563118190592"

@@ -1,12 +1,14 @@
 import os
 import datetime
+import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
+
 from spanky.plugin import hook, permissions
 from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
-from plugins.discord_utils import *
 from spanky.utils.volatile import set_vdata, get_vdata
 from collections import OrderedDict
+from spanky.plugin.permissions import Permission
 
 time_tokens = ['s', 'm', 'h', 'd']
 SEC_IN_MIN = 60
@@ -105,9 +107,9 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
         return "Command `%s` already exists. Try using another name." % cmd
 
     # Get the given role
-    role = get_role_by_id(server, str_to_id(text[1]))
+    role = dutils.get_role_by_id(server, str_to_id(text[1]))
     if not role:
-        role = get_role_by_name(server, text[1])
+        role = dutils.get_role_by_name(server, text[1])
 
     if not role:
         return "No such role " + text[1]
@@ -263,7 +265,7 @@ def give_temp_role(text, server, command_name, storage, event):
         "The abbrebiations are: s - seconds, m - minutes, h - hours, d - days."
 
     # Get user
-    user = get_user_by_id(server, str_to_id(text[0]))
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
     if not user:
         return "No such user"
 
@@ -282,7 +284,7 @@ def give_temp_role(text, server, command_name, storage, event):
     texp = datetime.datetime.now().timestamp() + timeout_sec
 
     # Get the role
-    role = get_role_by_id(server, storage["cmds"][command_name]["role_id"])
+    role = dutils.get_role_by_id(server, storage["cmds"][command_name]["role_id"])
 
     if role is None:
         return "Could not find given role"
@@ -358,7 +360,7 @@ def set_mod_log_chan(server, storage, text):
     """
     <channel> - Set channel for moderator actions. When a moderator action will be done through the bot, details about the action will be logged to this channel.
     """
-    channel = get_channel_by_id(server, str_to_id(text))
+    channel = dutils.get_channel_by_id(server, dutils.str_to_id(text))
 
     if not channel:
         return "No such channel"
@@ -545,11 +547,11 @@ def check_expired_roles(server, storage):
 
             # For each element replace the roles
             for elem in to_del:
-                member = get_user_by_id(server, elem["user_id"])
+                member = dutils.get_user_by_id(server, elem["user_id"])
 
                 new_roles = []
                 for role_id in elem['crt_roles']:
-                    role = get_role_by_id(server, role_id)
+                    role = dutils.get_role_by_id(server, role_id)
                     if role:
                         new_roles.append(role)
 
@@ -674,8 +676,8 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
 
     texp = datetime.datetime.now().timestamp() + total_seconds
 
-    brole = get_role_by_name(server, role)
-    member = get_user_by_id(server, user)
+    brole = dutils.get_role_by_name(server, role)
+    member = dutils.get_user_by_id(server, user)
 
     if brole == None or member == None:
         print("Internal error " + str(brole) + str(member))
@@ -795,19 +797,6 @@ def get_reasons(text, str_to_id, storage):
 
     return rlist
 
-def get_rtime(text, str_to_id, storage, command_name):
-    user = str_to_id(text)
-
-    if user in storage[command_name]:
-        tnow = datetime.datetime.now().timestamp()
-
-        tsec_left = storage[command_name][user]['expire'] - tnow
-
-        return "Remaining: " + time.utils.sec_to_human(tsec_left)
-    else:
-        return "User not in %s list" % command_name
-
-
 def check_exp_time(rstorage, command_name, role, server):
     if command_name not in rstorage:
         return
@@ -820,12 +809,12 @@ def check_exp_time(rstorage, command_name, role, server):
             to_del.append(elem)
 
     for elem in to_del:
-        role = get_role_by_name(server, role)
-        member = get_user_by_id(server, elem["user"])
+        role = dutils.get_role_by_name(server, role)
+        member = dutils.get_user_by_id(server, elem["user"])
 
         new_roles = []
         for role_id in elem['crt_roles']:
-            role = get_role_by_id(server, role_id)
+            role = dutils.get_role_by_id(server, role_id)
             if role:
                 new_roles.append(role)
 

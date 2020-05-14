@@ -1,4 +1,4 @@
-from plugins.discord_utils import roles_from_list
+from spanky.utils.discord_utils import roles_from_list
 from spanky.plugin import hook
 
 ROBAC_ID = "456496203040030721"

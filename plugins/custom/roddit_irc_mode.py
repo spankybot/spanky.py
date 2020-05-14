@@ -4,7 +4,8 @@ import plugins.paged_content as paged
 
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
-from plugins.discord_utils import get_user_by_id, str_to_id, get_role_by_id, get_role_by_name
+from spanky.utils.discord_utils import get_user_by_id, str_to_id, \
+    get_role_by_id, get_role_by_name, code_block
 
 PUB_CAT = "public"
 PRV_CAT = "private"
@@ -14,9 +15,83 @@ CHTYPES = [PUB_CAT, PRV_CAT]
 REQUIRED_ACCESS_ROLES = ["Valoare", "Gradi"]
 NSFW_FORBID_ROLE = "Gradi"
 
-POS_START = "680771061784117289"
-POS_END = "680771138145747010"
-SRV = "287285563118190592"
+CAT_TYPES = ["managed", "unmanaged", "archive"]
+
+# Roddit and test server
+SRV = [
+    "287285563118190592",
+    "297483005763780613"]
+
+def get_bot_categs(storage):
+    if "bot_cats" not in storage:
+        return []
+
+    for cat in storage["bot_cats"]:
+        yield cat
+
+
+@hook.command(server_id=SRV, permissions=Permission.admin, format="name type")
+async def add_chan_category(server, text, reply, storage):
+    """
+    <category name or ID, type (managed, unmanaged)> - Add an existing channel category to the bot
+    A 'managed' category will have the permissions managed automatically by inheriting them from the parent category.
+    An 'unmanaged' category will NOT have the permissions managed automatically. Instead, there will still be channel OPs.
+    """
+    text = text.split(" ")
+
+    if len(text) != 2:
+        reply("Please specify name/ID manager/unmanaged")
+        return
+
+    if text[1] not in CAT_TYPES:
+        reply("Please specify a category: %s" % ", ".join(CAT_TYPES))
+        return
+
+    name_or_id = str_to_id(text[0])
+    cat_type = text[1]
+
+    # Check for duplicates
+    for cat in get_bot_categs(storage):
+        if cat["name"] == name_or_id or cat["id"] == name_or_id:
+            if cat["type"] != cat_type:
+                cat["type"] = cat_type
+                storage.sync()
+                reply("Category updated to %s" % cat_type)
+                return
+
+    reply("Checking if %s exists" % name_or_id)
+    for cat in server.get_categories():
+        if cat.name == name_or_id or cat.id == name_or_id:
+
+            if "bot_cats" not in storage:
+                storage["bot_cats"] = []
+
+            storage["bot_cats"].append(
+                {
+                    "name": cat.name,
+                    "id": cat.id,
+                    "type": text[1]
+                }
+            )
+
+            storage.sync()
+            reply("Found! Done!")
+            return
+
+    reply("Category not found")
+
+
+@hook.command(server_id=SRV, permissions=Permission.admin)
+def list_chan_categories(storage):
+    if "bot_cats" not in storage:
+        return "No bot categories set"
+
+    msg = ""
+    for cat in storage["bot_cats"]:
+        msg += "Name: %s | Type: %s\n" % (cat["name"], cat["type"])
+
+    return code_block(msg)
+
 
 @hook.command(server_id=SRV)
 def irc_help():
@@ -33,20 +108,11 @@ def irc_help():
 
     return ret + "```"
 
+@hook.command(permissions=Permission.admin, server_id=SRV)
 async def sort_roles(server):
     """
     Sort roles alphabetically
     """
-    start_marker_role = get_role_by_id(server, POS_START)
-    end_marker_role = get_role_by_id(server, POS_END)
-
-    if not start_marker_role:
-        print("Could not get start marker role")
-        return
-
-    if not end_marker_role:
-        print("Could not get end marker role")
-        return
 
     # Get all roles
     rlist = {}
@@ -60,15 +126,18 @@ async def sort_roles(server):
         if member_role:
             rlist["%s-member" % chan.name] = member_role
 
-    # Sort them and position
-    crt_pos = start_marker_role.position - 1
+    # Sort them and position starting from the first alphanumeric role
+    print("Base position is %s" % str(sorted(rlist.keys())[0]))
+    crt_pos = rlist[sorted(rlist.keys())[0]].position
     for rname in sorted(rlist.keys()):
-        await rlist[rname].set_position(crt_pos)
+        print("Setting %s to %d" % (rname, crt_pos))
+
+        if crt_pos != rlist[rname].position:
+            await rlist[rname].set_position(crt_pos)
+
         crt_pos -= 1
 
-    # Position the end marker
-    await end_marker_role.set_position(crt_pos)
-
+@hook.command(permissions=Permission.admin, server_id=SRV)
 async def sort_chans(server, categ):
     """
     Sort channels alphabetically
@@ -80,8 +149,11 @@ async def sort_chans(server, categ):
         min_pos = min(min_pos, chan.position)
 
     for cname in sorted(chans.keys()):
-        await chans[cname].set_position(min_pos)
+        if min_pos != chans[cname].position:
+            await chans[cname].set_position(min_pos)
+
         min_pos += 1
+
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
 async def check_irc_stuff(server, reply):
@@ -94,6 +166,7 @@ async def check_irc_stuff(server, reply):
     reply("Sorting roles")
     await sort_roles(server)
     reply("Done")
+
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
 async def resync_roles(server):
@@ -127,6 +200,7 @@ async def resync_roles(server):
         for user in ignoring_this:
             chan.remove_user_by_permission(user)
 
+
 @hook.command(server_id=SRV)
 def request_channel(text, event, send_message):
     """
@@ -144,7 +218,8 @@ def request_channel(text, event, send_message):
     if chtype not in CHTYPES:
         return "Channel type must be one of: %s" % str(CHTYPES)
 
-    message = "<@%s> has requested a %s channel named %s" % (event.author.id, chtype, chname)
+    message = "<@%s> has requested a %s channel named %s" % (
+        event.author.id, chtype, chname)
     send_message(target="449899630176632842", text=message)
 
 
@@ -199,6 +274,7 @@ async def create_channel(text, server, reply):
     user.add_role(
         get_role_by_name(server, "%s-op" % chname))
     print("Should be done!")
+
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
 async def delete_channel(text, server, reply):
@@ -283,6 +359,7 @@ async def make_chan_public(text, server, reply):
 
     reply("No private channel named %s" % chdata)
 
+
 @hook.command(server_id=SRV)
 async def list_chans(server, async_send_message):
     """
@@ -321,6 +398,7 @@ async def list_chans(server, async_send_message):
         no_timeout=True)
     await paged_content.get_crt_page()
 
+
 @hook.command(server_id=SRV)
 def join(text, server, reply, event, send_message):
     """
@@ -333,7 +411,8 @@ def join(text, server, reply, event, send_message):
 
     # Lookup channel
     chdata = str_to_id(text[0])
-    target_chan, categ = find_irc_chan(server, chan_name=chdata, chan_id=chdata)
+    target_chan, categ = find_irc_chan(
+        server, chan_name=chdata, chan_id=chdata)
 
     if not target_chan:
         return "That channel doesn't exist"
@@ -393,15 +472,23 @@ def part(server, reply, event, send_message, text):
 
             event.author.remove_role(
                 get_role_by_name(server, "%s-member" % chan.name))
-            #event.msg.add_reaction("👍")
+            # event.msg.add_reaction("👍")
         elif categ == PUB_CAT:
             chan.remove_user_by_permission(event.author)
-            #event.msg.add_reaction("👍")
+            # event.msg.add_reaction("👍")
 
     if len(chlist) > 0:
         event.msg.delete_message()
     else:
         return "Try specifying a channel name or multiple channels"
+
+
+# @hook.command(server_id=SRV)
+# def list_ops(server):
+
+# @hook.command(server_id=SRV)
+# def list_members(server):
+
 
 def find_irc_chan(server, chan_name=None, chan_id=None):
     if not chan_name and not chan_id:
@@ -418,12 +505,14 @@ def find_irc_chan(server, chan_name=None, chan_id=None):
 
     return None, None
 
+
 def user_has_role(user, role_name):
     for urole in user.roles:
         if urole.name == role_name:
             return True
 
     return False
+
 
 @hook.command(server_id=SRV)
 def set_topic(server, reply, event, text):
@@ -447,6 +536,7 @@ def set_topic(server, reply, event, text):
         text += " [NSFW]"
 
     target_chan.set_topic(text)
+
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
 def make_nsfw(server, reply, event, text, send_message):
@@ -485,10 +575,11 @@ def make_nsfw(server, reply, event, text, send_message):
                 user.remove_role(member_role)
                 user.remove_role(op_role)
                 send_message("Part <@%s> - because channel was made NSFW" %
-                    user.id, target=target_chan.id)
+                             user.id, target=target_chan.id)
 
                 user.send_pm("You have been removed from %s, because the channel was made NSFW." %
-                    target_chan.name)
+                             target_chan.name)
+
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
 def make_sfw(server, reply, event, text):
@@ -510,59 +601,3 @@ def make_sfw(server, reply, event, text):
 
     # Set NSFW
     target_chan.set_nsfw(False)
-
-rc = 0
-ms = 0
-
-async def pmsg(msg):
-    global rc
-    global ms
-   # if "446818086381944832" in msg.content \
-   #     or "679672489223389285" in msg.content \
-   #     or "677927397923880972" in msg.content \
-   #     or "679381304864931891" in msg.content:
-    if "<:sebyk:" in msg.content:
-        try:
-            print(msg.content)
-            await msg.delete()
-            ms += 1
-        except:
-            print(msg.content)
-    for react in msg.reactions:
-        if react.custom_emoji == False:
-            continue
-
-        if "sebyk" in react.emoji.name:
-            rc += 1
-            await react.clear()
-
-import discord
-@hook.command(permissions=Permission.admin, server_id=SRV)
-async def asd1(server, reply):
-    for ch in server._raw.channels:
-        if type(ch) != discord.TextChannel:
-            continue
-        reply(str(ch))
-
-        try:
-            bef = None
-            oldb = None
-            while True:
-                async for msg in ch.history(limit=1000, before = bef):
-                    await pmsg(msg)
-                    bef = msg.created_at
-
-                reply("%s %s reacts %d msgs %d" % (ch, str(bef), rc, ms))
-                print("%s %s" % (ch, str(bef)))
-
-                if oldb == bef:
-                    break
-                else:
-                    oldb = bef
-        except:
-            import traceback
-            traceback.print_exc()
-
-
-
-    reply("Done")

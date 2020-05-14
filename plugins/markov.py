@@ -1,7 +1,7 @@
 import markovify
 
 from plugins.log import get_msgs_for_user_in_chan, get_msgs_in_chan
-from plugins.discord_utils import str_to_id, get_channel_by_id
+from spanky.utils.discord_utils import str_to_id, get_channel_by_id
 from spanky.plugin import hook
 
 MSG_LIMIT = 10000

@@ -1,17 +1,18 @@
 import datetime
 import spanky.utils.time_utils as time_utils
+import spanky.utils.discord_utils as dutils
+
 from spanky.plugin import hook
 from spanky.utils import time_utils
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
-from plugins.temp_role import assign_temp_role, get_rtime, check_exp_time, get_reasons
-from plugins.discord_utils import *
+from plugins.temp_role import assign_temp_role, check_exp_time, get_reasons
 
 RODDIT_ID = "287285563118190592"
 
 @hook.command(server_id=RODDIT_ID)
 async def votat(author, event, server):
-    role = get_role_by_name(server, "A votat")
+    role = dutils.get_role_by_name(server, "A votat")
     author.add_role(role)
 
     try:
@@ -33,7 +34,7 @@ def auto_ok(server, event, send_message, storage):
     avaloare = storage["join_params"]["aval"]
 
     if age < abulau:
-        role = get_role_by_name(server, "Bulău")
+        role = dutils.get_role_by_name(server, "Bulău")
         event.member.add_role(role)
         send_message(target="449899630176632842",
                      text="Auto-bulau given to <@%s>" % event.member.id)
@@ -41,7 +42,7 @@ def auto_ok(server, event, send_message, storage):
         send_message(target="449899630176632842",
                      text="Auto-valoare not given to <@%s>" % event.member.id)
     else:
-        role = get_role_by_name(server, "Valoare")
+        role = dutils.get_role_by_name(server, "Valoare")
         event.member.add_role(role)
         send_message(target="449899630176632842",
                      text="Auto-valoare given to <@%s>" % event.member.id)
@@ -182,7 +183,7 @@ def assign_old(bot):
     joins_2weeks = get_joins_between(server, two_weeks, now)
     joins_2weeks_ids = [usr.id for usr in joins_2weeks]
 
-    joinrole = get_role_by_id(server, "688168479018451081")
+    joinrole = dutils.get_role_by_id(server, "688168479018451081")
 
     for user in server.get_users():
         has_role = False

@@ -1,6 +1,5 @@
 from spanky.plugin import hook
-from plugins.discord_utils import get_role_by_name
-from plugins.temp_role import add_role_from_list, remove_given_role_from_list
+from spanky.utils.discord_utils import get_role_by_name, add_role_from_list, remove_given_role_from_list
 
 BM_ID = "349583192921079808"
 
