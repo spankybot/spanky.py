@@ -23,6 +23,8 @@ def check_certs(bot):
             pass
     except requests.exceptions.SSLError:
         session.verify = os.path.join(str(bot.data_dir), CERT_PATH)
+    except:
+        print("error on initialize")
     else:
         session.verify = None
 
@@ -38,9 +40,13 @@ def query(endpoint, text):
 
 
 @hook.command()
-def gis(text):
+def gis(text, send_embed, event):
     """<query> - Uses the dogpile search engine to search for images."""
-    soup = query('images', text)
+    try:
+        soup = query('images', text)
+    except:
+        return "Search engine said nope"
+
     results_container = soup.find('div', {'class': 'images-bing__list'})
     if not results_container:
         return "No results found."
@@ -50,7 +56,13 @@ def gis(text):
         return "No results found."
 
     image = random.choice(results_list)
-    return image.find('a', {'class': 'link'})['href']
+    image_url = image.find('a', {'class': 'link'})['href']
+
+    send_embed(
+        title="Image search",
+        description="Searched for: %s" % text,
+        image_url=image_url,
+        footer_txt="Search author: %s" % event.author.name)
 
 
 @hook.command()

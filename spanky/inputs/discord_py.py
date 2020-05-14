@@ -152,7 +152,6 @@ class DiscordUtils(abc.ABC):
         if not channel:
             return
         try:
-
             # Find if this message has been replied to before
             old_reply = None
             if type(self) is EventMessage and self.get_server().id in bot_replies:
@@ -161,36 +160,33 @@ class DiscordUtils(abc.ABC):
             if type(self) is EventReact and self.get_server().id in bot_replies:
                 old_reply = bot_replies[self.get_server().id].get_bot_message(self.msg)
 
-            # If it was replied within the same channel as now (not chances of this not being true)
+            # If it was replied within the same channel (no chances of this not being true)
             if old_reply and old_reply._raw.channel.id == channel.id:
-                try:
-                    # Send the message
-                    await old_reply._raw.edit(content=text)
-                    # Register the bot reply
-                    #add_bot_reply(self.get_server().id, self.msg, msg)
-
-                    return Message(old_reply._raw)
-                except:
-                    print(traceback.format_exc())
-                    return
-            try:
-                # Send anything that we should send
+                # Send the message
                 if text != None:
-                    msg = Message(await channel.send(text), timeout)
+                    await old_reply._raw.edit(content=text)
                 elif embed != None:
-                    msg = Message(await channel.send(text, embed=embed), timeout)
+                    await old_reply._raw.edit(embed=embed)
+                # Register the bot reply
+                #add_bot_reply(self.get_server().id, self.msg, msg)
 
-                # Add the bot reply
-                if msg:
-                    if type(self) is EventMessage:
-                        add_bot_reply(self.get_server().id, self.msg._raw, msg)
-                    else:
-                        # Add a temporary reply that will be self-deleted after a timeout
-                        add_temporary_reply(msg)
+                return Message(old_reply._raw)
 
-                return msg
-            except:
-                print(traceback.format_exc())
+            # Send anything that we should send
+            if text != None:
+                msg = Message(await channel.send(text), timeout)
+            elif embed != None:
+                msg = Message(await channel.send(text, embed=embed), timeout)
+
+            # Add the bot reply
+            if msg:
+                if type(self) is EventMessage:
+                    add_bot_reply(self.get_server().id, self.msg._raw, msg)
+                else:
+                    # Add a temporary reply that will be self-deleted after a timeout
+                    add_temporary_reply(msg)
+
+            return msg
 
         except:
             print(traceback.format_exc())
@@ -207,10 +203,23 @@ class DiscordUtils(abc.ABC):
         asyncio.run_coroutine_threadsafe(
             self.async_send_pm(text=text, user=user), bot.loop)
 
-    def send_embed(self, title, description, fields, target=-1):
-        em = discord.Embed(title=title, description=description)
-        for el in fields:
-            em.add_field(name=el, value=fields[el])
+    def send_embed(self, title, description=None, fields=None, image_url=None, footer_txt=None, target=-1):
+        em = None
+
+        if description:
+            em = discord.Embed(title=title, description=description)
+        else:
+            em = discord.Embed(title=title)
+
+        if fields:
+            for el in fields:
+                em.add_field(name=el, value=fields[el])
+
+        if image_url:
+            em.set_image(url=image_url)
+
+        if footer_txt:
+            em.set_footer(text=footer_txt)
 
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(embed=em, target=target), bot.loop)
@@ -365,31 +374,36 @@ class EventMessage(DiscordUtils):
         stripped = self.str_to_id(last_word).split()[-1]
 
         for att in self.attachments:
-            yield att.url
+            yield Attachment(att).url
             return
 
         for emb in self.embeds:
-            yield emb.url
+            yield Embed(emb).url
             return
 
         if self.user_id_to_object(stripped) != None:
             yield str(self.user_id_to_object(stripped).avatar_url)
             return
+
         elif len(stripped) == 1 and format(ord(stripped), "x") in emojis:
             yield emojis[format(ord(stripped), "x")]
             return
+
         elif requests.get("https://cdn.discordapp.com/emojis/%s.gif" % stripped).status_code == 200:
             yield "https://cdn.discordapp.com/emojis/%s.gif" % stripped
             return
+
         elif requests.get("https://cdn.discordapp.com/emojis/%s.png" % stripped).status_code == 200:
             yield "https://cdn.discordapp.com/emojis/%s.png" % stripped
             return
+
         elif last_word.startswith("http"):
             yield strip_url(last_word)
             return
-        elif self.server.id in bot_replies:
-            for reply in bot_replies[self.server.id].bot_messages():
 
+        elif self.server.id in bot_replies:
+
+            for reply in bot_replies[self.server.id].bot_messages():
                 if self.channel.id != str(reply._raw.channel.id):
                     continue
 
