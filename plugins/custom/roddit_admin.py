@@ -96,8 +96,8 @@ def set_auto_bulau(storage, text):
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 async def ok(event, text, str_to_id, server):
     try:
-        role = get_role_by_name(server, "Valoare")
-        user = get_user_by_id(server, str_to_id(text))
+        role = dutils.get_role_by_name(server, "Valoare")
+        user = dutils.get_user_by_id(server, str_to_id(text))
 
         await event.msg.async_add_reaction(u"👍")
 
