@@ -6,7 +6,7 @@ SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
 SEC_IN_YEAR = SEC_IN_HOUR * 24 * 365 # yeah, maybe there aren't 365 days in one year
 
-interval_units = [(60, 'minutes'), (60, 'hour'), (24, 'day'), (365, 'year')]
+interval_units = [(60, 'minute'), (60, 'hour'), (24, 'day'), (365, 'year')]
 
 def tnow():
     return datetime.datetime.now().timestamp()
