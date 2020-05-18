@@ -23,7 +23,7 @@ def corona(text, reply, storage, author):
     if args[0] == "all" or args[0] == "total" or text == "":
         country_data = requests.get(base + "all").json()
     else:
-        country_data = requests.get(base + "countries/"+text).json()
+        country_data = requests.get(base + "countries/" + text).json()
 
     # if the return data has a message field, it means something occured and we should print it
     if "message" in country_data:
@@ -32,6 +32,9 @@ def corona(text, reply, storage, author):
 
     if "country" not in country_data:
         country_data["country"] = "World"
+
+    if "continent" not in country_data:
+        country_data["continent"] = "Worldwide"
 
     userFormat = getFormat(author, storage)
     data = {
@@ -46,9 +49,11 @@ def corona(text, reply, storage, author):
         "Recovered": f"Recovered: {country_data['recovered']:,}",
         "Active": f"Active: {country_data['active']:,}",
         "Critical": f"Critical: {country_data['critical']:,}",
-        "Country": country_data['country'],
-        "Continent": country_data['continent'],
-        "LUpdated": datetime.utcfromtimestamp(country_data['updated'] // 1000).strftime('%Y-%m-%d at %H:%M:%S UTC'),
+        "Country": country_data["country"],
+        "Continent": country_data["continent"],
+        "LUpdated": datetime.utcfromtimestamp(country_data["updated"] // 1000).strftime(
+            "%Y-%m-%d at %H:%M:%S UTC"
+        ),
     }
 
     for key, value in data.items():
