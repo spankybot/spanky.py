@@ -12,6 +12,7 @@ import abc
 from gc import collect
 from spanky.utils.image import Image
 from spanky.utils import time_utils
+from spanky.utils import discord_utils as dutils
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -134,7 +135,7 @@ class DiscordUtils(abc.ABC):
         chan = discord.utils.find(lambda m: m.id == int(chan_id), self.get_server()._raw.channels)
         return chan.name
 
-    async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0):
+    async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0, check_old=True):
         # Get target, if given
         channel = self.get_channel(target, server)
 
@@ -152,25 +153,26 @@ class DiscordUtils(abc.ABC):
         if not channel:
             return
         try:
-            # Find if this message has been replied to before
-            old_reply = None
-            if type(self) is EventMessage and self.get_server().id in bot_replies:
-                old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
+            if check_old:
+                # Find if this message has been replied to before
+                old_reply = None
+                if type(self) is EventMessage and self.get_server().id in bot_replies:
+                    old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
 
-            if type(self) is EventReact and self.get_server().id in bot_replies:
-                old_reply = bot_replies[self.get_server().id].get_bot_message(self.msg)
+                if type(self) is EventReact and self.get_server().id in bot_replies:
+                    old_reply = bot_replies[self.get_server().id].get_bot_message(self.msg)
 
-            # If it was replied within the same channel (no chances of this not being true)
-            if old_reply and old_reply._raw.channel.id == channel.id:
-                # Send the message
-                if text != None:
-                    await old_reply._raw.edit(content=text)
-                elif embed != None:
-                    await old_reply._raw.edit(embed=embed)
-                # Register the bot reply
-                #add_bot_reply(self.get_server().id, self.msg, msg)
+                # If it was replied within the same channel (no chances of this not being true)
+                if old_reply and old_reply._raw.channel.id == channel.id:
+                    # Send the message
+                    if text != None:
+                        await old_reply._raw.edit(content=text)
+                    elif embed != None:
+                        await old_reply._raw.edit(embed=embed)
+                    # Register the bot reply
+                    #add_bot_reply(self.get_server().id, self.msg, msg)
 
-                return Message(old_reply._raw)
+                    return Message(old_reply._raw)
 
             # Send anything that we should send
             if text != None:
@@ -203,23 +205,8 @@ class DiscordUtils(abc.ABC):
         asyncio.run_coroutine_threadsafe(
             self.async_send_pm(text=text, user=user), bot.loop)
 
-    def send_embed(self, title, description=None, fields=None, image_url=None, footer_txt=None, target=-1):
-        em = None
-
-        if description:
-            em = discord.Embed(title=title, description=description)
-        else:
-            em = discord.Embed(title=title)
-
-        if fields:
-            for el in fields:
-                em.add_field(name=el, value=fields[el])
-
-        if image_url:
-            em.set_image(url=image_url)
-
-        if footer_txt:
-            em.set_footer(text=footer_txt)
+    def send_embed(self, title, description=None, fields=None, inline_fields=True, image_url=None, footer_txt=None, target=-1):
+        em = dutils.prepare_embed(title, description, fields, inline_fields, image_url, footer_txt)
 
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(embed=em, target=target), bot.loop)
@@ -617,9 +604,9 @@ class Channel():
     async def set_position(self, position):
         await self._raw.edit(position=position)
 
-    async def set_category_name(self, categ):
-        cat_raw = self.server.find_category(categ)
-        await self._raw.edit(category=cat_raw, sync_permissions=True)
+    async def move_to_category(self, cat_id):
+        cat = self.server.find_category_by_id(cat_id)
+        await self._raw.edit(category=cat._raw, sync_permissions=True)
 
     async def set_standard_role(self, role_name):
         role = None
@@ -704,11 +691,18 @@ class Channel():
 
 
 class Category():
+    def __repr__(self):
+        return self.name
+
     def __init__(self, obj):
         self._raw = obj
         self.name = obj.name
         self.id = obj.id
 
+    @property
+    def channels(self):
+        for chan in self._raw.channels:
+            yield Channel(chan)
 
 class Server():
     def __init__(self, obj):
@@ -760,29 +754,36 @@ class Server():
         for cat in self._raw.categories:
             yield Category(cat)
 
-    def find_category(self, name):
+    def find_category_by_name(self, name):
         for cat in self._raw.categories:
             if cat.name.lower() == name.lower():
                 return cat
 
         return None
 
-    async def create_text_channel(self, name, category):
+    def find_category_by_id(self, id):
+        for cat in self._raw.categories:
+            if str(cat.id) == str(id):
+                return Category(cat)
 
-        raw_cat = self.find_category(category)
-        if not raw_cat:
-            print("Could not find category %s" % category)
+        return None
 
-        await self._raw.create_text_channel(name, category=raw_cat)
+    async def create_text_channel(self, name, cat_id):
+
+        cat = self.find_category_by_id(cat_id)
+        if not cat:
+            print("Could not find category %s" % cat_id)
+
+        await self._raw.create_text_channel(name, category=cat._raw)
 
     async def delete_channel(self, chan):
         await chan._raw.delete()
 
-    def get_chans_in_cat(self, name):
-        raw_cat = self.find_category(name)
+    def get_chans_in_cat(self, cat_id):
+        cat = self.find_category_by_id(cat_id)
 
-        for chan in raw_cat.channels:
-            yield Channel(chan)
+        for chan in cat.channels:
+            yield chan
 
     async def create_role(self, name, mentionable):
         existing = None

@@ -1,3 +1,4 @@
+import discord
 
 def get_user_by_id(server, uid):
     for u in server.get_users():
@@ -65,6 +66,24 @@ def get_roles_between(start_role, end_role, server):
             list_roles.append(i)
 
     return sorted(list_roles, key=lambda m: m.name)
+
+def user_roles_from_list(user, rlist):
+    """
+    Given a role list `rlist` return what subset is assigned to the user
+    """
+    # return list(
+    #     set.intersection(
+    #         set([i.id for i in user.roles]),
+    #         set([i.id for i in rlist]))
+    #     )
+
+    common = []
+    for urole in user.roles:
+        for role in rlist:
+            if urole.id == role.id:
+                common.append(urole)
+
+    return common
 
 def remove_role_from_list(start_role, end_role, server, event, send_message):
     roles = get_role_names_between(start_role, end_role, server)
@@ -195,3 +214,27 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
         if role != remove_text:
             event.author.add_role(list_colors[role])
         return "Your user rights are higher than what the bot has. Please check if role assignation worked."
+
+
+def prepare_embed(title, description=None, fields=None, inline_fields=True, image_url=None, footer_txt=None):
+    """
+    Prepare an embed object
+    """
+    em = None
+
+    if description:
+        em = discord.Embed(title=title, description=description)
+    else:
+        em = discord.Embed(title=title)
+
+    if fields:
+        for el in fields:
+            em.add_field(name=el, value=fields[el], inline=inline_fields)
+
+    if image_url:
+        em.set_image(url=image_url)
+
+    if footer_txt:
+        em.set_footer(text=footer_txt)
+
+    return em
