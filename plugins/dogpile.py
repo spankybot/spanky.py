@@ -126,7 +126,7 @@ async def gis(text, async_send_message, event):
 import pprint
 @hook.command()
 async def g(text, async_send_message, event):
-    """<query> - Search for a image."""
+    """<query> - Search for a link."""
     service = build("customsearch", "v1", developerKey=dev_key)
 
     res = service.cse().list(
