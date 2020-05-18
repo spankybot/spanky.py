@@ -12,7 +12,6 @@ search_results = deque(maxlen=50)
 
 class GISResult():
     def __init__(self, urls, async_send_message, search_term, event):
-        print(urls)
         self.urls = urls
         self.async_send_message = async_send_message
         self.crt_page = 0
