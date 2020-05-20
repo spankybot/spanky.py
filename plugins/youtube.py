@@ -32,13 +32,13 @@ def get_video_description(video_id):
     statistics = data[0]['statistics']
     content_details = data[0]['contentDetails']
 
-    out = '*{}*'.format(snippet['title'])
+    out = '**{}**'.format(snippet['title'])
 
     if not content_details.get('duration'):
         return out
 
     length = isodate.parse_duration(content_details['duration'])
-    out += ' - length *{}*'.format(timeformat.format_time(int(length.total_seconds()), simple=True))
+    out += ' - length {}'.format(timeformat.format_time(int(length.total_seconds()), simple=True))
     try:
         total_votes = float(statistics['likeCount']) + float(statistics['dislikeCount'])
     except (LookupError, ValueError):
@@ -55,16 +55,12 @@ def get_video_description(video_id):
 
     if 'viewCount' in statistics:
         views = int(statistics['viewCount'])
-        out += ' - *{:,}* view{}'.format(views, "s"[views == 1:])
+        out += ' - {:,} view{}'.format(views, "s"[views == 1:])
 
     uploader = snippet['channelTitle']
 
-    upload_time = time.strptime(snippet['publishedAt'], "%Y-%m-%dT%H:%M:%S.000Z")
-    out += ' - *{}* on *{}*'.format(uploader,
-                                                time.strftime("%Y.%m.%d", upload_time))
-
-    if 'contentRating' in content_details:
-        out += ' - **NSFW**'
+    upload_time = time.strptime(snippet['publishedAt'][:-1], "%Y-%m-%dT%H:%M:%S")
+    out += ' - {} on {}'.format(uploader, time.strftime("%Y.%m.%d", upload_time))
 
     return out
 
@@ -76,7 +72,7 @@ def load_key(bot):
 
 
 @hook.command("youtube")
-def youtube(text, reply):
+def youtube(text, reply, send_embed):
     """<query> - Returns the first YouTube search result for <query>."""
     if not dev_key:
         return "This command requires a Google Developers Console API key."
