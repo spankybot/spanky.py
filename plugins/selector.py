@@ -1,13 +1,17 @@
 import inspect
-import math
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
+from spanky.utils import time_utils as tutils
 
-MAX_ROWS = 10
+MAX_ROWS = 10 # Max rows per page
 LARROW=u'\U0001F448'
 RARROW=u'\U0001F449'
+
+MIN_SEC = 3 # Min seconds between assignments
+MSG_TIMEOUT = 3 # Timeout after which the message dissapears
+last_user_assign = {} # Dict to check for user spamming buttons
 
 SITEMS = [ \
     u'\U00000030\U0000FE0F\U000020E3', # zero
@@ -50,29 +54,32 @@ SITEMS = [ \
 posted_messages = deque(maxlen=50)
 
 class Selector():
-    def __init__(self, title, footer, async_send_message, call_dict, paged=False):
-        self.async_send_message = async_send_message
-        self.call_dict = call_dict
+    def __init__(self, title, footer, call_dict, paged=False):
         self.msg_dict = {} # msg ID to (msg dict, emoji-func)
         self.paged = paged
         self.shown_page = 0
-        self.total_pages = math.floor(len(call_dict) / MAX_ROWS) + 1
+        self.title = title
+        self.footer = footer
+
+        self.set_items(call_dict)
+
+    def set_items(self, call_dict):
+        self.total_pages = len(call_dict) // MAX_ROWS + int(len(call_dict) % MAX_ROWS != 0)
 
         # Initialize the embeds array in case there are multiple messages
         self.embeds = []
 
         # Populate embed item dict
         crt_idx = 0 # total emoji index
-        #page_emoji_idx = 0 # per page emoji index
-
-        emb_str = ""
-        part_cnt = 1
+        emb_str = "" # embed string per page
+        part_cnt = 1 # page count
         emoji_to_func = OrderedDict() # dict of emojis for current chunk
+
         for key, val in call_dict.items():
             # Get the current emoji
             crt_emoji = SITEMS[crt_idx]
 
-            emoji_to_func[crt_emoji] = val
+            emoji_to_func[crt_emoji] = (val, key) # emoji -> (function, label)
             emb_str += "%s %s\n" % (crt_emoji, key)
 
             crt_idx += 1
@@ -81,7 +88,7 @@ class Selector():
             if crt_idx >= MAX_ROWS:
                 self.embeds.append(
                         (
-                            dutils.prepare_embed(title="%s (part %d/%d)" % (title, part_cnt, self.total_pages), description=emb_str, footer_txt=footer),
+                            dutils.prepare_embed(title="%s (part %d/%d)" % (self.title, part_cnt, self.total_pages), description=emb_str, footer_txt=self.footer),
                             emoji_to_func
                         )
                     )
@@ -95,14 +102,14 @@ class Selector():
             if part_cnt > 1:
                 self.embeds.append(
                         (
-                            dutils.prepare_embed(title="%s (part %d/%d)" % (title, part_cnt, self.total_pages), description=emb_str, footer_txt=footer),
+                            dutils.prepare_embed(title="%s (part %d/%d)" % (self.title, part_cnt, self.total_pages), description=emb_str, footer_txt=self.footer),
                             emoji_to_func
                         )
                     )
             else:
                 self.embeds.append(
                         (
-                            dutils.prepare_embed(title=title, description=emb_str, footer_txt=footer),
+                            dutils.prepare_embed(title=self.title, description=emb_str, footer_txt=self.footer),
                             emoji_to_func
                         )
                     )
@@ -113,10 +120,10 @@ class Selector():
 
         return False
 
-    async def send_all_pages(self):
+    async def send_all_pages(self, event):
         for embed, emoji_to_func in self.embeds:
             # Send the message
-            msg = await self.async_send_message(embed=embed, check_old=False)
+            msg = await event.async_send_message(embed=embed, check_old=False)
 
             # Add it to the internal dict
             self.msg_dict[msg.id] = (msg, emoji_to_func)
@@ -125,11 +132,11 @@ class Selector():
             for emoji in emoji_to_func.keys():
                 await msg.async_add_reaction(emoji)
 
-    async def send_one_page(self):
+    async def send_one_page(self, event):
         embed, emoji_to_func = self.embeds[self.shown_page]
 
         # Send the message
-        msg = await self.async_send_message(embed=embed, check_old=True)
+        msg = await event.async_send_message(embed=embed, check_old=True)
 
         new_msg = False
         if msg.id not in self.msg_dict:
@@ -148,14 +155,14 @@ class Selector():
             for emoji in emoji_to_func.keys():
                 await msg.async_add_reaction(emoji)
 
-    async def do_send(self):
+    async def do_send(self, event):
         # Add selector to posted messages
         posted_messages.append(self)
 
         if not self.paged:
-            await self.send_all_pages()
+            await self.send_all_pages(event)
         else:
-            await self.send_one_page()
+            await self.send_one_page(event)
 
     async def handle_emoji(self, event):
         if event.msg.id not in self.msg_dict:
@@ -170,15 +177,14 @@ class Selector():
             elif event.reaction.emoji.name == RARROW:
                 self.shown_page += 1
 
-            # Check bounds
-            if self.shown_page >= len(self.embeds):
-                self.shown_page = 0
-            elif self.shown_page < 0:
-                self.shown_page = len(self.embeds) - 1
+        # Check bounds
+        if self.shown_page >= len(self.embeds):
+            self.shown_page = 0
+        elif self.shown_page < 0:
+            self.shown_page = len(self.embeds) - 1
 
-            # Send the new page
-            await self.send_one_page()
-            return
+        # Send the new page
+        await self.send_one_page(event)
 
         # Get emoji to func map
         _, emoji_to_func = self.msg_dict[event.msg.id]
@@ -188,10 +194,95 @@ class Selector():
             return
 
         # If it's an async function, await else just call
-        if inspect.iscoroutinefunction(emoji_to_func[event.reaction.emoji.name]):
-            await emoji_to_func[event.reaction.emoji.name](event)
-        else:
-            emoji_to_func[event.reaction.emoji.name](event)
+        target_func, label = emoji_to_func[event.reaction.emoji.name]
+        try:
+            if inspect.iscoroutinefunction(target_func):
+                await target_func(event, label)
+            else:
+                target_func(event, label)
+        except:
+            import traceback; traceback.print_exc()
+
+class RoleSelector(Selector):
+    # If N seconds have passed since the last role update, check the server status
+    ROLE_UPDATE_INTERVAL = 60
+
+    def __init__(self, server, first_role, last_role, title, max_selectable, paged):
+        super().__init__(title=title, footer="Max selectable: %d" % max_selectable, call_dict={}, paged=paged)
+        self.server = server
+        self.first_role = first_role
+        self.last_role = last_role
+        self.max_selectable = max_selectable
+        self.last_role_update = 0
+
+        self.update_role_list()
+
+    def update_role_list(self):
+        # Check if we need to get the roles
+        if tutils.tnow() - self.last_role_update > RoleSelector.ROLE_UPDATE_INTERVAL:
+            # Get the roles
+            roles = dutils.get_roles_between_including(
+                self.first_role,
+                self.last_role,
+                self.server)
+
+            self.name_to_role = {}      # Map names to roles for quick lookup
+            role_list = OrderedDict()   # Role list to pass to the selector
+            for role in roles:
+                self.name_to_role[role.name] = role
+                role_list[role.name] = self.do_stuff
+
+            # Mark last role update time
+            self.last_role_update = tutils.tnow()
+
+            # Set the items
+            self.set_items(role_list)
+
+    async def handle_emoji(self, event):
+        # Before handling an emoji, update the role list
+        self.update_role_list()
+
+        await super().handle_emoji(event)
+
+    async def do_stuff(self, event, label):
+        # Check role assign spam
+        now = tutils.tnow()
+        if event.author.id in last_user_assign and now - last_user_assign[event.author.id] < MIN_SEC:
+            last_user_assign[event.author.id] = now
+            event.author.send_pm("You're assigning roles too quickly. You need to wait %d seconds between assignments" % MIN_SEC)
+            return
+
+        print("Assign %s" % label)
+        the_role = self.name_to_role[label]
+        last_user_assign[event.author.id] = now
+
+        crt_roles = dutils.user_roles_from_list(event.author, self.name_to_role.values())
+        # Check if the user already has the role so that we remove it
+        for crt in crt_roles:
+            if the_role.id == crt.id:
+                event.author.remove_role(the_role)
+                await event.async_send_message(
+                    "<@%s>: `Removed: %s`" % (event.author.id, the_role.name),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
+                return
+
+        # Remove extra roles
+        removed = []
+        if len(crt_roles) >= self.max_selectable:
+            # +1 to make room for another
+            for i in range(len(crt_roles) - self.max_selectable + 1):
+                event.author.remove_role(crt_roles[i])
+                removed.append(crt_roles[i].name)
+
+        event.author.add_role(the_role)
+        reply_msg = "Added: %s" % the_role.name
+        if len(removed) > 0:
+            reply_msg += " || Removed: %s" % ", ".join(removed)
+        await event.async_send_message(
+            "<@%s>: `%s`" % (event.author.id, reply_msg),
+            timeout=MSG_TIMEOUT,
+            check_old=False)
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event):
