@@ -5,57 +5,60 @@ from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
 from spanky.utils import time_utils as tutils
 
-MAX_ROWS = 10 # Max rows per page
-LARROW=u'\U0001F448'
-RARROW=u'\U0001F449'
 
-MIN_SEC = 3 # Min seconds between assignments
-MSG_TIMEOUT = 3 # Timeout after which the message dissapears
-last_user_assign = {} # Dict to check for user spamming buttons
+MAX_ROWS = 10  # Max rows per page
+LARROW = "\U0001F448"
+RARROW = "\U0001F449"
 
-SITEMS = [ \
-    u'\U00000030\U0000FE0F\U000020E3', # zero
-    u'\U00000031\U0000FE0F\U000020E3',
-    u'\U00000032\U0000FE0F\U000020E3',
-    u'\U00000033\U0000FE0F\U000020E3',
-    u'\U00000034\U0000FE0F\U000020E3',
-    u'\U00000035\U0000FE0F\U000020E3',
-    u'\U00000036\U0000FE0F\U000020E3',
-    u'\U00000037\U0000FE0F\U000020E3',
-    u'\U00000038\U0000FE0F\U000020E3',
-    u'\U00000039\U0000FE0F\U000020E3', # nine
-    u'\U0001F1E6', # letter A
-    u'\U0001F1E7',
-    u'\U0001F1E8',
-    u'\U0001F1E9',
-    u'\U0001F1EA',
-    u'\U0001F1EB',
-    u'\U0001F1EC',
-    u'\U0001F1ED',
-    u'\U0001F1EE',
-    u'\U0001F1EF',
-    u'\U0001F1F0',
-    u'\U0001F1F1',
-    u'\U0001F1F2',
-    u'\U0001F1F3',
-    u'\U0001F1F4',
-    u'\U0001F1F5',
-    u'\U0001F1F6',
-    u'\U0001F1F7',
-    u'\U0001F1F8',
-    u'\U0001F1F9',
-    u'\U0001F1FA',
-    u'\U0001F1FB',
-    u'\U0001F1FC',
-    u'\U0001F1FD',
-    u'\U0001F1FE',
-    u'\U0001F1FF'] # letter Z
+MIN_SEC = 3  # Min seconds between assignments
+MSG_TIMEOUT = 3  # Timeout after which the message dissapears
+last_user_assign = {}  # Dict to check for user spamming buttons
+
+SITEMS = [
+    "\U00000030\U0000FE0F\U000020E3",  # zero
+    "\U00000031\U0000FE0F\U000020E3",
+    "\U00000032\U0000FE0F\U000020E3",
+    "\U00000033\U0000FE0F\U000020E3",
+    "\U00000034\U0000FE0F\U000020E3",
+    "\U00000035\U0000FE0F\U000020E3",
+    "\U00000036\U0000FE0F\U000020E3",
+    "\U00000037\U0000FE0F\U000020E3",
+    "\U00000038\U0000FE0F\U000020E3",
+    "\U00000039\U0000FE0F\U000020E3",  # nine
+    "\U0001F1E6",  # letter A
+    "\U0001F1E7",
+    "\U0001F1E8",
+    "\U0001F1E9",
+    "\U0001F1EA",
+    "\U0001F1EB",
+    "\U0001F1EC",
+    "\U0001F1ED",
+    "\U0001F1EE",
+    "\U0001F1EF",
+    "\U0001F1F0",
+    "\U0001F1F1",
+    "\U0001F1F2",
+    "\U0001F1F3",
+    "\U0001F1F4",
+    "\U0001F1F5",
+    "\U0001F1F6",
+    "\U0001F1F7",
+    "\U0001F1F8",
+    "\U0001F1F9",
+    "\U0001F1FA",
+    "\U0001F1FB",
+    "\U0001F1FC",
+    "\U0001F1FD",
+    "\U0001F1FE",
+    "\U0001F1FF",
+]  # letter Z
 
 posted_messages = deque(maxlen=50)
 
-class Selector():
+
+class Selector:
     def __init__(self, title, footer, call_dict, paged=False):
-        self.msg_dict = {} # msg ID to (msg dict, emoji-func)
+        self.msg_dict = {}  # msg ID to (msg dict, emoji-func)
         self.paged = paged
         self.shown_page = 0
         self.title = title
@@ -64,22 +67,24 @@ class Selector():
         self.set_items(call_dict)
 
     def set_items(self, call_dict):
-        self.total_pages = len(call_dict) // MAX_ROWS + int(len(call_dict) % MAX_ROWS != 0)
+        self.total_pages = len(call_dict) // MAX_ROWS + int(
+            len(call_dict) % MAX_ROWS != 0
+        )
 
         # Initialize the embeds array in case there are multiple messages
         self.embeds = []
 
         # Populate embed item dict
-        crt_idx = 0 # total emoji index
-        emb_str = "" # embed string per page
-        part_cnt = 1 # page count
-        emoji_to_func = OrderedDict() # dict of emojis for current chunk
+        crt_idx = 0  # total emoji index
+        emb_str = ""  # embed string per page
+        part_cnt = 1  # page count
+        emoji_to_func = OrderedDict()  # dict of emojis for current chunk
 
         for key, val in call_dict.items():
             # Get the current emoji
             crt_emoji = SITEMS[crt_idx]
 
-            emoji_to_func[crt_emoji] = (val, key) # emoji -> (function, label)
+            emoji_to_func[crt_emoji] = (val, key)  # emoji -> (function, label)
             emb_str += "%s %s\n" % (crt_emoji, key)
 
             crt_idx += 1
@@ -87,11 +92,16 @@ class Selector():
             # If more than MAX_ROWS items have been added split it
             if crt_idx >= MAX_ROWS:
                 self.embeds.append(
-                        (
-                            dutils.prepare_embed(title="%s (part %d/%d)" % (self.title, part_cnt, self.total_pages), description=emb_str, footer_txt=self.footer),
-                            emoji_to_func
-                        )
+                    (
+                        dutils.prepare_embed(
+                            title="%s (part %d/%d)"
+                            % (self.title, part_cnt, self.total_pages),
+                            description=emb_str,
+                            footer_txt=self.footer,
+                        ),
+                        emoji_to_func,
                     )
+                )
                 crt_idx = 0
                 emb_str = ""
                 part_cnt += 1
@@ -101,18 +111,27 @@ class Selector():
             # Add final split OR whole list
             if part_cnt > 1:
                 self.embeds.append(
-                        (
-                            dutils.prepare_embed(title="%s (part %d/%d)" % (self.title, part_cnt, self.total_pages), description=emb_str, footer_txt=self.footer),
-                            emoji_to_func
-                        )
+                    (
+                        dutils.prepare_embed(
+                            title="%s (part %d/%d)"
+                            % (self.title, part_cnt, self.total_pages),
+                            description=emb_str,
+                            footer_txt=self.footer,
+                        ),
+                        emoji_to_func,
                     )
+                )
             else:
                 self.embeds.append(
-                        (
-                            dutils.prepare_embed(title=self.title, description=emb_str, footer_txt=self.footer),
-                            emoji_to_func
-                        )
+                    (
+                        dutils.prepare_embed(
+                            title=self.title,
+                            description=emb_str,
+                            footer_txt=self.footer,
+                        ),
+                        emoji_to_func,
                     )
+                )
 
     def has_msg_id(self, msg_id):
         if msg_id in self.msg_dict:
@@ -134,7 +153,6 @@ class Selector():
 
     async def send_one_page(self, event):
         embed, emoji_to_func = self.embeds[self.shown_page]
-
         # Send the message
         msg = await event.async_send_message(embed=embed, check_old=True)
 
@@ -169,8 +187,7 @@ class Selector():
             return
 
         # Check if it's a page reaction
-        if self.paged and \
-            event.reaction.emoji.name in [LARROW, RARROW]:
+        if self.paged and event.reaction.emoji.name in [LARROW, RARROW]:
             # If yes, increment decrement things
             if event.reaction.emoji.name == LARROW:
                 self.shown_page -= 1
@@ -201,17 +218,24 @@ class Selector():
             else:
                 target_func(event, label)
         except:
-            import traceback; traceback.print_exc()
+            import traceback
+
+            traceback.print_exc()
+
 
 class RoleSelector(Selector):
     # If N seconds have passed since the last role update, check the server status
     ROLE_UPDATE_INTERVAL = 60
 
-    def __init__(self, server, first_role, last_role, title, max_selectable, paged):
-        super().__init__(title=title, footer="Max selectable: %d" % max_selectable, call_dict={}, paged=paged)
+    def __init__(self, server, roles, title, max_selectable, paged):
+        super().__init__(
+            title=title,
+            footer=f"Max selectable: {max_selectable if max_selectable > 0 else 'Unlimited' }",
+            call_dict={},
+            paged=paged,
+        )
         self.server = server
-        self.first_role = first_role
-        self.last_role = last_role
+        self.roles = roles
         self.max_selectable = max_selectable
         self.last_role_update = 0
 
@@ -221,22 +245,25 @@ class RoleSelector(Selector):
         # Check if we need to get the roles
         if tutils.tnow() - self.last_role_update > RoleSelector.ROLE_UPDATE_INTERVAL:
             # Get the roles
-            roles = dutils.get_roles_between_including(
-                self.first_role,
-                self.last_role,
-                self.server)
+            roles = dutils.get_roles_from_ids(self.roles, self.server)
 
-            self.name_to_role = {}      # Map names to roles for quick lookup
-            role_list = OrderedDict()   # Role list to pass to the selector
+            self.name_to_role = {}  # Map names to roles for quick lookup
+            role_list = list()
             for role in roles:
-                self.name_to_role[role.name] = role
-                role_list[role.name] = self.do_stuff
+                self.name_to_role[role] = roles[role]
+                role_list.append(role)
+
+            role_list = sorted(list(role_list), key=str.lower)
+
+            role_dict = OrderedDict()  # Role list to pass to the selector
+            for item in role_list:
+                role_dict[item] = self.do_stuff
 
             # Mark last role update time
             self.last_role_update = tutils.tnow()
 
             # Set the items
-            self.set_items(role_list)
+            self.set_items(role_dict)
 
     async def handle_emoji(self, event):
         # Before handling an emoji, update the role list
@@ -247,16 +274,24 @@ class RoleSelector(Selector):
     async def do_stuff(self, event, label):
         # Check role assign spam
         now = tutils.tnow()
-        if event.author.id in last_user_assign and now - last_user_assign[event.author.id] < MIN_SEC:
+        if (
+            event.author.id in last_user_assign
+            and now - last_user_assign[event.author.id] < MIN_SEC
+        ):
             last_user_assign[event.author.id] = now
-            event.author.send_pm("You're assigning roles too quickly. You need to wait %d seconds between assignments" % MIN_SEC)
+            event.author.send_pm(
+                "You're assigning roles too quickly. You need to wait %d seconds between assignments"
+                % MIN_SEC
+            )
             return
 
         print("Assign %s" % label)
         the_role = self.name_to_role[label]
         last_user_assign[event.author.id] = now
 
-        crt_roles = dutils.user_roles_from_list(event.author, self.name_to_role.values())
+        crt_roles = dutils.user_roles_from_list(
+            event.author, self.name_to_role.values()
+        )
         # Check if the user already has the role so that we remove it
         for crt in crt_roles:
             if the_role.id == crt.id:
@@ -264,12 +299,13 @@ class RoleSelector(Selector):
                 await event.async_send_message(
                     "<@%s>: `Removed: %s`" % (event.author.id, the_role.name),
                     timeout=MSG_TIMEOUT,
-                    check_old=False)
+                    check_old=False,
+                )
                 return
 
         # Remove extra roles
         removed = []
-        if len(crt_roles) >= self.max_selectable:
+        if self.max_selectable > 0 and len(crt_roles) >= self.max_selectable:
             # +1 to make room for another
             for i in range(len(crt_roles) - self.max_selectable + 1):
                 event.author.remove_role(crt_roles[i])
@@ -282,7 +318,9 @@ class RoleSelector(Selector):
         await event.async_send_message(
             "<@%s>: `%s`" % (event.author.id, reply_msg),
             timeout=MSG_TIMEOUT,
-            check_old=False)
+            check_old=False,
+        )
+
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event):
@@ -301,4 +339,3 @@ async def parse_react(bot, event):
 
     # Remove the reaction
     await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
-
