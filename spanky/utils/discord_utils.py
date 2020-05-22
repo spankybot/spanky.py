@@ -67,6 +67,22 @@ def get_roles_between(start_role, end_role, server):
 
     return sorted(list_roles, key=lambda m: m.name)
 
+def get_roles_between_including(start_role, end_role, server):
+    list_roles = []
+    # Get starting and ending positions of listed roles
+    for srole in server.get_roles():
+        if start_role == srole.name or start_role == srole.id:
+            pos_start = srole.position
+        if end_role == srole.name or end_role == srole.id:
+            pos_end = srole.position
+
+    # List available roles
+    for i in server.get_roles():
+        if i.position >= pos_end and i.position <= pos_start:
+            list_roles.append(i)
+
+    return sorted(list_roles, key=lambda m: m.name)
+
 def user_roles_from_list(user, rlist):
     """
     Given a role list `rlist` return what subset is assigned to the user
@@ -216,7 +232,7 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
         return "Your user rights are higher than what the bot has. Please check if role assignation worked."
 
 
-def prepare_embed(title, description=None, fields=None, inline_fields=True, image_url=None, footer_txt=None):
+def prepare_embed(title, description=None, fields=None, inline_fields=True, image_url=None, footer_txt=None, thumbnail_url=None):
     """
     Prepare an embed object
     """
@@ -236,5 +252,8 @@ def prepare_embed(title, description=None, fields=None, inline_fields=True, imag
 
     if footer_txt:
         em.set_footer(text=footer_txt)
+
+    if thumbnail_url:
+        em.set_thumbnail(url=thumbnail_url)
 
     return em

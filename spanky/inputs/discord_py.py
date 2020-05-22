@@ -266,6 +266,7 @@ class EventReact(DiscordUtils):
         self.server = Server(user.guild)
         self.msg = Message(reaction.message)
         self.channel = Channel(reaction.message.channel)
+        self.source = self.channel
 
         self.reaction = Reaction(reaction)
 
