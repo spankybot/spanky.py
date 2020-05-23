@@ -1,10 +1,8 @@
 import os
-import datetime
-
 import plugins.selector as selector
 import spanky.utils.discord_utils as dutils
 
-from spanky.plugin import hook, permissions
+from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 from spanky.utils.volatile import set_vdata, get_vdata
 
@@ -24,8 +22,9 @@ def register_cmd(cmd, server):
         async def do_cmd(text, server, storage, event, send_embed, reply):
             print(f"Got selector {cmd['name']}")
             if cmd["roles"] == []:
-                # TODO: For some reason, return does not work here
+                # TODO: For some reason, `return "No roles in selector"` does not work here
                 reply("No roles in selector")
+                return
 
             sel = selector.RoleSelector(
                 server=server,
@@ -303,7 +302,7 @@ def create_selector(text, str_to_id, server, bot, storage):
     cmd = text
     # Check minumum length
     if len(cmd) < 5:
-        return "Selector command length needs to be at least 5."
+        return "Selector command length needs to be at least 5 characters long."
 
     # Check that command exists
     if cmd in bot.plugin_manager.commands:
@@ -327,7 +326,7 @@ def create_selector(text, str_to_id, server, bot, storage):
     register_cmd(new_cmd, server)
     reload_file(bot)
 
-    return "Done"
+    return f"Created selector {cmd}."
 
 
 @hook.command()
@@ -358,6 +357,6 @@ def delete_selector(storage, text, bot):
 
             reload_file(bot)
 
-            return "Done"
+            return f"Selector {text} removed."
 
-    return "Command not registered"
+    return "Selector not found."
