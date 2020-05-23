@@ -54,7 +54,7 @@ def n_rolls(count, n):
 
 
 @hook.command()
-def dice(text, notice):
+def dice(text, reply):
     """<dice roll> - simulates dice rolls. Example: 'dice 2d20-d5+4 roll 2': D20s, subtract 1D5, add 4
     :type text: str
     """
@@ -66,7 +66,7 @@ def dice(text, notice):
         if match:
             text, desc = match.groups()
         else:
-            notice("Invalid dice roll '{}'".format(text))
+            reply("Invalid dice roll '{}'".format(text))
             return
 
     if "d" not in text:
@@ -74,7 +74,7 @@ def dice(text, notice):
 
     spec = whitespace_re.sub('', text)
     if not valid_diceroll.match(spec):
-        notice("Invalid dice roll '{}'".format(text))
+        reply("Invalid dice roll '{}'".format(text))
         return
     groups = sign_re.findall(spec)
 
