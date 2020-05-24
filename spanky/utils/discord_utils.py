@@ -257,3 +257,16 @@ def prepare_embed(title, description=None, fields=None, inline_fields=True, imag
         em.set_thumbnail(url=thumbnail_url)
 
     return em
+
+def parse_message_link(msglink):
+    """
+    Parses a message link:
+    https://discord.com/channels/server_id/chan_id/msg_id"
+    """
+
+    if msglink.startswith("https://discord.com/channels/"):
+        data = msglink.split("/")
+
+        return data[-3], data[-2], data[-1]
+    else:
+        return None, None, None
