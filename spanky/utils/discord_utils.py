@@ -34,6 +34,12 @@ def str_to_id(string):
 def code_block(msg):
     return "```\n%s\n```" % msg
 
+def get_roles_from_ids(ids, server):
+    roles = {}
+    for srole in server.get_roles():
+        if srole.id in ids:
+            roles[srole.name] = srole
+    return roles
 
 def get_role_names_between(start_role, end_role, server):
     list_roles = {}
