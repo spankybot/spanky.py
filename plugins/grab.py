@@ -2,31 +2,40 @@
 import re
 import random
 import plugins.paged_content as paged
+import spanky.utils.discord_utils as dutils
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
 
 @hook.command(format="user")
-async def grab(text, channel, str_to_id, storage, reply, event):
+async def grab(text, channel, storage, reply, event):
     """<user> - grab user's last message"""
-    if not text.startswith("https://discordapp.com/channels/"):
-        user_id = str_to_id(text)
 
-        if event.author.id == user_id:
-            reply("Didn't your mom teach you not to grab yourself in public?")
-            return
+    to_grab = None
 
-        messages = await channel.async_get_latest_messages(100)
+    # Check if we're grabbing a user
+    user_id = dutils.str_to_id(text)
+    if event.author.id == user_id:
+        reply("Didn't your mom teach you not to grab yourself in public?")
+        return
 
-        to_grab = None
-        for msg in messages:
-            if msg.author.id == user_id:
-                to_grab = msg
-                break
-    else:
+    messages = await channel.async_get_latest_messages(100)
+
+    to_grab = None
+    for msg in messages:
+        if msg.author.id == user_id:
+            to_grab = msg
+            break
+
+    # Or we may be grabbing a message link or ID
+    if not to_grab:
+        _, _, msg_id = dutils.parse_message_link(text)
+
+        if not msg_id:
+            msg_id = text
         try:
-            to_grab = await channel.async_get_message(text.split("/")[-1])
-        except Exception as e:
+            to_grab = await channel.async_get_message(msg_id)
+        except:
             import traceback
             traceback.print_exc()
 
