@@ -74,8 +74,7 @@ async def gibcolor(async_send_message, send_message, event):
         title="r/Romania culori",
         first_role="Albastru canar",
         last_role="Verde mușchi",
-        max_selectable=1,
-        paged=True)
+        max_selectable=1)
     await sel.do_send(event)
 
 @hook.command(server_id=RODDIT_ID)
@@ -86,7 +85,6 @@ async def gibrole(async_send_message, send_message, event):
         title="r/Romania roles",
         first_role="Gospodar",
         last_role="♿",
-        max_selectable=5,
-        paged=True)
+        max_selectable=5)
 
     await sel.do_send(event)
