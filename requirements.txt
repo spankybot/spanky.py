@@ -18,3 +18,4 @@ pillow
 numpy
 pythonwhois
 fb-re2
+google-api-python-client
