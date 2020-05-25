@@ -67,9 +67,10 @@ def nu_vreau_rol(send_message, server, event, bot, text):
 import plugins.selector as selector
 
 @hook.command(server_id=RODDIT_ID)
-async def gibcolor(async_send_message, send_message, server, event):
-    sel = selector.RoleSelector(
-        server=server,
+async def gibcolor(async_send_message, send_message, event):
+    sel = selector.RoleSelectorInterval(
+        server=event.server,
+        channel=event.channel,
         title="r/Romania culori",
         first_role="Albastru canar",
         last_role="Verde mușchi",
@@ -78,12 +79,14 @@ async def gibcolor(async_send_message, send_message, server, event):
     await sel.do_send(event)
 
 @hook.command(server_id=RODDIT_ID)
-async def gibrole(async_send_message, send_message, server, event):
-    sel = selector.RoleSelector(
-        server=server,
+async def gibrole(async_send_message, send_message, event):
+    sel = selector.RoleSelectorInterval(
+        server=event.server,
+        channel=event.channel,
         title="r/Romania roles",
         first_role="Gospodar",
         last_role="♿",
         max_selectable=5,
         paged=True)
+
     await sel.do_send(event)

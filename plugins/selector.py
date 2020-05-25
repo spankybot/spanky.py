@@ -4,6 +4,7 @@ from spanky.plugin.event import EventType
 from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
 from spanky.utils import time_utils as tutils
+from spanky.plugin.permissions import Permission
 
 
 MAX_ROWS = 10  # Max rows per page
@@ -53,16 +54,16 @@ SITEMS = [
     "\U0001F1FF",
 ]  # letter Z
 
+permanent_messages = []
 posted_messages = deque(maxlen=50)
 
 
 class Selector:
-    def __init__(self, title, footer, call_dict, paged=False):
-        self.msg_dict = {}  # msg ID to (msg dict, emoji-func)
-        self.paged = paged
+    def __init__(self, title, footer, call_dict):
         self.shown_page = 0
         self.title = title
         self.footer = footer
+        self.msg = None
 
         self.set_items(call_dict)
 
@@ -134,60 +135,56 @@ class Selector:
                 )
 
     def has_msg_id(self, msg_id):
-        if msg_id in self.msg_dict:
-            return True
+        if not self.msg:
+            return False
 
-        return False
+        return msg_id == self.msg.id
 
-    async def send_all_pages(self, event):
-        for embed, emoji_to_func in self.embeds:
-            # Send the message
-            msg = await event.async_send_message(embed=embed, check_old=False)
+    def get_msg_id(self):
+        """
+        Returns all message IDs
+        """
+        if not self.msg:
+            return None
 
-            # Add it to the internal dict
-            self.msg_dict[msg.id] = (msg, emoji_to_func)
-
-            # Add all reacts
-            for emoji in emoji_to_func.keys():
-                await msg.async_add_reaction(emoji)
+        return self.msg.id
 
     async def send_one_page(self, event):
         embed, emoji_to_func = self.embeds[self.shown_page]
-        # Send the message
-        msg = await event.async_send_message(embed=embed, check_old=True)
 
         new_msg = False
-        if msg.id not in self.msg_dict:
+        # Send the message
+        if not self.msg:
+            self.msg = await event.async_send_message(embed=embed, check_old=True)
             new_msg = True
+        else:
+            await event.async_edit_message(msg=self.msg, embed=embed)
 
-        # Add it to the internal dict so that we can quickly react to emotes
-        self.msg_dict[msg.id] = (msg, emoji_to_func)
+        # Save it so that we can quickly react to emotes
+        self.crt_emoji_to_func = emoji_to_func
 
         if new_msg:
             if self.total_pages > 1:
                 # If using pages, add arrows
-                await msg.async_add_reaction(LARROW)
-                await msg.async_add_reaction(RARROW)
+                await self.msg.async_add_reaction(LARROW)
+                await self.msg.async_add_reaction(RARROW)
 
             # Add all reacts
             for emoji in emoji_to_func.keys():
-                await msg.async_add_reaction(emoji)
+                await self.msg.async_add_reaction(emoji)
 
     async def do_send(self, event):
         # Add selector to posted messages
         posted_messages.append(self)
 
-        if not self.paged:
-            await self.send_all_pages(event)
-        else:
-            await self.send_one_page(event)
+        await self.send_one_page(event)
 
     async def handle_emoji(self, event):
-        if event.msg.id not in self.msg_dict:
+        if event.msg.id != self.msg.id:
             return
 
         # Check if it's a page reaction
-        if self.paged and event.reaction.emoji.name in [LARROW, RARROW]:
+        if event.reaction.emoji.name in [LARROW, RARROW]:
             # If yes, increment decrement things
             if event.reaction.emoji.name == LARROW:
                 self.shown_page -= 1
@@ -203,15 +200,12 @@ class Selector:
         # Send the new page
         await self.send_one_page(event)
 
-        # Get emoji to func map
-        _, emoji_to_func = self.msg_dict[event.msg.id]
-
         # Check if emoji exists
-        if event.reaction.emoji.name not in emoji_to_func:
+        if event.reaction.emoji.name not in self.crt_emoji_to_func:
             return
 
         # If it's an async function, await else just call
-        target_func, label = emoji_to_func[event.reaction.emoji.name]
+        target_func, label = self.crt_emoji_to_func[event.reaction.emoji.name]
         try:
             if inspect.iscoroutinefunction(target_func):
                 await target_func(event, label)
@@ -227,13 +221,12 @@ class RoleSelector(Selector):
     # If N seconds have passed since the last role update, check the server status
     ROLE_UPDATE_INTERVAL = 60
 
-    def __init__(self, server, roles, title, max_selectable, paged):
+    def __init__(self, server, roles, title, max_selectable):
         super().__init__(
             title=title,
             footer=f"Max selectable: {max_selectable if max_selectable > 0 else 'Unlimited' }",
-            call_dict={},
-            paged=paged,
-        )
+            call_dict={})
+
         self.server = server
         self.roles = roles
         self.max_selectable = max_selectable
@@ -242,6 +235,10 @@ class RoleSelector(Selector):
         self.update_role_list()
 
     def update_role_list(self):
+        """
+        Update roles in case a role name has changed
+        """
+
         # Check if we need to get the roles
         if tutils.tnow() - self.last_role_update > RoleSelector.ROLE_UPDATE_INTERVAL:
             # Get the roles
@@ -264,12 +261,6 @@ class RoleSelector(Selector):
 
             # Set the items
             self.set_items(role_dict)
-
-    async def handle_emoji(self, event):
-        # Before handling an emoji, update the role list
-        self.update_role_list()
-
-        await super().handle_emoji(event)
 
     async def do_stuff(self, event, label):
         # Check role assign spam
@@ -321,15 +312,127 @@ class RoleSelector(Selector):
             check_old=False,
         )
 
+class RoleSelectorInterval(RoleSelector):
+    def __init__(self, server, channel, first_role, last_role, title, max_selectable):
+        super(RoleSelector, self).__init__(title=title, footer="Max selectable: %d" % max_selectable, call_dict={})
+
+        self.server = server
+        self.channel = channel
+        self.first_role = first_role
+        self.last_role = last_role
+        self.max_selectable = max_selectable
+        self.last_role_update = 0
+
+        self.update_role_list()
+
+    def update_role_list(self):
+        # Check if we need to get the roles
+        if tutils.tnow() - self.last_role_update > RoleSelector.ROLE_UPDATE_INTERVAL:
+            # Get the roles
+            roles = dutils.get_roles_between_including(
+                self.first_role,
+                self.last_role,
+                self.server)
+
+            self.name_to_role = {}      # Map names to roles for quick lookup
+            role_list = OrderedDict()   # Role list to pass to the selector
+            for role in roles:
+                self.name_to_role[role.name] = role
+                role_list[role.name] = self.do_stuff
+
+            # Mark last role update time
+            self.last_role_update = tutils.tnow()
+
+            # Set the items
+            self.set_items(role_list)
+
+    async def handle_emoji(self, event):
+        # Before handling an emoji, update the role list
+        self.update_role_list()
+
+        await super().handle_emoji(event)
+
+    def serialize(self):
+        data = {}
+        data["server_id"] = self.server.id
+        data["channel_id"] = self.channel.id
+        data["first_role_id"] = dutils.get_role_by_name(self.server, self.first_role).id
+        data["last_role_id"] = dutils.get_role_by_name(self.server, self.last_role).id
+        data["max_selectable"] = self.max_selectable
+        data["title"] = self.title
+        data["msg_id"] = self.get_msg_id()
+        data["shown_page"] = self.shown_page
+
+        return data
+
+    @staticmethod
+    async def deserialize(bot, data):
+        server = None
+        for elem in bot.get_servers():
+            if elem.id == data["server_id"]:
+                server = elem
+                break
+
+        if not server:
+            print("Could not find server id %s" % data["server_id"])
+            return None
+
+        first_role = dutils.get_role_by_id(server, data["first_role_id"])
+        last_role = dutils.get_role_by_id(server, data["last_role_id"])
+
+        if not first_role:
+            print("Could not find frole id %s/%s" % data["server_id"], data["first_role_id"])
+            return None
+
+        if not last_role:
+            print("Could not find lrole id %s/%s" % data["server_id"], data["last_role_id"])
+            return None
+
+        chan = dutils.get_channel_by_id(server, data["channel_id"])
+        selector = RoleSelectorInterval(
+            server,
+            chan,
+            first_role.name,
+            last_role.name,
+            data["title"],
+            data["max_selectable"])
+
+        selector.server = server
+        selector.channel = chan
+
+        # Set selector page
+        selector.shown_page = data["shown_page"]
+
+        # Rebuild message cache
+        msg_id = data["msg_id"]
+
+        print("Getting " + str(msg_id))
+        msg = await chan.async_get_message(msg_id)
+        print("Got " + str(msg))
+
+        bot.backend.add_msg_to_cache(msg)
+        selector.msg = msg
+
+        # Add it to the permanent message list
+        permanent_messages.append(selector)
+
+        return selector
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event):
     # Check if the reaction was made on a message that contains a selector
     found_selector = None
-    for selector in posted_messages:
+
+    for selector in permanent_messages:
         if selector.has_msg_id(event.msg.id):
             found_selector = selector
             break
+
+    if not found_selector:
+        for selector in posted_messages:
+            if selector.has_msg_id(event.msg.id):
+                found_selector = selector
+                break
 
     if not found_selector:
         return
@@ -339,3 +442,65 @@ async def parse_react(bot, event):
 
     # Remove the reaction
     await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
+
+@hook.command(permissions=Permission.admin)
+def permanent_selector(text, storage, event):
+    """
+    <message link/ID> - makes a generated selector permanent (e.g. the bot will always listen for reacts on the given message).
+    This command is useful for pinning selectors on channels.
+    """
+
+    # Try to get the message ID
+    _, _, msg_id = dutils.parse_message_link(text)
+
+    if msg_id == None:
+        msg_id = text
+
+    # Check if it's a selector
+    found_sel = None
+    for selector in posted_messages:
+        # Don't leak from other servers
+        if selector.has_msg_id(msg_id) and selector.server.id == event.server.id:
+            found_sel = selector
+
+    if not found_sel:
+        return "Invalid selector given. Make sure that it's a selector generated by this bot."
+
+    if "role_selectors" not in storage:
+        storage["role_selectors"] = []
+
+    # Save the serialized data
+    storage["role_selectors"].append(selector.serialize())
+    storage.sync()
+
+    # Add it to the permanent list and remove it from the deque
+    permanent_messages.append(found_sel)
+    posted_messages.remove(found_sel)
+
+    return "Bot will permanently watch for reactions on this message. You can pin it now."
+
+@hook.command(permissions=Permission.admin)
+def list_permanent_selectors(text, storage, event):
+    retval = []
+
+    if "role_selectors" not in storage:
+        return retval
+
+    for data in storage["role_selectors"]:
+        retval.append(
+            dutils.return_message_link(data["server_id"], data["channel_id"], data["msg_id"]))
+
+    return "\n".join(retval)
+
+@hook.on_connection_ready()
+async def rebuild_selectors(bot):
+    for server in bot.backend.get_servers():
+        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_selector.json")
+
+        if "role_selectors" not in storage:
+            continue
+
+        for element in storage["role_selectors"]:
+            selector = await RoleSelectorInterval.deserialize(bot, element)
+

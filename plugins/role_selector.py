@@ -30,8 +30,7 @@ def register_cmd(cmd, server):
                 server=server,
                 title=cmd["title"],
                 roles=cmd["roles"],
-                max_selectable=cmd["maxSelectable"],
-                paged=True,
+                max_selectable=cmd["maxSelectable"]
             )
             await sel.do_send(event)
 

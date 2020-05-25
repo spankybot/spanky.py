@@ -276,3 +276,11 @@ def parse_message_link(msglink):
         return data[-3], data[-2], data[-1]
     else:
         return None, None, None
+
+def return_message_link(server_id, channel_id, msg_id):
+    """
+    Returns a message link:
+    https://discord.com/channels/server_id/chan_id/msg_id"
+    """
+
+    return "https://discord.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)

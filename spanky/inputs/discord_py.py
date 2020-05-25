@@ -25,6 +25,7 @@ bot = None
 bot_replies = {}
 to_delete = {}
 emojis = json.load(open("plugin_data/twemoji_800x800.json"))
+raw_msg_cache = {} # message cache that we use to map msg_id to msg
 
 class Init():
     def __init__(self, bot_inst):
@@ -57,6 +58,9 @@ class Init():
             rlist.append(Role(r))
 
         return rlist
+
+    def add_msg_to_cache(self, msg):
+        raw_msg_cache[msg.id] = msg
 
 class DiscordUtils(abc.ABC):
     @abc.abstractmethod
@@ -134,6 +138,15 @@ class DiscordUtils(abc.ABC):
     def get_channel_name(self, chan_id):
         chan = discord.utils.find(lambda m: m.id == int(chan_id), self.get_server()._raw.channels)
         return chan.name
+
+    async def async_edit_message(self, msg, text=None, embed=None):
+        if not text and not embed:
+            return
+
+        if text:
+            await msg._raw.edit(content=text)
+        elif embed:
+            await msg._raw.edit(embed=embed)
 
     async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0, check_old=True):
         # Get target, if given
@@ -887,6 +900,9 @@ class DictQueue():
             if elem[1].id == message.id:
                 return elem[1]
 
+        if message.id in raw_msg_cache:
+            return raw_msg_cache[message.id]
+
         return None
 
     def bot_messages(self):
@@ -974,6 +990,20 @@ async def on_reaction_add(reaction, user):
 async def on_reaction_remove(reaction, user):
     if user.id != client.user.id:
         await call_func(bot.on_reaction_remove, reaction, user)
+
+@client.event
+async def on_raw_reaction_add(reaction):
+    if reaction.member.id != client.user.id:
+        msg_id = str(reaction.message_id)
+        if msg_id not in raw_msg_cache:
+            return
+
+        # push in stuff into the reaction object
+        # TODO: don't override things
+        reaction.message = raw_msg_cache[msg_id]._raw
+        reaction.channel = raw_msg_cache[msg_id]._raw.channel
+
+        await call_func(bot.on_reaction_add, reaction, reaction.member)
 ###
 
 ### Server
