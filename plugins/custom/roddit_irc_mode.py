@@ -1,11 +1,14 @@
 from itertools import chain
 
 import plugins.paged_content as paged
+import spanky.utils.discord_utils as dutils
+from spanky.utils.carousel import Selector
 
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
-from spanky.utils.discord_utils import get_user_by_id, str_to_id, \
-    get_role_by_id, get_role_by_name, code_block
+from spanky.utils import time_utils as tutils
+from collections import OrderedDict
+
 
 PUB_CAT = "public"
 PRV_CAT = "private"
@@ -15,20 +18,225 @@ CHTYPES = [PUB_CAT, PRV_CAT]
 REQUIRED_ACCESS_ROLES = ["Valoare", "Gradi"]
 NSFW_FORBID_ROLE = "Gradi"
 
-CAT_TYPES = ["managed", "unmanaged", "archive"]
+CAT_TYPES = ["managed", "unmanaged", "archive", "public", "private"]
+MSG_TIMEOUT = 3  # Timeout after which the message dissapears
 
 # Roddit and test server
 SRV = [
     "287285563118190592",
     "297483005763780613"]
 
-def get_bot_categs(storage):
+def get_bot_categs(storage, server):
     if "bot_cats" not in storage:
         return []
 
     for cat in storage["bot_cats"]:
+        if server:
+            # Check for changed names
+            raw_cat = server.find_category_by_id(cat["id"])
+            if cat["name"] != raw_cat.name:
+                cat["name"] = raw_cat.name
+                storage.sync()
+
         yield cat
 
+class ChanSelector(Selector):
+    TOTAL_LEN = 80
+    UPDATE_INTERVAL = 180
+
+    def __init__(self, server, channel, storage):
+        super().__init__(
+            title="r/Romania channels",
+            footer="Select to join/part channel.",
+            call_dict={})
+
+        self.server = server
+        self.channel = channel
+        self.storage = storage
+        self.last_role_update = 0
+
+        self.update_role_list()
+
+    def update_role_list(self):
+        # Check if we need to get the roles
+        if tutils.tnow() - self.last_role_update > ChanSelector.UPDATE_INTERVAL:
+            roles = []
+            # Get all channels
+            for cat in get_bot_categs(self.storage, self.server):
+                for chan in self.server.get_chans_in_cat(cat["id"]):
+                    # Build a line
+                    crt_name = f"**{chan.name}**"
+                    if chan.topic:
+                        crt_name += " " + chan.topic
+
+                    # Clip line length
+                    if len(crt_name) > ChanSelector.TOTAL_LEN:
+                        crt_name = crt_name[:ChanSelector.TOTAL_LEN] + "..."
+                    roles.append(crt_name)
+
+            role_dict = OrderedDict()
+            for role in sorted(roles):
+                role_dict[role] = self.do_stuff
+
+            # Mark last role update time
+            self.last_role_update = tutils.tnow()
+
+            # Set the items
+            self.set_items(role_dict)
+
+
+    def serialize(self):
+        data = {}
+        data["server_id"] = self.server.id
+        data["channel_id"] = self.channel.id
+        data["msg_id"] = self.get_msg_id()
+        data["shown_page"] = self.shown_page
+
+        return data
+
+    @staticmethod
+    async def deserialize(bot, data):
+        # Get the server
+        server = None
+        for elem in bot.get_servers():
+            if elem.id == data["server_id"]:
+                server = elem
+                break
+
+        if not server:
+            print("Could not find server id %s" % data["server_id"])
+            return None
+
+        # Get the channel
+        chan = dutils.get_channel_by_id(server, data["channel_id"])
+
+        # Create the selector
+        selector = ChanSelector(
+            server,
+            chan,
+            bot.server_permissions[server.id].get_plugin_storage(
+                "plugins_custom_roddit_irc_mode.json"))
+
+        # Set selector page
+        selector.shown_page = data["shown_page"]
+
+        # Rebuild message cache
+        msg_id = data["msg_id"]
+
+        # Get the saved message and set it
+        msg = await chan.async_get_message(msg_id)
+        selector.msg = msg
+
+        # Add message to backend cache
+        bot.backend.add_msg_to_cache(msg)
+
+        # Remove reacts from other people
+        await selector.remove_nonbot_reacts(bot)
+
+        return selector
+
+    async def handle_emoji(self, event):
+        # Before handling an emoji, update the role list
+        self.update_role_list()
+
+        await super().handle_emoji(event)
+
+    async def do_stuff(self, event, label):
+        # Check for role assign spam
+        if await self.is_spam(event):
+            return
+
+        # Get the channel name
+        chname = label.split("**")[1]
+
+        # Lookup channel
+        target_chan, categ = find_irc_chan(
+            self.server, self.storage, chan_name=chname)
+
+        if not target_chan:
+            return
+
+        if categ["type"] == PRV_CAT:
+            # Check if user is an OP
+            if dutils.user_has_role_name(event.author, "%s-op" % chname):
+                await event.async_send_message(
+                    "<@%s>: OPs can't join/leave a channel that they operate." % (event.author.id),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
+                return
+
+            # Check for minimum requirements
+            for access_role in REQUIRED_ACCESS_ROLES:
+                if not dutils.user_has_role_name(event.author, access_role):
+                    await event.async_send_message(
+                        "<@%s>: You can't join/leave a channel" % (event.author.id),
+                        timeout=MSG_TIMEOUT,
+                        check_old=False)
+                    return
+
+            # Check for NSFW chans
+            if target_chan.is_nsfw:
+                if dutils.user_has_role_name(event.author, NSFW_FORBID_ROLE):
+                    await event.async_send_message(
+                        "<@%s>: You cant join a NSFW channel" % (event.author.id),
+                        timeout=MSG_TIMEOUT,
+                        check_old=False)
+                    return
+
+            # Check if user is a member
+            if dutils.user_has_role_name(event.author, "%s-member" % chname):
+                event.author.remove_role(
+                        dutils.get_role_by_name(self.server, "%s-member" % chname))
+
+                await event.async_send_message(
+                    "<@%s>: Removed you from `%s`" % (event.author.id, chname),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
+                return
+
+            # Add the role
+            event.author.add_role(
+                dutils.get_role_by_name(self.server, "%s-member" % target_chan.name))
+
+            await event.async_send_message(
+                "<@%s>: Added you to `%s`" % (event.author.id, chname),
+                timeout=MSG_TIMEOUT,
+                check_old=False)
+
+        elif categ["type"] == PUB_CAT:
+            # Check if the user wants to leave
+            in_channel = True
+            for user in target_chan.get_removed_users():
+                if user.id == event.author.id:
+                    in_channel = False
+
+            if in_channel:
+                target_chan.remove_user_by_permission(event.author)
+                await event.async_send_message(
+                    "<@%s>: Removed you from `%s`" % (event.author.id, chname),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
+                return
+
+            else:
+                target_chan.add_user_by_permission(event.author)
+                await event.async_send_message(
+                    "<@%s>: Added you to `%s`" % (event.author.id, chname),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
+
+@hook.command(server_id=SRV)
+async def gibchan(event, storage):
+    sel = ChanSelector(
+        server=event.server,
+        channel=event.channel,
+        storage=storage)
+    await sel.do_send(event)
+
+def get_bot_categ_by(storage, name_or_id):
+    for cat in storage["bot_cats"]:
+        if cat["name"] == name_or_id or cat["id"] == name_or_id:
+            return cat
 
 @hook.command(server_id=SRV, permissions=Permission.admin, format="name type")
 async def add_chan_category(server, text, reply, storage):
@@ -47,11 +255,11 @@ async def add_chan_category(server, text, reply, storage):
         reply("Please specify a category: %s" % ", ".join(CAT_TYPES))
         return
 
-    name_or_id = str_to_id(text[0])
+    name_or_id = dutils.str_to_id(text[0]).lower()
     cat_type = text[1]
 
     # Check for duplicates
-    for cat in get_bot_categs(storage):
+    for cat in get_bot_categs(storage, server):
         if cat["name"] == name_or_id or cat["id"] == name_or_id:
             if cat["type"] != cat_type:
                 cat["type"] = cat_type
@@ -80,17 +288,36 @@ async def add_chan_category(server, text, reply, storage):
 
     reply("Category not found")
 
+@hook.command(server_id=SRV, permissions=Permission.admin, format="name")
+async def del_chan_category(server, text, reply, storage):
+    """
+    <category name or ID> - Delete an existing channel category
+    """
+    name_or_id = dutils.str_to_id(text).lower()
+
+    # Check for duplicates
+    for cat in get_bot_categs(storage, server):
+        if cat["name"].lower() == name_or_id or cat["id"] == name_or_id:
+            storage["bot_cats"].remove(cat)
+            storage.sync()
+            reply("Done.")
+            return
+
+    reply("Category not found")
+
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
-def list_chan_categories(storage):
-    if "bot_cats" not in storage:
-        return "No bot categories set"
+def list_chan_categories(server, storage):
+    """
+    List channel categories
+    """
+    cats = get_bot_categs(storage, server)
 
     msg = ""
-    for cat in storage["bot_cats"]:
-        msg += "Name: %s | Type: %s\n" % (cat["name"], cat["type"])
+    for cat in cats:
+        msg += "Name: %s | ID: %s | Type: %s\n" % (cat["name"], cat["id"], cat["type"])
 
-    return code_block(msg)
+    return dutils.code_block(msg)
 
 
 @hook.command(server_id=SRV)
@@ -120,9 +347,9 @@ async def sort_roles(server):
             server.get_chans_in_cat(PUB_CAT),
             server.get_chans_in_cat(PRV_CAT)):
         rlist["%s-op" % chan.name] = \
-            get_role_by_name(server, "%s-op" % chan.name)
+            dutils.get_role_by_name(server, "%s-op" % chan.name)
 
-        member_role = get_role_by_name(server, "%s-member" % chan.name)
+        member_role = dutils.get_role_by_name(server, "%s-member" % chan.name)
         if member_role:
             rlist["%s-member" % chan.name] = member_role
 
@@ -178,7 +405,7 @@ async def resync_roles(server):
         await server.create_role(
             "%s-op" % chan.name,
             mentionable=True)
-        await chan.set_category_name(PUB_CAT)
+        await chan.move_to_category(PUB_CAT)
         await chan.set_op_role("%s-op" % chan.name)
 
         for user in ignoring_this:
@@ -193,7 +420,7 @@ async def resync_roles(server):
         await server.create_role(
             "%s-member" % chan.name,
             mentionable=True)
-        await chan.set_category_name(PRV_CAT)
+        await chan.move_to_category(PRV_CAT)
         await chan.set_op_role("%s-op" % chan.name)
         await chan.set_standard_role("%s-member" % chan.name)
 
@@ -236,7 +463,7 @@ async def create_channel(text, server, reply):
     # Parse data
     chname = text[0].lower()
     chtype = text[1].lower()
-    user = get_user_by_id(server, str_to_id(text[2]))
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text[2]))
 
     if not user:
         reply("Could not find given user")
@@ -272,7 +499,7 @@ async def create_channel(text, server, reply):
 
     # Add the OP
     user.add_role(
-        get_role_by_name(server, "%s-op" % chname))
+        dutils.get_role_by_name(server, "%s-op" % chname))
     print("Should be done!")
 
 
@@ -310,10 +537,10 @@ async def make_chan_private(text, server, reply):
         reply("Please input a valid channel name")
         return
 
-    chdata = str_to_id(text[0])
+    chdata = dutils.str_to_id(text[0])
     for chan in server.get_chans_in_cat(PUB_CAT):
         if chan.name == chdata or chan.id == chdata:
-            await chan.set_category_name(PRV_CAT)
+            await chan.move_to_category(PRV_CAT)
             await sort_chans(server, PRV_CAT)
 
             # Create the op role
@@ -344,10 +571,10 @@ async def make_chan_public(text, server, reply):
         reply("Please input a valid channel name")
         return
 
-    chdata = str_to_id(text[0])
+    chdata = dutils.str_to_id(text[0])
     for chan in server.get_chans_in_cat(PRV_CAT):
         if chan.name == chdata or chan.id == chdata:
-            await chan.set_category_name(PUB_CAT)
+            await chan.move_to_category(PUB_CAT)
             await sort_chans(server, PUB_CAT)
             # Delete role
             await server.delete_role_by_name("%s-member" % chan.name)
@@ -361,33 +588,24 @@ async def make_chan_public(text, server, reply):
 
 
 @hook.command(server_id=SRV)
-async def list_chans(server, async_send_message):
+async def list_chans(server, storage, async_send_message):
     """
     Print list of user channels
     """
     TOPIC_LEN = 80
 
-    resp = "Public channels:\n"
-    for chan in server.get_chans_in_cat(PUB_CAT):
-        if chan.topic:
-            topic = chan.topic
-            if len(topic) > TOPIC_LEN:
-                topic = topic[:TOPIC_LEN] + "..."
+    resp = ""
+    for cat in get_bot_categs(storage, server):
+        resp += "%s:\n" % cat["name"]
+        for chan in server.get_chans_in_cat(cat["id"]):
+            if chan.topic:
+                topic = chan.topic
+                if len(topic) > TOPIC_LEN:
+                    topic = topic[:TOPIC_LEN] + "..."
 
-            resp += "  -> %s - %s\n" % (chan.name, topic)
-        else:
-            resp += "  -> %s\n" % chan.name
-
-    resp += "Private channels:\n"
-    for chan in server.get_chans_in_cat(PRV_CAT):
-        if chan.topic:
-            topic = chan.topic
-            if len(topic) > TOPIC_LEN:
-                topic = topic[:TOPIC_LEN] + "..."
-
-            resp += "  -> %s - %s\n" % (chan.name, topic)
-        else:
-            resp += "  -> %s\n" % chan.name
+                resp += "  -> %s - %s\n" % (chan.name, topic)
+            else:
+                resp += "  -> %s\n" % chan.name
 
     paged_content = paged.element(
         resp.split("\n"),
@@ -400,7 +618,7 @@ async def list_chans(server, async_send_message):
 
 
 @hook.command(server_id=SRV)
-def join(text, server, reply, event, send_message):
+def join(text, server, storage, reply, event, send_message):
     """
     <channel> - part a channel - both private and public channels can be parted
     """
@@ -410,14 +628,14 @@ def join(text, server, reply, event, send_message):
         return
 
     # Lookup channel
-    chdata = str_to_id(text[0])
+    chdata = dutils.str_to_id(text[0])
     target_chan, categ = find_irc_chan(
-        server, chan_name=chdata, chan_id=chdata)
+        server, storage, chan_name=chdata, chan_id=chdata)
 
     if not target_chan:
         return "That channel doesn't exist"
 
-    if categ == PRV_CAT:
+    if categ["type"] == PRV_CAT:
         # Check for rights
         has_right = False
         for urole in event.author.roles:
@@ -432,13 +650,13 @@ def join(text, server, reply, event, send_message):
 
         # Add the role
         event.author.add_role(
-            get_role_by_name(server, "%s-member" % target_chan.name))
+            dutils.get_role_by_name(server, "%s-member" % target_chan.name))
 
         # Announce on the channel
         send_message("Joins <@%s>" % event.author.id, target=target_chan.id)
         event.msg.add_reaction("👍")
         return
-    elif categ == PUB_CAT:
+    elif categ["type"] == PUB_CAT:
         for user in target_chan.get_removed_users():
             if user.id == event.author.id:
                 target_chan.add_user_by_permission(event.author)
@@ -451,7 +669,7 @@ def join(text, server, reply, event, send_message):
 
 
 @hook.command(server_id=SRV)
-def part(server, reply, event, send_message, text):
+def part(server, storage, reply, event, send_message, text):
     """
     <channel> - part a channel - both private and public channels can be parted
     """
@@ -460,20 +678,20 @@ def part(server, reply, event, send_message, text):
         chlist = [event.channel.id]
     else:
         for chan in text.split(" "):
-            chlist.append(str_to_id(chan))
+            chlist.append(dutils.str_to_id(chan))
 
     for chdata in chlist:
         # Get channel
-        chan, categ = find_irc_chan(server, chan_name=chdata, chan_id=chdata)
-        if categ == PRV_CAT:
+        chan, categ = find_irc_chan(server, storage, chan_name=chdata, chan_id=chdata)
+        if categ["type"] == PRV_CAT:
             for urole in event.author.roles:
                 if urole.name == "%s-op" % chan.name:
                     return "OPs can't leave"
 
             event.author.remove_role(
-                get_role_by_name(server, "%s-member" % chan.name))
+                dutils.get_role_by_name(server, "%s-member" % chan.name))
             # event.msg.add_reaction("👍")
-        elif categ == PUB_CAT:
+        elif categ["type"] == PUB_CAT:
             chan.remove_user_by_permission(event.author)
             # event.msg.add_reaction("👍")
 
@@ -490,18 +708,15 @@ def part(server, reply, event, send_message, text):
 # def list_members(server):
 
 
-def find_irc_chan(server, chan_name=None, chan_id=None):
+def find_irc_chan(server, storage, chan_name=None, chan_id=None):
     if not chan_name and not chan_id:
         print("Needs one of name or id")
         return None
 
-    for chan in server.get_chans_in_cat(PUB_CAT):
-        if chan.id == chan_id or chan.name == chan_name:
-            return chan, PUB_CAT
-
-    for chan in server.get_chans_in_cat(PRV_CAT):
-        if chan.id == chan_id or chan.name == chan_name:
-            return chan, PRV_CAT
+    for cat in get_bot_categs(storage, server):
+        for chan in server.get_chans_in_cat(cat["id"]):
+            if chan.id == chan_id or chan.name == chan_name:
+                return chan, cat
 
     return None, None
 
@@ -515,12 +730,12 @@ def user_has_role(user, role_name):
 
 
 @hook.command(server_id=SRV)
-def set_topic(server, reply, event, text):
+def set_topic(server, storage, reply, event, text):
     """
     <topic> - set channel topic (only channel OPs can do it)
     """
 
-    target_chan, _ = find_irc_chan(server, chan_id=event.channel.id)
+    target_chan, _ = find_irc_chan(server, storage, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
@@ -539,16 +754,16 @@ def set_topic(server, reply, event, text):
 
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
-def make_nsfw(server, reply, event, text, send_message):
+def make_nsfw(server, storage, reply, event, text, send_message):
     """
     <topic> - make channel NSFW (only channel OPs can do it)
     """
 
-    target_chan, categ = find_irc_chan(server, chan_id=event.channel.id)
+    target_chan, categ = find_irc_chan(server, storage, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 
-    if categ == PUB_CAT:
+    if categ["type"] == PUB_CAT:
         return "Only private channels can be made NSFW"
 
     # Check if user is OP
@@ -567,8 +782,8 @@ def make_nsfw(server, reply, event, text, send_message):
         target_chan.set_topic(text + " [NSFW]")
 
     # Purge non-NSFW users
-    member_role = get_role_by_name(server, "%s-member" % target_chan.name)
-    op_role = get_role_by_name(server, "%s-op" % target_chan.name)
+    member_role = dutils.get_role_by_name(server, "%s-member" % target_chan.name)
+    op_role = dutils.get_role_by_name(server, "%s-op" % target_chan.name)
     for user in target_chan.members_accessing_chan():
         for urole in user.roles:
             if urole.name == NSFW_FORBID_ROLE:
@@ -582,12 +797,12 @@ def make_nsfw(server, reply, event, text, send_message):
 
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
-def make_sfw(server, reply, event, text):
+def make_sfw(server, storage, reply, event, text):
     """
     <topic> - make channel SFW (only channel OPs can do it)
     """
 
-    target_chan, _ = find_irc_chan(server, chan_id=event.channel.id)
+    target_chan, _ = find_irc_chan(server, storage, chan_id=event.channel.id)
     if not target_chan:
         return "You're not in a user managed channel"
 

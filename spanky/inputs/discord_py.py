@@ -433,6 +433,10 @@ class Message():
         # Delete the message `timeout` seconds after it was created
         self.timeout = timeout
 
+    def reactions(self):
+        for react in self._raw.reactions:
+            yield Reaction(react)
+
     @property
     def created_at(self):
         return self._raw.created_at.timestamp()
@@ -856,7 +860,19 @@ class Embed():
 class Reaction():
     def __init__(self, obj):
         self.emoji = Emoji(obj.emoji)
+
+        self.count = 1
+        if hasattr(obj, "count"):
+            self.count = obj.count
+
         self._raw = obj
+
+    async def users(self):
+        async for user in self._raw.users():
+            yield User(user)
+
+    async def remove(self, user):
+        await self._raw.remove(user._raw)
 
 class Emoji():
     def __init__(self, obj):

@@ -107,6 +107,17 @@ def user_roles_from_list(user, rlist):
 
     return common
 
+def user_has_role_name(user, rname):
+    """
+    Given a role name return True if user has the role, False otherwise
+    """
+
+    for urole in user.roles:
+        if urole.name == rname:
+            return True
+
+    return False
+
 def remove_role_from_list(start_role, end_role, server, event, send_message):
     roles = get_role_names_between(start_role, end_role, server)
 
