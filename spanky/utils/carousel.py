@@ -333,7 +333,7 @@ class RoleSelectorInterval(RoleSelector):
         # Check if we need to get the roles
         if tutils.tnow() - self.last_role_update > RoleSelector.ROLE_UPDATE_INTERVAL:
             # Get the roles
-            roles = dutils.get_roles_between_including(
+            roles = dutils.get_roles_between(
                 self.first_role,
                 self.last_role,
                 self.server)
