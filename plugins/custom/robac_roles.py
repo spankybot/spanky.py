@@ -5,6 +5,9 @@ ROBAC_ID = "456496203040030721"
 
 @hook.command(server_id=ROBAC_ID)
 async def tara(send_message, server, event, bot, text):
+    """
+    Selecteaza tara
+    """
     sel = carousel.RoleSelectorInterval(
         server=event.server,
         channel=event.channel,
@@ -17,6 +20,9 @@ async def tara(send_message, server, event, bot, text):
 
 @hook.command(server_id=ROBAC_ID)
 async def am_luat(send_message, server, event, bot, text):
+    """
+    Selecteaza bac luat
+    """
     sel = carousel.RoleSelectorInterval(
         server=event.server,
         channel=event.channel,
@@ -29,6 +35,9 @@ async def am_luat(send_message, server, event, bot, text):
 
 @hook.command(server_id=ROBAC_ID)
 async def culoare(send_message, server, event, bot, text):
+    """
+    Selecteaza culoare
+    """
     sel = carousel.RoleSelectorInterval(
         server=event.server,
         channel=event.channel,
@@ -41,6 +50,9 @@ async def culoare(send_message, server, event, bot, text):
 
 @hook.command(server_id=ROBAC_ID)
 async def facultate(send_message, server, event, bot, text):
+    """
+    Selecteaza facultate
+    """
     sel = carousel.RoleSelectorInterval(
         server=event.server,
         channel=event.channel,
