@@ -166,13 +166,17 @@ class ChanSelector(Selector):
                 return
 
             # Check for minimum requirements
+            can_access = False
             for access_role in REQUIRED_ACCESS_ROLES:
-                if not dutils.user_has_role_name(event.author, access_role):
-                    await event.async_send_message(
-                        "<@%s>: You can't join/leave a channel" % (event.author.id),
-                        timeout=MSG_TIMEOUT,
-                        check_old=False)
-                    return
+                if dutils.user_has_role_name(event.author, access_role):
+                    can_access = True
+
+            if not can_access:
+                await event.async_send_message(
+                    "<@%s>: You can't join/leave a channel" % (event.author.id),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
+                return
 
             # Check for NSFW chans
             if target_chan.is_nsfw:
