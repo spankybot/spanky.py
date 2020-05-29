@@ -139,14 +139,19 @@ async def rebuild_selectors(bot):
 
         if "role_selectors" in storage:
             for element in storage["role_selectors"]:
-                selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
+                try:
+                    selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
 
-                # Add it to the permanent message list
-                permanent_messages.append(selector)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except:
+                    print(element)
 
         if "chan_selectors" in storage:
             for element in storage["chan_selectors"]:
-                selector = await roddit.ChanSelector.deserialize(bot, element)
-
-                # Add it to the permanent message list
-                permanent_messages.append(selector)
+                try:
+                    selector = await roddit.ChanSelector.deserialize(bot, element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except:
+                    print(element)
