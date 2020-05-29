@@ -278,10 +278,11 @@ def prepare_embed(title, description=None, fields=None, inline_fields=True, imag
 def parse_message_link(msglink):
     """
     Parses a message link:
-    https://discord.com/channels/server_id/chan_id/msg_id"
+    https://discordapp.com/channels/server_id/chan_id/msg_id"
     """
 
-    if msglink.startswith("https://discord.com/channels/"):
+    if msglink.startswith("https://discordapp.com/channels/") or \
+        msglink.startswith("https://discord.com/channels/"):
         data = msglink.split("/")
 
         return data[-3], data[-2], data[-1]
@@ -291,7 +292,7 @@ def parse_message_link(msglink):
 def return_message_link(server_id, channel_id, msg_id):
     """
     Returns a message link:
-    https://discord.com/channels/server_id/chan_id/msg_id"
+    https://discordapp.com/channels/server_id/chan_id/msg_id"
     """
 
-    return "https://discord.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)
+    return "https://discordapp.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)
