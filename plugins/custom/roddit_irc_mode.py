@@ -9,16 +9,11 @@ from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils as tutils
 from collections import OrderedDict
 
-
-PUB_CAT = "public"
-PRV_CAT = "private"
-INV_CAT = "invite"
-CHTYPES = [PUB_CAT, PRV_CAT]
-
 REQUIRED_ACCESS_ROLES = ["Valoare", "Gradi"]
 NSFW_FORBID_ROLE = "Gradi"
 
-CAT_TYPES = ["managed", "unmanaged", "archive", "public", "private"]
+CAT_TYPES = ["managed", "unmanaged", "archive"]
+PRIVACY = ["public", "private", "invite"]
 MSG_TIMEOUT = 3  # Timeout after which the message dissapears
 
 # Roddit and test server
@@ -26,7 +21,51 @@ SRV = [
     "287285563118190592",
     "297483005763780613"]
 
-def get_bot_categs(storage, server):
+class BotCateg():
+    def __init__(self, data):
+        self._data = data
+
+    @property
+    def is_private(self):
+        return self._data["privacy"] == "private"
+
+    @property
+    def is_public(self):
+        return self._data["privacy"] == "public"
+
+    @property
+    def is_invite(self):
+        return self._data["privacy"] == "invite"
+
+    @property
+    def is_archive(self):
+        return self.chtype == "archive"
+
+    @property
+    def is_managed(self):
+        return self.chtype == "managed"
+
+    @property
+    def is_unmanaged(self):
+        return self.chtype == "unmanaged"
+
+    @property
+    def id(self):
+        return self._data["id"]
+
+    @property
+    def name(self):
+        return self._data["name"]
+
+    @property
+    def privacy(self):
+        return self._data["privacy"]
+
+    @property
+    def chtype(self):
+        return self._data["type"]
+
+def get_bot_categs(server, storage):
     if "bot_cats" not in storage:
         return []
 
@@ -38,7 +77,7 @@ def get_bot_categs(storage, server):
                 cat["name"] = raw_cat.name
                 storage.sync()
 
-        yield cat
+        yield BotCateg(cat)
 
 class ChanSelector(Selector):
     TOTAL_LEN = 80
@@ -62,8 +101,12 @@ class ChanSelector(Selector):
         if tutils.tnow() - self.last_role_update > ChanSelector.UPDATE_INTERVAL:
             roles = []
             # Get all channels
-            for cat in get_bot_categs(self.storage, self.server):
-                for chan in self.server.get_chans_in_cat(cat["id"]):
+            for cat in get_bot_categs(self.server, self.storage):
+                # skip the archive
+                if cat.is_archive:
+                    continue
+
+                for chan in self.server.get_chans_in_cat(cat.id):
                     # Build a line
                     crt_name = f"**{chan.name}**"
                     if chan.topic:
@@ -150,13 +193,20 @@ class ChanSelector(Selector):
         chname = label.split("**")[1]
 
         # Lookup channel
-        target_chan, categ = find_irc_chan(
-            self.server, self.storage, chan_name=chname)
+        target_chan, categ = get_irc_chan(
+            self.server, self.storage, chname)
 
         if not target_chan:
             return
 
-        if categ["type"] == PRV_CAT:
+        if is_banned(self.storage, target_chan, event.author):
+            await event.async_send_message(
+                "<@%s>: You are banned from %s." % (event.author.id, target_chan.name),
+                timeout=MSG_TIMEOUT,
+                check_old=False)
+            return
+
+        if categ.is_private:
             # Check if user is an OP
             if dutils.user_has_role_name(event.author, "%s-op" % chname):
                 await event.async_send_message(
@@ -187,35 +237,57 @@ class ChanSelector(Selector):
                         check_old=False)
                     return
 
-            # Check if user is a member
-            if dutils.user_has_role_name(event.author, "%s-member" % chname):
-                event.author.remove_role(
-                        dutils.get_role_by_name(self.server, "%s-member" % chname))
+            # Get the role associated with the channel
+            channel_role = give_assoc_role(self.server, self.storage, target_chan)
+
+            # Check if we need to add or remove from channel
+            needs_adding = True
+            if is_permission_based(target_chan, self.storage):
+                # Handle permission based access
+                crt_users = list_members_perm_access(target_chan)
+                for user in crt_users:
+                    if event.author.id == user.id:
+                        needs_adding = False
+            else:
+                # Handle role based access
+                if dutils.user_has_role_name(event.author, channel_role.name):
+                    needs_adding = False
+
+            # If the user wants to be removed
+            if not needs_adding:
+                if is_permission_based(target_chan, self.storage):
+                    await remove_from_overwrites(target_chan, event.author)
+                else:
+                    event.author.remove_role(
+                        dutils.get_role_by_name(self.server, channel_role.name))
 
                 await event.async_send_message(
                     "<@%s>: Removed you from `%s`" % (event.author.id, chname),
                     timeout=MSG_TIMEOUT,
                     check_old=False)
                 return
+            else:
+                if is_permission_based(target_chan, self.storage):
+                    await set_channel_member(target_chan, event.author)
+                else:
+                    # Add the role
+                    event.author.add_role(
+                        dutils.get_role_by_name(self.server, channel_role.name))
 
-            # Add the role
-            event.author.add_role(
-                dutils.get_role_by_name(self.server, "%s-member" % target_chan.name))
+                await event.async_send_message(
+                    "<@%s>: Added you to `%s`" % (event.author.id, chname),
+                    timeout=MSG_TIMEOUT,
+                    check_old=False)
 
-            await event.async_send_message(
-                "<@%s>: Added you to `%s`" % (event.author.id, chname),
-                timeout=MSG_TIMEOUT,
-                check_old=False)
-
-        elif categ["type"] == PUB_CAT:
+        elif categ.is_public:
             # Check if the user wants to leave
             in_channel = True
-            for user in target_chan.get_removed_users():
+            for user in get_removed_users(target_chan):
                 if user.id == event.author.id:
                     in_channel = False
 
             if in_channel:
-                target_chan.remove_user_by_permission(event.author)
+                await ignore_channel(target_chan, event.author)
                 await event.async_send_message(
                     "<@%s>: Removed you from `%s`" % (event.author.id, chname),
                     timeout=MSG_TIMEOUT,
@@ -223,48 +295,217 @@ class ChanSelector(Selector):
                 return
 
             else:
-                target_chan.add_user_by_permission(event.author)
+                #target_chan.add_user_by_permission(event.author)
+                await remove_from_overwrites(target_chan, event.author)
                 await event.async_send_message(
                     "<@%s>: Added you to `%s`" % (event.author.id, chname),
                     timeout=MSG_TIMEOUT,
                     check_old=False)
 
 @hook.command(server_id=SRV)
-async def gibchan(event, storage):
+async def vreau_canal(event, storage):
+    """
+    Generate channel selector
+    """
     sel = ChanSelector(
         server=event.server,
         channel=event.channel,
         storage=storage)
+
     await sel.do_send(event)
 
-def get_bot_categ_by(storage, name_or_id):
-    for cat in storage["bot_cats"]:
-        if cat["name"] == name_or_id or cat["id"] == name_or_id:
+def get_bot_categ_by(server, storage, name_or_id):
+    for cat in get_bot_categs(server, storage):
+        if cat.name == name_or_id or cat.id == name_or_id:
             return cat
 
-@hook.command(server_id=SRV, permissions=Permission.admin, format="name type")
+def get_removed_users(channel):
+    """
+    List of users ignoring a channel
+    """
+    users = []
+    for user, perm in channel.get_user_overwrites():
+        if perm._raw.read_messages == False:
+            users.append(user)
+
+    return users
+
+def get_operator_users(channel):
+    """
+    List of users ignoring a channel
+    """
+    users = []
+    for user, perm in channel.get_user_overwrites():
+        if perm._raw.manage_messages == True:
+            users.append(user)
+
+    return users
+
+async def set_channel_op(chan, user):
+    await chan.set_user_overwrite(
+        user,
+        send_messages=True,
+        read_messages=True,
+        read_message_history=True,
+        manage_messages=True,
+        attach_files=True,
+        embed_links=True,
+        external_emojis=True,
+        add_reactions=True,
+        create_instant_invite=True,
+        manage_channels=True,
+        manage_webhooks=True)
+
+async def set_channel_member(chan, user):
+    await chan.set_user_overwrite(
+        user,
+        send_messages=True,
+        read_messages=True,
+        read_message_history=True,
+        attach_files=True,
+        embed_links=True,
+        external_emojis=True,
+        add_reactions=True)
+
+async def remove_from_overwrites(chan, user):
+    await chan.remove_user_overwrite(
+        user)
+
+async def ignore_channel(chan, user):
+    await chan.set_user_overwrite(
+        user,
+        send_messages=False,
+        read_messages=False,
+        read_message_history=False)
+
+def get_irc_chans(server, storage):
+    """
+    Gets all the 'irc' channels in the server
+
+    return: chan, category
+    """
+
+    for categ in get_bot_categs(server, storage):
+        for chan in server.get_chans_in_cat(categ.id):
+            yield chan, categ
+
+def is_irc_chan(server, storage, name_or_id):
+    """
+    Gets all the 'irc' channels in the server
+
+    return: chan, category
+    """
+
+    for categ in get_bot_categs(server, storage):
+        for chan in server.get_chans_in_cat(categ.id):
+            if name_or_id == chan.name or name_or_id == chan.id:
+                return True
+
+    return False
+
+def is_channel_op(channel, user):
+    for op in get_operator_users(channel):
+        if user.name == op.name:
+            return True
+
+    return False
+
+def get_chan_cat(server, storage, chan_id):
+    for chan, cat in get_irc_chans(server, storage):
+        if chan.id == chan_id:
+            return cat
+
+    return None
+
+def get_irc_chan(server, storage, chan_name_or_id):
+    for cat in get_bot_categs(server, storage):
+        for chan in server.get_chans_in_cat(cat.id):
+            if chan.id == chan_name_or_id or chan.name == chan_name_or_id:
+                return chan, cat
+
+    return None, None
+
+async def create_prv_chan_role(server, chan, role_name):
+    role = dutils.get_role_by_name(server, role_name)
+    if not role:
+        role = await server.create_role(role_name)
+
+    await chan._raw.set_permissions(
+        role._raw,
+        send_messages=True,
+        read_messages=True,
+        read_message_history=True,
+        attach_files=True,
+        embed_links=True,
+        external_emojis=True,
+        add_reactions=True)
+
+    return role
+
+def list_members_role_access(server, storage, channel):
+    """
+    Get users that access a role based chan
+    """
+    users = []
+
+    role = give_assoc_role(server, storage, channel)
+    for user in server.get_users():
+        if dutils.user_has_role_name(user, role.name):
+            users.append(user)
+
+    return users
+
+
+def list_members_perm_access(channel):
+    """
+    Get users that access a permission based chan
+    """
+    users = []
+
+    for user, perm in channel.get_user_overwrites():
+        if perm._raw.send_messages == True:
+            users.append(user)
+
+    return users
+
+
+@hook.command(server_id=SRV, permissions=Permission.admin)
 async def add_chan_category(server, text, reply, storage):
     """
-    <category name or ID, type (managed, unmanaged)> - Add an existing channel category to the bot
-    A 'managed' category will have the permissions managed automatically by inheriting them from the parent category.
-    An 'unmanaged' category will NOT have the permissions managed automatically. Instead, there will still be channel OPs.
+    <category name or ID, type, privacy> - Add an existing channel category to the bot
+    Types:
+    - 'managed' category will have the permissions managed automatically by inheriting them from the parent category.
+    - 'unmanaged' category will NOT have the permissions managed automatically.
+    - 'archive' holds archived channels
+
+    Privacy (only needed for managed and unmanaged types):
+    - 'public' channels are joined/parted through the channel access list
+    - 'private' channels are joined/parted through a channel specific role
+    - 'invite' tbd
     """
     text = text.split(" ")
 
-    if len(text) != 2:
-        reply("Please specify name/ID manager/unmanaged")
-        return
-
-    if text[1] not in CAT_TYPES:
+    cat_name = text[0]
+    cat_type = text[1]
+    if cat_type not in CAT_TYPES:
         reply("Please specify a category: %s" % ", ".join(CAT_TYPES))
         return
 
-    name_or_id = dutils.str_to_id(text[0]).lower()
+    cat_privacy = None
+    # Privacy needed for non-archive types
+    if cat_type == "archive":
+        cat_privacy = ""
+    elif len(text) != 3:
+        reply("Please specify name/ID, type, privacy")
+    else:
+        cat_privacy = text[2]
+
+    name_or_id = dutils.str_to_id(cat_name).lower()
     cat_type = text[1]
 
     # Check for duplicates
-    for cat in get_bot_categs(storage, server):
-        if cat["name"] == name_or_id or cat["id"] == name_or_id:
+    for cat in get_bot_categs(server, storage):
+        if cat.name == name_or_id or cat.id == name_or_id:
             if cat["type"] != cat_type:
                 cat["type"] = cat_type
                 storage.sync()
@@ -273,8 +514,7 @@ async def add_chan_category(server, text, reply, storage):
 
     reply("Checking if %s exists" % name_or_id)
     for cat in server.get_categories():
-        if cat.name == name_or_id or cat.id == name_or_id:
-
+        if cat.name.lower() == name_or_id or cat.id == name_or_id:
             if "bot_cats" not in storage:
                 storage["bot_cats"] = []
 
@@ -282,7 +522,8 @@ async def add_chan_category(server, text, reply, storage):
                 {
                     "name": cat.name,
                     "id": cat.id,
-                    "type": text[1]
+                    "type": text[1],
+                    "privacy": cat_privacy
                 }
             )
 
@@ -300,7 +541,7 @@ async def del_chan_category(server, text, reply, storage):
     name_or_id = dutils.str_to_id(text).lower()
 
     # Check for duplicates
-    for cat in get_bot_categs(storage, server):
+    for cat in get_bot_categs(server, storage):
         if cat["name"].lower() == name_or_id or cat["id"] == name_or_id:
             storage["bot_cats"].remove(cat)
             storage.sync()
@@ -309,29 +550,489 @@ async def del_chan_category(server, text, reply, storage):
 
     reply("Category not found")
 
-
 @hook.command(server_id=SRV, permissions=Permission.admin)
 def list_chan_categories(server, storage):
     """
     List channel categories
     """
-    cats = get_bot_categs(storage, server)
+    cats = get_bot_categs(server, storage)
 
     msg = ""
     for cat in cats:
-        msg += "Name: %s | ID: %s | Type: %s\n" % (cat["name"], cat["id"], cat["type"])
+        if not cat.is_archive:
+            msg += "Name: %s | ID: %s | Type: %s | Privacy: %s\n" % (cat.name, cat.id, cat.chtype, cat.privacy)
+        else:
+            msg += "Name: %s | ID: %s | Type: %s\n" % (cat.name, cat.id, cat.chtype)
 
     return dutils.code_block(msg)
 
+async def bring_back_actives(server, storage, channel):
+    users = {}
+    async for msg in channel._raw.history(limit=None):
+        users[msg.author.id] = msg.author
+
+    for ignoring in get_removed_users(channel):
+        if ignoring.id in users.keys():
+            del users[ignoring.id]
+
+    role = give_assoc_role(server, storage, channel)
+
+    for raw_user in users.values():
+        user = dutils.get_user_by_id(server, str(raw_user.id))
+        print(raw_user.name)
+        if not user:
+            print("NOpe")
+            continue
+
+        user.add_role(role)
+
+async def make_chan_private(server, storage, chan, cat):
+    # Move it
+    if cat.is_unmanaged:
+        await chan.move_to_category(cat.id, sync_permissions=False)
+    else:
+        await chan.move_to_category(cat.id)
+
+    # Restore OPs
+    for op_id in storage["irc_chans"][chan.id]["ops"]:
+        op = dutils.get_user_by_id(server, op_id)
+        await set_channel_op(chan, op)
+
+    role = give_assoc_role(server, storage, chan)
+    if not role:
+        role = await create_prv_chan_role(server, chan, "%s-member" % chan.name)
+
+    storage["irc_chans"][chan.id]["associated_roleid"] = role.id
+
+    await save_server_cfg(server, storage)
+    await bring_back_actives(server, storage, chan)
+
+async def make_chan_public(server, storage, chan, cat):
+    # Move it
+    if cat.is_unmanaged:
+        await chan.move_to_category(cat.id, sync_permissions=False)
+    else:
+        await chan.move_to_category(cat.id)
+
+    # Restore OPs
+    for op_id in storage["irc_chans"][chan.id]["ops"]:
+        op = dutils.get_user_by_id(server, op_id)
+        await set_channel_op(chan, op)
+
+    # Restore ignores
+    for ignoring_id in storage["irc_chans"][chan.id]["ignoring"]:
+        ignoring = dutils.get_user_by_id(server, ignoring_id)
+        await ignore_channel(chan, ignoring)
+
+async def make_chan_archived(server, storage, chan, cat):
+    # Move it
+    await chan.move_to_category(cat.id)
+
+@hook.command(server_id=SRV, permissions=Permission.admin)
+async def move_to_category(server, storage, text, event, reply):
+    """
+    Move a channel to a category
+    """
+    target_cat = get_bot_categ_by(server, storage, text)
+    #crt_cat = get_chan_cat(server, storage, event.channel.id)
+
+    transition_done = False
+    if target_cat.is_private:
+        await make_chan_private(server, storage, event.channel, target_cat)
+        transition_done = True
+
+    elif target_cat.is_public:
+        await make_chan_public(server, storage, event.channel, target_cat)
+        transition_done = True
+
+    elif target_cat.is_archive:
+        await make_chan_archived(server, storage, event.channel, target_cat)
+        transition_done = True
+
+    if not transition_done:
+        reply("Invalid transition")
+    else:
+        reply("Done")
+        await save_server_cfg(server, storage)
+
+@hook.command(server_id=SRV, permissions=Permission.admin)
+async def save_server_cfg(server, storage):
+    if "irc_chans" not in storage:
+        storage["irc_chans"] = {}
+
+    for chan, cat in get_irc_chans(server, storage):
+        elem = None
+        if chan.id in storage["irc_chans"]:
+            elem = storage["irc_chans"][chan.id]
+        else:
+            elem = {}
+            elem["id"] = chan.id
+            elem["name"] = chan.name
+            elem["cat_id"] = cat.id
+            elem["ops"] = []
+            elem["bans"] = []
+            elem["ignoring"] = []
+            elem["permission_based"] = False
+            elem["associated_roleid"] = ""
+
+            assoc_role = dutils.get_role_by_name(server, "%s-member" % chan.name)
+            if assoc_role:
+                elem["associated_roleid"] = assoc_role.id
+
+        for op in get_operator_users(chan):
+            if op.id not in elem["ops"]:
+                elem["ops"].append(op.id)
+
+        for ignoring in get_removed_users(chan):
+            if op.id not in elem["ignoring"]:
+                elem["ignoring"].append(ignoring.id)
+
+        elem["ops"] = list(set(elem["ops"]))
+        elem["ignoring"] = list(set(elem["ignoring"]))
+
+        storage["irc_chans"][chan.id] = elem
+
+    storage.sync()
+
+def set_permission_based(chan, storage, ptype):
+    storage["irc_chans"][chan.id]["permission_based"] = ptype
+    storage.sync()
+
+def is_permission_based(chan, storage):
+    return storage["irc_chans"][chan.id]["permission_based"]
+
+@hook.command(server_id=SRV, permissions=Permission.admin)
+async def make_permission_based(server, storage, text, event, reply):
+    """
+    Instead of managing access through roles, it uses channel permissions
+    """
+    if not is_permission_based(event.channel, storage):
+        set_permission_based(event.channel, storage, True)
+
+    # Get current users accessing it
+    crt_users = list_members_role_access(server, storage, event.channel)
+
+    # Get the role
+    chan_role = give_assoc_role(server, storage, event.channel)
+
+    if not chan_role:
+        reply("Could not get channel role")
+        return
+
+    for user in crt_users:
+        print(user.name)
+        await set_channel_member(event.channel, user)
+        user.remove_role(chan_role)
+
+    reply("Done")
+
+@hook.command(server_id=SRV, permissions=Permission.admin)
+async def make_role_based(server, storage, text, event, reply):
+    """
+    Instead of managing access through permissions, it uses role access
+    """
+    if is_permission_based(event.channel, storage):
+        set_permission_based(event.channel, storage, False)
+
+    # Get current users accessing it
+    crt_users = list_members_perm_access(event.channel)
+
+    # Get the role
+    chan_role = give_assoc_role(server, storage, event.channel)
+
+    for user in crt_users:
+        print(user.name)
+        await remove_from_overwrites(event.channel, user)
+        user.add_role(chan_role)
+
+    reply("Done")
+
+@hook.command(server_id=SRV)
+def list_members(server, storage, event):
+    """
+    List members
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
+
+    # Get the category
+    crt_cat = get_chan_cat(server, storage, event.channel.id)
+
+    # List private members
+    if crt_cat.is_private:
+        users = []
+        if not is_permission_based(event.channel, storage):
+            users = list_members_role_access(server, storage, event.channel)
+        else:
+            users = list_members_perm_access(event.channel)
+
+        return ", ".join(
+            sorted(
+                [i.name for i in users]
+                ))
+
+@hook.command(server_id=SRV)
+def list_ops(server, storage, event):
+    """
+    List operators
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
+
+    ops = get_operator_users(event.channel)
+
+    if len(ops) == 0:
+        return "No channel ops set"
+
+    return ", ".join(i.name for i in ops)
+
+@hook.command(server_id=SRV)
+async def add_op(text, event, server, storage, reply):
+    """
+    <name> - Add an operator
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        reply("This channel is not managed by ops")
+        return
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text))
+    if not user:
+        reply("Could not find user")
+        return
+
+    await set_channel_op(event.channel, user)
+    save_server_cfg(server, storage)
+    reply("Done!")
+
+@hook.command(server_id=SRV)
+async def remove_op(text, event, server, storage, reply):
+    """
+    <name> - Remove an operator
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        reply("This channel is not managed by ops")
+        return
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text))
+    if not is_channel_op(event.channel, user):
+        reply("User is not an OP.")
+        return
+
+    if not user:
+        reply("Could not find user")
+        return
+
+    await remove_from_overwrites(event.channel, user)
+    save_server_cfg(server, storage)
+    reply("Done!")
+
+@hook.command(server_id=SRV)
+async def kick_member(text, event, server, storage, reply):
+    """
+    <name/ID> - kick a member
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        reply("This channel is not managed by ops")
+        return
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text))
+    if not user:
+        reply("Could not find user")
+        return
+
+    # Get the category
+    crt_cat = get_chan_cat(server, storage, event.channel.id)
+
+    # Remove private members
+    if crt_cat.is_private:
+        role = give_assoc_role(server, storage, event.channel)
+
+        user.remove_role(role)
+        reply("Done!")
+    elif crt_cat.is_public:
+        # Remove private members
+        await ignore_channel(event.channel, user)
+        reply("Done!")
+
+def add_to_banlist(storage, chan, member):
+    if member.id in storage["irc_chans"][chan.id]["bans"]:
+        return "Already banned"
+
+    storage["irc_chans"][chan.id]["bans"].append(member.id)
+    storage.sync()
+    return "Done"
+
+def remove_from_banlist(storage, chan, member):
+    if member.id in storage["irc_chans"][chan.id]["bans"]:
+        storage["irc_chans"][chan.id]["bans"].remove(member.id)
+        storage.sync()
+        return "Done"
+    else:
+        return "Not in banlist"
+
+def is_banned(storage, chan, member):
+    if member.id in storage["irc_chans"][chan.id]["bans"]:
+        return True
+    return False
+
+@hook.command(server_id=SRV)
+def list_bans(server, storage, event):
+    """
+    List channel bans
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
+
+    if not is_channel_op(event.channel, event.author):
+        return "You need to be an OP."
+
+    users = []
+
+    for banned_id in storage["irc_chans"][event.channel.id]["bans"]:
+        user = dutils.get_user_by_id(server, banned_id)
+        if user:
+            users.append(user.name)
+
+    if len(users) == 0:
+        return "Empty"
+
+    return ", ".join(users)
+
+@hook.command(server_id=SRV)
+async def ban_member(text, event, server, storage, reply):
+    """
+    <name/ID> - ban a member
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        reply("This channel is not managed by ops")
+        return
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text))
+    if not user:
+        reply("Could not find user")
+        return
+
+    # Get the category
+    crt_cat = get_chan_cat(server, storage, event.channel.id)
+
+    # Remove private members
+    if crt_cat.is_private:
+        role = give_assoc_role(server, storage, event.channel)
+        user.remove_role(role)
+    elif crt_cat.is_public:
+        # Remove private members
+        await ignore_channel(event.channel, user)
+
+    save_server_cfg(server, storage)
+    add_to_banlist(storage, event.channel, user)
+    save_server_cfg(server, storage)
+    reply("Done")
+
+@hook.command(server_id=SRV)
+async def unban_member(text, event, server, storage, reply):
+    """
+    <name/ID> - unban a member
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        reply("This channel is not managed by ops")
+        return
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text))
+    if not user:
+        reply("Could not find user")
+        return
+
+    remove_from_banlist(storage, event.channel, user)
+    reply("Done")
+
+def give_assoc_role(server, storage, channel):
+    assoc_id = storage["irc_chans"][channel.id]["associated_roleid"]
+    if assoc_id == "":
+        return None
+
+    return dutils.get_role_by_id(server, assoc_id)
+
+@hook.command(server_id=SRV)
+def get_associated_role(event, server, storage):
+    """
+    Get the role name associated to the channel
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
+
+    if not is_channel_op(event.channel, event.author):
+        return "You need to be an OP."
+
+    if is_permission_based(event.channel, storage):
+        return "This channel is accessed through permissions. It does not have a specific role."
+
+    role = give_assoc_role(server, storage, event.channel)
+    if not role:
+        return "Could not get role"
+
+    return role.name
+
+@hook.command(server_id=SRV)
+async def set_associated_role_name(text, event, server, storage, reply):
+    """
+    Set the role name associated to the channel
+    """
+    if not is_irc_chan(server, storage, event.channel.name):
+        reply("This channel is not managed by ops")
+        return
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    if is_permission_based(event.channel, storage):
+        reply("This channel is accessed through permissions. It does not have a specific role.")
+        return
+
+    assoc_id = storage["irc_chans"][event.channel.id]["associated_roleid"]
+    if assoc_id == "":
+        reply("Unexpected error")
+        return
+
+    role = dutils.get_role_by_id(server, assoc_id)
+    role.set_name(text)
+    reply("Done")
 
 @hook.command(server_id=SRV)
 def irc_help():
     funcs = [
-        list_chans,
-        join,
-        part,
         set_topic,
-        request_channel]
+        request_channel,
+        list_members,
+        list_ops,
+        add_op,
+        remove_op,
+        kick_member,
+        ban_member,
+        unban_member,
+        list_bans,
+        get_associated_role,
+        set_associated_role_name]
 
     ret = "```\n"
     for func in funcs:
@@ -339,43 +1040,42 @@ def irc_help():
 
     return ret + "```"
 
-@hook.command(permissions=Permission.admin, server_id=SRV)
-async def sort_roles(server):
-    """
-    Sort roles alphabetically
-    """
+# @hook.command(permissions=Permission.admin, server_id=SRV)
+# async def sort_roles(server):
+#     """
+#     Sort roles alphabetically
+#     """
 
-    # Get all roles
-    rlist = {}
-    for chan in chain(
-            server.get_chans_in_cat(PUB_CAT),
-            server.get_chans_in_cat(PRV_CAT)):
-        rlist["%s-op" % chan.name] = \
-            dutils.get_role_by_name(server, "%s-op" % chan.name)
+#     # Get all roles
+#     rlist = {}
+#     for chan in chain(
+#             server.get_chans_in_cat(PUB_CAT),
+#             server.get_chans_in_cat(PRV_CAT)):
+#         rlist["%s-op" % chan.name] = \
+#             dutils.get_role_by_name(server, "%s-op" % chan.name)
 
-        member_role = dutils.get_role_by_name(server, "%s-member" % chan.name)
-        if member_role:
-            rlist["%s-member" % chan.name] = member_role
+#         member_role = dutils.get_role_by_name(server, "%s-member" % chan.name)
+#         if member_role:
+#             rlist["%s-member" % chan.name] = member_role
 
-    # Sort them and position starting from the first alphanumeric role
-    print("Base position is %s" % str(sorted(rlist.keys())[0]))
-    crt_pos = rlist[sorted(rlist.keys())[0]].position
-    for rname in sorted(rlist.keys()):
-        print("Setting %s to %d" % (rname, crt_pos))
+#     # Sort them and position starting from the first alphanumeric role
+#     print("Base position is %s" % str(sorted(rlist.keys())[0]))
+#     crt_pos = rlist[sorted(rlist.keys())[0]].position
+#     for rname in sorted(rlist.keys()):
+#         print("Setting %s to %d" % (rname, crt_pos))
 
-        if crt_pos != rlist[rname].position:
-            await rlist[rname].set_position(crt_pos)
+#         if crt_pos != rlist[rname].position:
+#             await rlist[rname].set_position(crt_pos)
 
-        crt_pos -= 1
+#         crt_pos -= 1
 
-@hook.command(permissions=Permission.admin, server_id=SRV)
 async def sort_chans(server, categ):
     """
     Sort channels alphabetically
     """
     min_pos = 99999
     chans = {}
-    for chan in server.get_chans_in_cat(categ):
+    for chan in server.get_chans_in_cat(categ.id):
         chans[chan.name] = chan
         min_pos = min(min_pos, chan.position)
 
@@ -385,84 +1085,44 @@ async def sort_chans(server, categ):
 
         min_pos += 1
 
-
 @hook.command(permissions=Permission.admin, server_id=SRV)
-async def check_irc_stuff(server, reply):
+async def check_irc_stuff(server, storage, reply):
     reply("Sorting channels")
-    for chtype in CHTYPES:
-        await sort_chans(server, chtype)
+    for categ in get_bot_categs(server, storage):
+        if not categ.is_managed:
+            continue
 
-    reply("Creating roles")
-    await resync_roles(server)
-    reply("Sorting roles")
-    await sort_roles(server)
+        print(categ.name)
+
+        await sort_chans(server, categ)
+
     reply("Done")
-
-
-@hook.command(permissions=Permission.admin, server_id=SRV)
-async def resync_roles(server):
-    """
-    Go over all channels and set roles according to op/user access procedure
-    """
-    for chan in server.get_chans_in_cat(PUB_CAT):
-        ignoring_this = list(chan.get_removed_users())
-        await server.create_role(
-            "%s-op" % chan.name,
-            mentionable=True)
-        await chan.move_to_category(PUB_CAT)
-        await chan.set_op_role("%s-op" % chan.name)
-
-        for user in ignoring_this:
-            chan.remove_user_by_permission(user)
-
-    for chan in server.get_chans_in_cat(PRV_CAT):
-        ignoring_this = list(chan.get_removed_users())
-        await server.create_role(
-            "%s-op" % chan.name,
-            mentionable=True)
-
-        await server.create_role(
-            "%s-member" % chan.name,
-            mentionable=True)
-        await chan.move_to_category(PRV_CAT)
-        await chan.set_op_role("%s-op" % chan.name)
-        await chan.set_standard_role("%s-member" % chan.name)
-
-        for user in ignoring_this:
-            chan.remove_user_by_permission(user)
-
 
 @hook.command(server_id=SRV)
 def request_channel(text, event, send_message):
     """
-    <name type> - request a channel by specifying a 'name' and a type ('public', 'private' or 'invite')
+    <name> - request a channel by specifying a name
     """
 
-    text = text.split(" ")
-    if len(text) != 2:
-        return request_channel.__doc__
+    if len(text.split(" ")) != 1:
+        return "Channel name must not contain spaces"
 
-    # Parse data
-    chname = text[0].lower()
-    chtype = text[1].lower()
-
-    if chtype not in CHTYPES:
-        return "Channel type must be one of: %s" % str(CHTYPES)
-
-    message = "<@%s> has requested a %s channel named %s" % (
-        event.author.id, chtype, chname)
+    message = "<@%s> has requested a channel named %s" % (
+        event.author.id, text)
     send_message(target="449899630176632842", text=message)
 
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
-async def create_channel(text, server, reply):
+async def create_channel(text, server, reply, storage):
     """
-    <name type founder> - create a channel by specifying a 'name', type (either 'public' or 'private') and who is the channel founder
+    <name type founder> - create a channel by specifying a 'name', type and who is the channel founder
     """
+
     # Check input
     text = text.split(" ")
     if len(text) != 3:
-        return create_channel.__doc__
+        reply(create_channel.__doc__)
+        return
 
     # Parse data
     chname = text[0].lower()
@@ -473,195 +1133,90 @@ async def create_channel(text, server, reply):
         reply("Could not find given user")
         return
 
-    if chtype not in CHTYPES:
-        reply("Channel type must be one of: %s" % str(CHTYPES))
+    categs = list(get_bot_categs(server, storage))
+    # Get which category we want to create it in
+    target_cat = None
+    for cat in categs:
+        if chtype == cat.name:
+            target_cat = cat
+
+    if not target_cat:
+        reply("Channel type must be one of: %s" % ", ".join([i.name for i in categs]))
         return
 
     # Check dupes
-    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
+    for chan, _ in get_irc_chans(server, storage):
         if chan.name == chname:
             reply("A channel by that name already exists")
             return
 
-    await server.create_role(
-        "%s-op" % chname,
-        mentionable=True)
-
-    if chtype == PUB_CAT:
-        await server.create_text_channel(chname, PUB_CAT)
-    elif chtype == PRV_CAT:
-        await server.create_text_channel(chname, PRV_CAT)
-        await server.create_role(
-            "%s-member" % chname,
-            mentionable=True)
-
-    print("Created roles")
-    await sort_roles(server)
-    await sort_chans(server, PUB_CAT)
-    await sort_chans(server, PRV_CAT)
-    await resync_roles(server)
+    new_chan = None
+    if target_cat.is_public:
+        new_chan = await server.create_text_channel(chname, target_cat.id)
+    elif target_cat.is_private:
+        new_chan = await server.create_text_channel(chname, target_cat.id)
+        await create_prv_chan_role(server, new_chan, "%s-member" % chname)
 
     # Add the OP
-    user.add_role(
-        dutils.get_role_by_name(server, "%s-op" % chname))
+    await set_channel_op(new_chan, user)
     print("Should be done!")
 
 
-@hook.command(permissions=Permission.admin, server_id=SRV)
-async def delete_channel(text, server, reply):
-    """
-    <channel> - delete a channel
-    """
-    text = text.split(" ")
-    if len(text) != 1:
-        reply("Please input a valid channel name")
-        return
+# @hook.command(permissions=Permission.admin, server_id=SRV)
+# async def delete_channel(text, server, reply):
+#     """
+#     <channel> - delete a channel
+#     """
+#     text = text.split(" ")
+#     if len(text) != 1:
+#         reply("Please input a valid channel name")
+#         return
 
-    chname = text[0]
-    # Check dups public
-    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
-        if chan.name == chname:
-            await server.delete_channel(chan)
-            await server.delete_role_by_name("%s-op" % chname)
-            await server.delete_role_by_name("%s-member" % chname)
+#     chname = text[0]
+#     # Check dups public
+#     for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
+#         if chan.name == chname:
+#             await server.delete_channel(chan)
+#             await server.delete_role_by_name("%s-op" % chname)
+#             await server.delete_role_by_name("%s-member" % chname)
 
-            reply("Done!")
-            return
+#             reply("Done!")
+#             return
 
-    reply("No channel named %s" % chname)
-
-
-@hook.command(permissions=Permission.admin, server_id=SRV)
-async def make_chan_private(text, server, reply):
-    """
-    <channel> - make a channel private
-    """
-    text = text.split(" ")
-    if len(text) != 1:
-        reply("Please input a valid channel name")
-        return
-
-    chdata = dutils.str_to_id(text[0])
-    for chan in server.get_chans_in_cat(PUB_CAT):
-        if chan.name == chdata or chan.id == chdata:
-            await chan.move_to_category(PRV_CAT)
-            await sort_chans(server, PRV_CAT)
-
-            # Create the op role
-            await server.create_role(
-                "%s-op" % chan.name,
-                mentionable=True)
-
-            # Create the member role
-            await server.create_role(
-                "%s-member" % chan.name,
-                mentionable=True)
-
-            await resync_roles(server)
-
-            reply("Done!")
-            return
-
-    reply("No public channel named %s" % chdata)
-
-
-@hook.command(permissions=Permission.admin, server_id=SRV)
-async def make_chan_public(text, server, reply):
-    """
-    <channel> - make a channel public
-    """
-    text = text.split(" ")
-    if len(text) != 1:
-        reply("Please input a valid channel name")
-        return
-
-    chdata = dutils.str_to_id(text[0])
-    for chan in server.get_chans_in_cat(PRV_CAT):
-        if chan.name == chdata or chan.id == chdata:
-            await chan.move_to_category(PUB_CAT)
-            await sort_chans(server, PUB_CAT)
-            # Delete role
-            await server.delete_role_by_name("%s-member" % chan.name)
-
-            await resync_roles(server)
-
-            reply("Done!")
-            return
-
-    reply("No private channel named %s" % chdata)
-
-# @hook.command(server_id=SRV)
-# def list_ops(server):
-
-# @hook.command(server_id=SRV)
-# def list_members(server):
-
-
-def find_irc_chan(server, storage, chan_name=None, chan_id=None):
-    if not chan_name and not chan_id:
-        print("Needs one of name or id")
-        return None
-
-    for cat in get_bot_categs(storage, server):
-        for chan in server.get_chans_in_cat(cat["id"]):
-            if chan.id == chan_id or chan.name == chan_name:
-                return chan, cat
-
-    return None, None
-
-
-def user_has_role(user, role_name):
-    for urole in user.roles:
-        if urole.name == role_name:
-            return True
-
-    return False
-
+#     reply("No channel named %s" % chname)
 
 @hook.command(server_id=SRV)
 def set_topic(server, storage, reply, event, text):
     """
-    <topic> - set channel topic (only channel OPs can do it)
+    <topic> - set channel topic
     """
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
 
-    target_chan, _ = find_irc_chan(server, storage, chan_id=event.channel.id)
-    if not target_chan:
-        return "You're not in a user managed channel"
+    if not is_channel_op(event.channel, event.author):
+        return "You need to be an OP."
 
-    # Check if user is OP
-    has_right = user_has_role(
-        event.author,
-        "%s-op" % target_chan.name)
-
-    if not has_right:
-        return "Only channel OPs can do that"
-
-    if target_chan.is_nsfw and "NSFW" not in text:
+    if event.channel.is_nsfw and "NSFW" not in text:
         text += " [NSFW]"
 
-    target_chan.set_topic(text)
+    event.channel.set_topic(text)
 
 
 @hook.command(permissions=Permission.admin, server_id=SRV)
-def make_nsfw(server, storage, reply, event, text, send_message):
+async def make_nsfw(server, storage, reply, event, text, send_message):
     """
     <topic> - make channel NSFW (only channel OPs can do it)
     """
 
-    target_chan, categ = find_irc_chan(server, storage, chan_id=event.channel.id)
-    if not target_chan:
-        return "You're not in a user managed channel"
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
 
-    if categ["type"] == PUB_CAT:
+    if not is_channel_op(event.channel, event.author):
+        return "You need to be an OP."
+
+    target_chan, categ = get_irc_chan(server, storage, event.channel.id)
+    if not categ.is_private:
         return "Only private channels can be made NSFW"
-
-    # Check if user is OP
-    has_right = user_has_role(
-        event.author,
-        "%s-op" % event.channel.name)
-
-    if not has_right:
-        return "Only channel OPs can do that"
 
     # Set NSFW
     target_chan.set_nsfw(True)
@@ -671,14 +1226,13 @@ def make_nsfw(server, storage, reply, event, text, send_message):
         target_chan.set_topic(text + " [NSFW]")
 
     # Purge non-NSFW users
-    member_role = dutils.get_role_by_name(server, "%s-member" % target_chan.name)
-    op_role = dutils.get_role_by_name(server, "%s-op" % target_chan.name)
+    member_role = give_assoc_role(server, storage, target_chan)
     for user in target_chan.members_accessing_chan():
         for urole in user.roles:
             if urole.name == NSFW_FORBID_ROLE:
                 user.remove_role(member_role)
-                user.remove_role(op_role)
-                send_message("Part <@%s> - because channel was made NSFW" %
+                await remove_from_overwrites(target_chan, user)
+                send_message("Parted @%s - because channel was made NSFW" %
                              user.id, target=target_chan.id)
 
                 user.send_pm("You have been removed from %s, because the channel was made NSFW." %
@@ -691,17 +1245,13 @@ def make_sfw(server, storage, reply, event, text):
     <topic> - make channel SFW (only channel OPs can do it)
     """
 
-    target_chan, _ = find_irc_chan(server, storage, chan_id=event.channel.id)
-    if not target_chan:
-        return "You're not in a user managed channel"
+    if not is_irc_chan(server, storage, event.channel.name):
+        return "This channel is not managed by ops"
 
-    # Check if user is OP
-    has_right = user_has_role(
-        event.author,
-        "%s-op" % event.channel.name)
+    if not is_channel_op(event.channel, event.author):
+        return "You need to be an OP."
 
-    if not has_right:
-        return "Only channel OPs can do that"
+    target_chan, _ = get_irc_chan(server, storage, event.channel.id)
 
     # Set NSFW
     target_chan.set_nsfw(False)

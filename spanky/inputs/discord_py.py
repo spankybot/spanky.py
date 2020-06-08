@@ -622,52 +622,9 @@ class Channel():
     async def set_position(self, position):
         await self._raw.edit(position=position)
 
-    async def move_to_category(self, cat_id):
+    async def move_to_category(self, cat_id, sync_permissions=True):
         cat = self.server.find_category_by_id(cat_id)
-        await self._raw.edit(category=cat._raw, sync_permissions=True)
-
-    async def set_standard_role(self, role_name):
-        role = None
-        for r in self.server.get_roles():
-            if r.name == role_name:
-                role = r
-                break
-
-        if not role:
-            print("Error finding role %s" % role_name)
-            return
-
-        await self._raw.set_permissions(
-            role._raw,
-            send_messages=True,
-            read_messages=True,
-            read_message_history=True,
-            attach_files=True,
-            embed_links=True,
-            external_emojis=True,
-            add_reactions=True)
-
-    async def set_op_role(self, role_name):
-        role = None
-        for r in self.server.get_roles():
-            if r.name == role_name:
-                role = r
-                break
-
-        if not role:
-            print("Error finding role %s" % role_name)
-            return
-
-        await self._raw.set_permissions(
-            role._raw,
-            send_messages=True,
-            read_messages=True,
-            read_message_history=True,
-            manage_messages=True,
-            attach_files=True,
-            embed_links=True,
-            external_emojis=True,
-            add_reactions=True)
+        await self._raw.edit(category=cat._raw, sync_permissions=sync_permissions)
 
     def set_topic(self, text):
         async def set_topic(text):
@@ -685,27 +642,24 @@ class Channel():
         for user in self._raw.members:
             yield User(user)
 
-    def remove_user_by_permission(self, user):
-        async def remove_user(user_raw):
-            await self._raw.set_permissions(
-                user_raw,
-                send_messages=False,
-                read_messages=False,
-                read_message_history=False)
-
-        asyncio.run_coroutine_threadsafe(remove_user(user._raw), bot.loop)
-
-    def add_user_by_permission(self, user):
-        async def add_user(user_raw):
-            await self._raw.set_permissions(
-                user_raw, overwrite=None)
-
-        asyncio.run_coroutine_threadsafe(add_user(user._raw), bot.loop)
-
-    def get_removed_users(self):
-        for thing in self._raw.overwrites:
+    def get_user_overwrites(self):
+        for thing, overwrite in self._raw.overwrites.items():
             if type(thing) == discord.Member:
-                yield User(thing)
+                yield User(thing), PermOverwrite(overwrite)
+
+    async def set_user_overwrite(self, user, **perms):
+        await self._raw.set_permissions(
+            user._raw,
+            **perms)
+
+    async def remove_user_overwrite(self, user):
+        await self._raw.set_permissions(
+            user._raw, overwrite=None)
+
+class PermOverwrite():
+    def __init__(self, obj):
+        self._raw = obj
+
 
 
 class Category():
@@ -792,7 +746,7 @@ class Server():
         if not cat:
             print("Could not find category %s" % cat_id)
 
-        await self._raw.create_text_channel(name, category=cat._raw)
+        return Channel(await self._raw.create_text_channel(name, category=cat._raw))
 
     async def delete_channel(self, chan):
         await chan._raw.delete()
@@ -803,7 +757,7 @@ class Server():
         for chan in cat.channels:
             yield chan
 
-    async def create_role(self, name, mentionable):
+    async def create_role(self, name, mentionable=False):
         existing = None
         for crtrole in self.get_roles():
             if crtrole.name == name:
@@ -846,6 +800,12 @@ class Role():
 
     async def set_position(self, position):
         await self._raw.edit(position=position)
+
+    def set_name(self, name):
+        async def set_name(name):
+            await self._raw.edit(name=name)
+
+        asyncio.run_coroutine_threadsafe(set_name(name), bot.loop)
 
 class Attachment():
     def __init__(self, obj):
