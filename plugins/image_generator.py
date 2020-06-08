@@ -25,7 +25,7 @@ SERVERS = [
 ]
 
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
-domains = ['imgur.com', 'gfycat.com', 'redditmedia.com', 'i.redd.it', 'flic.kr', '500px.com']
+domains = ['imgur.com', 'gfycat.com', 'redditmedia.com', 'i.redd.it', 'flic.kr', '500px.com', 'redgifs.com']
 
 dont_cache = ['random', 'randnsfw']
 
@@ -190,8 +190,13 @@ def force_refresh_porn():
             pass
 
 def format_output_message(data):
-    entry = random.choice(data)
-    return "%s / source: <https://redd.it/%s>" % (entry[0], entry[1])
+    link, source = random.choice(data)
+
+    if "gfycat.com" in link:
+        redgif = link.replace("gfycat.com", "gifdeliverynetwork.com")
+        link = "%s %s" % (redgif, link)
+
+    return "%s / source: <https://redd.it/%s>" % (link, source)
 
 @hook.command(server_id=SERVERS)
 def skinny():
