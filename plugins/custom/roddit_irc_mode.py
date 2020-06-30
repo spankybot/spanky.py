@@ -332,7 +332,7 @@ def get_removed_users(channel):
 
 def get_operator_users(channel):
     """
-    List of users ignoring a channel
+    List of users operating a channel
     """
     users = []
     for user, perm in channel.get_user_overwrites():
@@ -857,9 +857,11 @@ async def kick_member(text, event, server, storage, reply):
 
     # Remove private members
     if crt_cat.is_private:
-        role = give_assoc_role(server, storage, event.channel)
-
-        user.remove_role(role)
+        if not is_permission_based(event.channel, storage):
+            role = give_assoc_role(server, storage, event.channel)
+            user.remove_role(role)
+        else:
+            await remove_from_overwrites(event.channel, user)
         reply("Done!")
     elif crt_cat.is_public:
         # Remove private members
@@ -933,8 +935,11 @@ async def ban_member(text, event, server, storage, reply):
 
     # Remove private members
     if crt_cat.is_private:
-        role = give_assoc_role(server, storage, event.channel)
-        user.remove_role(role)
+        if not is_permission_based(event.channel, storage):
+            role = give_assoc_role(server, storage, event.channel)
+            user.remove_role(role)
+        else:
+            await remove_from_overwrites(event.channel, user)
     elif crt_cat.is_public:
         # Remove private members
         await ignore_channel(event.channel, user)
@@ -1255,3 +1260,17 @@ def make_sfw(server, storage, reply, event, text):
 
     # Set NSFW
     target_chan.set_nsfw(False)
+
+
+@hook.command(permissions=Permission.admin, server_id=SRV)
+def get_orphan_chans(storage):
+    """
+    Get channels without ops
+    """
+    orphan = []
+
+    for chan in storage["irc_chans"].values():
+        if len(chan["ops"]) == 0:
+            orphan.append(chan["name"])
+
+    return ", ".join(orphan)
