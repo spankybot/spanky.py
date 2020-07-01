@@ -14,12 +14,17 @@ NSFW_FORBID_ROLE = "Gradi"
 
 CAT_TYPES = ["managed", "unmanaged", "archive"]
 PRIVACY = ["public", "private", "invite"]
-MSG_TIMEOUT = 3  # Timeout after which the message dissapears
+MSG_TIMEOUT = 2  # Timeout after which the message dissapears
 
 # Roddit and test server
 SRV = [
     "287285563118190592",
     "297483005763780613"]
+
+class ToggleType():
+    JOIN = 1
+    PART = 2
+    NONE = 99
 
 class BotCateg():
     def __init__(self, data):
@@ -191,116 +196,156 @@ class ChanSelector(Selector):
 
         # Get the channel name
         chname = label.split("**")[1]
+        await toggle_chan_presence(self.server, self.storage, chname, event, ToggleType.NONE)
 
-        # Lookup channel
-        target_chan, categ = get_irc_chan(
-            self.server, self.storage, chname)
 
-        if not target_chan:
-            return
+async def toggle_chan_presence(server, storage, chname, event, force_toggle):
+    # Lookup channel
+    target_chan, categ = get_irc_chan(
+        server, storage, chname)
 
-        if is_banned(self.storage, target_chan, event.author):
+    if not target_chan:
+        await event.async_send_message(
+            "<@%s>: Invalid channel name" % (event.author.id),
+            timeout=MSG_TIMEOUT,
+            check_old=False)
+        return
+
+    # Check for minimum requirements
+    can_access = False
+    for access_role in REQUIRED_ACCESS_ROLES:
+        if dutils.user_has_role_name(event.author, access_role):
+            can_access = True
+
+    if not can_access:
+        await event.async_send_message(
+            "<@%s>: You can't join/leave a channel" % (event.author.id),
+            timeout=MSG_TIMEOUT,
+            check_old=False)
+        return
+
+    # Check if banned
+    if is_banned(storage, target_chan, event.author):
+        await event.async_send_message(
+            "<@%s>: You are banned from %s." % (event.author.id, target_chan.name),
+            timeout=MSG_TIMEOUT,
+            check_old=False)
+        return
+
+    # Check if OP
+    if is_channel_op(target_chan, event.author):
+        await event.async_send_message(
+            "<@%s>: OPs can't leave a channel that they operate." % (event.author.id),
+            timeout=MSG_TIMEOUT,
+            check_old=False)
+        return
+
+    # Check for NSFW chans
+    if target_chan.is_nsfw:
+        if dutils.user_has_role_name(event.author, NSFW_FORBID_ROLE):
             await event.async_send_message(
-                "<@%s>: You are banned from %s." % (event.author.id, target_chan.name),
+                "<@%s>: You cant join a NSFW channel" % (event.author.id),
                 timeout=MSG_TIMEOUT,
                 check_old=False)
             return
 
-        if categ.is_private:
-            # Check if user is an OP
-            if dutils.user_has_role_name(event.author, "%s-op" % chname):
-                await event.async_send_message(
-                    "<@%s>: OPs can't join/leave a channel that they operate." % (event.author.id),
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
-                return
+    if categ.is_private:
+        # Get the role associated with the channel
+        channel_role = give_assoc_role(server, storage, target_chan)
 
-            # Check for minimum requirements
-            can_access = False
-            for access_role in REQUIRED_ACCESS_ROLES:
-                if dutils.user_has_role_name(event.author, access_role):
-                    can_access = True
-
-            if not can_access:
-                await event.async_send_message(
-                    "<@%s>: You can't join/leave a channel" % (event.author.id),
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
-                return
-
-            # Check for NSFW chans
-            if target_chan.is_nsfw:
-                if dutils.user_has_role_name(event.author, NSFW_FORBID_ROLE):
-                    await event.async_send_message(
-                        "<@%s>: You cant join a NSFW channel" % (event.author.id),
-                        timeout=MSG_TIMEOUT,
-                        check_old=False)
-                    return
-
-            # Get the role associated with the channel
-            channel_role = give_assoc_role(self.server, self.storage, target_chan)
-
-            # Check if we need to add or remove from channel
-            needs_adding = True
-            if is_permission_based(target_chan, self.storage):
-                # Handle permission based access
-                crt_users = list_members_perm_access(target_chan)
-                for user in crt_users:
-                    if event.author.id == user.id:
-                        needs_adding = False
-            else:
-                # Handle role based access
-                if dutils.user_has_role_name(event.author, channel_role.name):
+        # Check if we need to add or remove from channel
+        needs_adding = True
+        if is_permission_based(target_chan, storage):
+            # Handle permission based access
+            crt_users = list_members_perm_access(target_chan)
+            for user in crt_users:
+                if event.author.id == user.id:
                     needs_adding = False
+        else:
+            # Handle role based access
+            if dutils.user_has_role_name(event.author, channel_role.name):
+                needs_adding = False
 
-            # If the user wants to be removed
-            if not needs_adding:
-                if is_permission_based(target_chan, self.storage):
-                    await remove_from_overwrites(target_chan, event.author)
-                else:
-                    event.author.remove_role(
-                        dutils.get_role_by_name(self.server, channel_role.name))
+        if force_toggle == ToggleType.JOIN:
+            needs_adding = True
+        elif force_toggle == ToggleType.PART:
+            needs_adding = False
 
-                await event.async_send_message(
-                    "<@%s>: Removed you from `%s`" % (event.author.id, chname),
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
-                return
-            else:
-                if is_permission_based(target_chan, self.storage):
-                    await set_channel_member(target_chan, event.author)
-                else:
-                    # Add the role
-                    event.author.add_role(
-                        dutils.get_role_by_name(self.server, channel_role.name))
-
-                await event.async_send_message(
-                    "<@%s>: Added you to `%s`" % (event.author.id, chname),
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
-
-        elif categ.is_public:
-            # Check if the user wants to leave
-            in_channel = True
-            for user in get_removed_users(target_chan):
-                if user.id == event.author.id:
-                    in_channel = False
-
-            if in_channel:
-                await ignore_channel(target_chan, event.author)
-                await event.async_send_message(
-                    "<@%s>: Removed you from `%s`" % (event.author.id, chname),
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
-                return
-
-            else:
-                #target_chan.add_user_by_permission(event.author)
+        # If the user wants to be removed
+        if not needs_adding:
+            if is_permission_based(target_chan, storage):
                 await remove_from_overwrites(target_chan, event.author)
-                await event.async_send_message(
-                    "<@%s>: Added you to `%s`" % (event.author.id, chname),
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
+            else:
+                event.author.remove_role(
+                    dutils.get_role_by_name(server, channel_role.name))
+
+            await event.async_send_message(
+                "<@%s>: Removed you from `%s`" % (event.author.id, chname),
+                timeout=MSG_TIMEOUT,
+                check_old=False)
+            return
+        else:
+            if is_permission_based(target_chan, storage):
+                await set_channel_member(target_chan, event.author)
+            else:
+                # Add the role
+                event.author.add_role(
+                    dutils.get_role_by_name(server, channel_role.name))
+
+            await event.async_send_message(
+                "<@%s>: Added you to `%s`" % (event.author.id, chname),
+                timeout=MSG_TIMEOUT,
+                check_old=False)
+
+    elif categ.is_public:
+        # Check if the user wants to leave
+        in_channel = True
+        for user in get_removed_users(target_chan):
+            if user.id == event.author.id:
+                in_channel = False
+
+        if force_toggle == ToggleType.JOIN:
+            in_channel = False
+        elif force_toggle == ToggleType.PART:
+            in_channel = True
+
+        if in_channel:
+            await ignore_channel(target_chan, event.author)
+            await event.async_send_message(
+                "<@%s>: Removed you from `%s`" % (event.author.id, chname),
+                timeout=MSG_TIMEOUT,
+                check_old=False)
+            return
+
+        else:
+            await remove_from_overwrites(target_chan, event.author)
+            await event.async_send_message(
+                "<@%s>: Added you to `%s`" % (event.author.id, chname),
+                timeout=MSG_TIMEOUT,
+                check_old=False)
+
+@hook.command(server_id=SRV)
+async def join(server, storage, event, text):
+    """
+    <chname> - join a channel
+    """
+    await toggle_chan_presence(server, storage, text, event, ToggleType.JOIN)
+
+@hook.command(server_id=SRV)
+async def part(server, storage, event, text):
+    """
+    <chname> - leave a channel
+    """
+    chan_name = ""
+    if text == "":
+        chan_name = event.channel.name
+    else:
+        chan_name = text
+
+    await toggle_chan_presence(server, storage, chan_name, event, ToggleType.PART)
+
+    # Delete the message
+    event.msg.delete_message()
 
 @hook.command(server_id=SRV)
 async def vreau_canal(event, storage):
@@ -801,7 +846,10 @@ async def add_op(text, event, server, storage, reply):
 
     user = dutils.get_user_by_id(server, dutils.str_to_id(text))
     if not user:
-        reply("Could not find user")
+        user = dutils.get_user_by_name(server, text)
+
+    if not user:
+        reply("Invalid user")
         return
 
     await set_channel_op(event.channel, user)
@@ -822,12 +870,15 @@ async def remove_op(text, event, server, storage, reply):
         return
 
     user = dutils.get_user_by_id(server, dutils.str_to_id(text))
-    if not is_channel_op(event.channel, user):
-        reply("User is not an OP.")
-        return
+    if not user:
+        user = dutils.get_user_by_name(server, text)
 
     if not user:
-        reply("Could not find user")
+        reply("Invalid user")
+        return
+
+    if not is_channel_op(event.channel, user):
+        reply("User is not an OP.")
         return
 
     await remove_from_overwrites(event.channel, user)

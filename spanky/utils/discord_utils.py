@@ -6,6 +6,12 @@ def get_user_by_id(server, uid):
             return u
     return None
 
+def get_user_by_name(server, name):
+    for u in server.get_users():
+        if u.name == name:
+            return u
+    return None
+
 def get_role_by_name(server, rname):
     for r in server.get_roles():
         if r.name == rname:
