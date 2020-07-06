@@ -729,7 +729,7 @@ async def save_server_cfg(server, storage):
                 elem["ops"].append(op.id)
 
         for ignoring in get_removed_users(chan):
-            if op.id not in elem["ignoring"]:
+            if ignoring.id not in elem["ignoring"]:
                 elem["ignoring"].append(ignoring.id)
 
         elem["ops"] = list(set(elem["ops"]))
