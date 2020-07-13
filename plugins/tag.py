@@ -131,9 +131,15 @@ async def tag(text, send_file, storage, storage_loc, async_send_message, send_em
 
         if tag in storage:
             if storage[tag]['type'] == "text":
-                send_embed(
-                    msg, "",
-                    {tag: storage[tag]['content']})
+
+                content = storage[tag]['content']
+                # Check for potential mentions
+                if "<" in content and ">" in content:
+                    send_embed(
+                        msg, "",
+                        {tag: content})
+                else:
+                    await async_send_message(msg + content)
             elif storage[tag]['type'] == "picture":
                 send_file(storage_loc + storage[tag]['location'])
         else:
