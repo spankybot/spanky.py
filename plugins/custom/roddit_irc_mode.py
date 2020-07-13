@@ -241,7 +241,7 @@ class ChanSelector(Selector):
         bot.backend.add_msg_to_cache(msg)
 
         # Remove reacts from other people
-        await selector.remove_nonbot_reacts(bot)
+        await selector.reset_reacts(bot)
 
         return selector
 

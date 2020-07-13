@@ -144,6 +144,18 @@ class Selector:
 
         return self.msg.id
 
+    async def add_emojis(self):
+        _, emoji_to_func = self.embeds[self.shown_page]
+
+        if self.total_pages > 1:
+            # If using pages, add arrows
+            await self.msg.async_add_reaction(LARROW)
+            await self.msg.async_add_reaction(RARROW)
+
+        # Add all reacts
+        for emoji in emoji_to_func.keys():
+            await self.msg.async_add_reaction(emoji)
+
     async def send_one_page(self, event):
         embed, emoji_to_func = self.embeds[self.shown_page]
 
@@ -159,21 +171,11 @@ class Selector:
         self.crt_emoji_to_func = emoji_to_func
 
         if new_msg:
-            if self.total_pages > 1:
-                # If using pages, add arrows
-                await self.msg.async_add_reaction(LARROW)
-                await self.msg.async_add_reaction(RARROW)
+            await self.add_emojis()
 
-            # Add all reacts
-            for emoji in emoji_to_func.keys():
-                await self.msg.async_add_reaction(emoji)
-
-    async def remove_nonbot_reacts(self, bot):
-        for react in self.msg.reactions():
-            if react.count > 1:
-                async for user in react.users():
-                    if user.id != bot.get_own_id():
-                        await react.remove(user)
+    async def reset_reacts(self, bot):
+        await self.msg.clear_reactions()
+        await self.add_emojis()
 
     async def do_send(self, event):
         # Add selector to posted messages
@@ -420,6 +422,6 @@ class RoleSelectorInterval(RoleSelector):
         bot.backend.add_msg_to_cache(msg)
 
         # Remove reacts from other people
-        await selector.remove_nonbot_reacts(bot)
+        await selector.reset_reacts(bot)
 
         return selector

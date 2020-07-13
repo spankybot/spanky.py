@@ -461,6 +461,9 @@ class Message():
             await self._raw.delete()
         asyncio.run_coroutine_threadsafe(delete_message(self._raw), bot.loop)
 
+    async def clear_reactions(self):
+        await self._raw.clear_reactions()
+
 class User():
     def __init__(self, obj):
         self.nick = obj.display_name
