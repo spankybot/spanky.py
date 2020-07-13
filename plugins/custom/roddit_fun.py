@@ -11,7 +11,7 @@ MAX_OVERLAP_TOTAL = 10
 
 @hook.command(server_id=RODDIT_ID)
 def shrug(send_message):
-    send_message("¯\_(ツ)_/¯")
+    send_message(r"¯\_(ツ)_/¯")
 
 @hook.command(server_id=RODDIT_ID)
 def dance(send_message, text):
@@ -106,12 +106,9 @@ def mcioran():
         content = f.read()
 
         text_model = markovify.Text(content)
-        try:
-            return("ciolan: " + text_model.make_short_sentence(max_chars = 140, tries=10000,
-                max_overlap_total=MAX_OVERLAP_TOTAL,
-                max_overlap_ratio=MAX_OVERLAP_RATIO))
-        except Exception as e:
-            return "pula"
+        return("ciolan: " + text_model.make_short_sentence(max_chars = 140, tries=10000,
+            max_overlap_total=MAX_OVERLAP_TOTAL,
+            max_overlap_ratio=MAX_OVERLAP_RATIO))
 
 @hook.command(server_id=RODDIT_ID)
 def injur():
@@ -119,12 +116,9 @@ def injur():
         content = f.read()
 
         text_model = markovify.Text(content)
-        try:
-            return("aihwh: " + text_model.make_short_sentence(max_chars = 140, tries=10000,
-                max_overlap_total=MAX_OVERLAP_TOTAL,
-                max_overlap_ratio=MAX_OVERLAP_RATIO))
-        except Exception as e:
-            return "pula"
+        return("aihwh: " + text_model.make_short_sentence(max_chars = 140, tries=10000,
+            max_overlap_total=MAX_OVERLAP_TOTAL,
+            max_overlap_ratio=MAX_OVERLAP_RATIO))
 
 
 @hook.command(server_id=RODDIT_ID)
@@ -133,12 +127,11 @@ def manea():
         content = f.read()
 
         text_model = markovify.Text(content)
-        try:
-            return("lautar: " + text_model.make_short_sentence(max_chars = 300, tries=10000,
-                max_overlap_total=MAX_OVERLAP_TOTAL,
-                max_overlap_ratio=MAX_OVERLAP_RATIO))
-        except Exception as e:
-            return "pula"
+
+        return("lautar: " + text_model.make_short_sentence(max_chars = 300, tries=10000,
+            max_overlap_total=MAX_OVERLAP_TOTAL,
+            max_overlap_ratio=MAX_OVERLAP_RATIO))
+
 
 @hook.command(server_id=RODDIT_ID)
 def muie(send_message):
@@ -151,3 +144,14 @@ def cacat(send_message):
 @hook.command(server_id=RODDIT_ID)
 def cola():
     return "un cola pls!"
+
+@hook.command(server_id=RODDIT_ID)
+def maslina(send_message, text):
+    dance = [
+            "ce zi minunata!",
+            "ce faceti, prieteni?",
+            "inca putin si se termina si ziua asta :D :D :D",
+            "CUŢUUUUUUU!!!",
+            "PISIIIIIII!!!"
+            ]
+    send_message(random.choice(dance))
