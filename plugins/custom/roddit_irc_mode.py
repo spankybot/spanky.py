@@ -1,3 +1,4 @@
+from collections import OrderedDict, deque
 from itertools import chain
 
 import plugins.paged_content as paged
@@ -6,8 +7,9 @@ from spanky.utils.carousel import Selector
 
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
+from spanky.plugin.event import EventType
+
 from spanky.utils import time_utils as tutils
-from collections import OrderedDict
 
 REQUIRED_ACCESS_ROLES = ["Valoare", "Gradi"]
 NSFW_FORBID_ROLE = "Gradi"
@@ -20,6 +22,66 @@ MSG_TIMEOUT = 2  # Timeout after which the message dissapears
 SRV = [
     "287285563118190592",
     "297483005763780613"]
+
+JOIN_EMOTE = "✅"
+advert_queue = deque(maxlen=50)
+
+class AdvertObj():
+    def __init__(self, server, storage, chname, msg):
+        self.server = server
+        self.storage = storage
+        self.chname = chname
+        self.msg = msg
+
+@hook.command(server_id=SRV)
+async def advertise(text, async_send_message, server, storage, event):
+    """
+    <channel [description]> - advertise a channel by optionally specifying a channel description
+    """
+    # Check minimum requirements
+    text = text.split(maxsplit=1)
+    if len(text) == 0:
+        await async_send_message("Needs a channel name and optionally a description")
+
+    # Get the target channel
+    target_chan, _ = get_irc_chan(server, storage, text[0])
+    if not target_chan:
+        await async_send_message("%s is not a channel" % text)
+        return
+
+    descr = ""
+    if len(text) == 2:
+        descr = text[1]
+
+    # Send the message
+    em = dutils.prepare_embed("Join %s" % target_chan.name, descr, footer_txt="Click on %s react to join" % JOIN_EMOTE)
+    msg = await async_send_message(embed=em)
+
+    # Add react
+    await msg.async_add_reaction(JOIN_EMOTE)
+
+    # Add to queue
+    advert_queue.append(AdvertObj(server, storage, text[0], msg))
+
+
+@hook.event(EventType.reaction_add)
+async def parse_react(bot, event):
+    # Find the target object
+    if event.reaction.emoji.name != JOIN_EMOTE:
+        return
+
+    found = None
+    for obj in advert_queue:
+        if obj.msg.id == event.msg.id:
+            print(obj.msg.id)
+            found = obj
+            break
+
+    if found == None:
+        return
+
+    await found.msg.async_remove_reaction(JOIN_EMOTE, event.author)
+    await toggle_chan_presence(found.server, found.storage, found.chname, event, ToggleType.JOIN)
 
 class ToggleType():
     JOIN = 1
@@ -1215,7 +1277,7 @@ async def create_channel(text, server, reply, storage):
 
     # Add the OP
     await set_channel_op(new_chan, user)
-    print("Should be done!")
+    save_server_cfg(server, storage)
 
 
 # @hook.command(permissions=Permission.admin, server_id=SRV)
