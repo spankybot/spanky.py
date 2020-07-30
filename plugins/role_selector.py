@@ -1,5 +1,6 @@
 import os
 import plugins.selector as selector
+import spanky.utils.carousel as carousel
 import spanky.utils.discord_utils as dutils
 
 from spanky.plugin import hook
@@ -26,7 +27,7 @@ def register_cmd(cmd, server):
                 reply("No roles in selector")
                 return
 
-            sel = selector.RoleSelector(
+            sel = carousel.RoleSelector(
                 server=server,
                 title=cmd["title"],
                 roles=cmd["roles"],
