@@ -142,6 +142,9 @@ async def parse_react(bot, event):
     # Check if the reaction was made on a message that contains a search result
     found = None
     for res in search_results:
+        if res is None or event is None:
+            break
+
         if res.msg.id == event.msg.id:
             found = res
             break
