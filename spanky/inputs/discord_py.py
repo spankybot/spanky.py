@@ -153,14 +153,11 @@ class DiscordUtils(abc.ABC):
         channel = self.get_channel(target, server)
 
         # Avoid @here and @everyone
-        try:
-            # TODO remove user ID hack
-            if text != None and ("@here" in text or "@everyone" in text):
-                await self.async_send_pm("User tried using: `%s` in <#%s> " %
-                    (text, channel.id), self.user_id_to_object("278247547838136320"))
-                return
-        except:
-            traceback.print_exc()
+        # TODO remove user ID hack
+        if text != None and ("@here" in text or "@everyone" in text):
+            await self.async_send_pm("User tried using: `%s` in <#%s> " %
+                (text, channel.id), self.user_id_to_object("278247547838136320"))
+            return
 
         # If no target was found, exit
         if not channel:
