@@ -155,3 +155,20 @@ def maslina(send_message, text):
             "PISIIIIIII!!!"
             ]
     send_message(random.choice(dance))
+
+@hook.command(server_id=RODDIT_ID)
+def vasile(send_message):
+    txt = [
+            "vreau sa fut",
+            "Imi place mult sa fut",
+            "e singura manifestare care e umana",
+            "miau trecut anii si de abia acum miam dat seama ca pula si pizda sunt cele mai importante organe mai tari deca t ministrul justitiei organele de interne ale SRI-ului organele prezidentiale pula si pizda si coaiele sunt cele mai tari lucruri",
+            "vreau sa fut si eu sa ma simt bine",
+            "negrii siau dat seama de mult americanii la fel au inalta stiinta au viagra ei au aduso si aici si face pula mare",
+            "doctorii au descoperit multe panacee universale care face pule mari pule mari si coaie mari lucruri care vor sa si le revendice femeile acum pentru ca sunt batran si sunt la varsta senectutii",
+            "intelepciunea mea nu depaseste organul genital eu am capul cap de pula",
+            "nu imi trece sa am vreo manifestare vreo stiinta in mine daca mi se scoala pula",
+            "vreau pizda vreau intre tate vreau in anus sa io bag si in multe alte alea la muie in gura sai bag",
+            "vreau sami pun bile de aceea asteptatima sa imi pun bile 10 bile voi pune voi fute mai mult ca oricand acum la batranete"
+            ]
+    send_message(random.choice(txt))
