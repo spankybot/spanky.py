@@ -101,6 +101,9 @@ def log_part(event, storage, send_message):
 
 @hook.event(EventType.message_edit)
 def log_message_edit(event, send_message, storage, bot):
+    if not storage["chan_filter_list"]:
+        return
+
     if event.before.channel.id in storage["chan_filter_list"]:
         return
 
