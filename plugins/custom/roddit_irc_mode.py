@@ -44,7 +44,7 @@ async def advertise(text, async_send_message, server, storage, event):
         await async_send_message("Needs a channel name and optionally a description")
 
     # Get the target channel
-    target_chan, _ = get_irc_chan(server, storage, text[0])
+    target_chan, _ = get_irc_chan(server, storage, dutils.str_to_id(text[0]))
     if not target_chan:
         await async_send_message("%s is not a channel" % text)
         return
