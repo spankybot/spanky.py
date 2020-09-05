@@ -24,6 +24,9 @@ class CmdPerms():
         self.forbid_chgroups = []
         self.forbid_channel_ids = []
 
+        if not storage["commands"]:
+            return
+
         if cmd in storage["commands"]:
             self.is_customized = True
         else:
@@ -53,6 +56,7 @@ class CmdPerms():
 @hook.sieve
 def check_permissions(bot, bot_event, storage):
     if storage['admin_roles'] is None:
+        invalidate_caches(bot, bot_event.event.server)
         return True, None
 
     cmd = CmdPerms(storage, bot_event.triggered_command)
