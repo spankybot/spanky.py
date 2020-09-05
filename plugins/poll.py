@@ -3,6 +3,7 @@ import spanky.utils.carousel as carousel
 import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
 
+from spanky.plugin.event import EventType
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
@@ -144,13 +145,28 @@ class Poll(carousel.Selector):
         poll.score = data["score"]
         poll.shown_page = data["shown_page"]
 
-        # Add to selector cache
-        # TODO we do this because we need to be called when
-        # a react is added but the handling is done in selector.py
-        # Should be in carousel
-        poll.add_to_cache()
-
         return poll
+
+
+@hook.event(EventType.reaction_add)
+async def parse_react(bot, event):
+    # Check if the reaction was made on a message that contains a selector
+    found_poll = None
+
+    for poll in active_polls[event.server.id]:
+        if poll.has_msg_id(event.msg.id):
+            found_poll = poll
+            break
+
+    if not found_poll:
+        return
+
+    # Handle the event
+    await found_poll.handle_emoji(event)
+
+    # Remove the reaction
+    await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
 
 def sync_polls(storage):
     if "polls" not in storage:
@@ -181,7 +197,7 @@ async def create_poll(text, event, storage, async_send_message):
     poll = Poll(event.server, event.channel, options[0], options[1:], storage)
 
     # Send it
-    await poll.do_send(event)
+    await poll.do_send(event, cache_it=False)
 
     # Sync all polls
     sync_polls(storage)

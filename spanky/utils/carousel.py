@@ -181,8 +181,9 @@ class Selector:
         # Add selector to posted messages
         Selector.POSTED_MESSAGES.append(self)
 
-    async def do_send(self, event):
-        self.add_to_cache()
+    async def do_send(self, event, cache_it=True):
+        if cache_it:
+            self.add_to_cache()
 
         await self.send_one_page(event)
 
