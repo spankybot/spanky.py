@@ -150,6 +150,9 @@ class Poll(carousel.Selector):
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event):
+    if event.server.id not in active_polls:
+        return
+
     # Check if the reaction was made on a message that contains a selector
     found_poll = None
 
