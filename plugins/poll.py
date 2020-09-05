@@ -71,8 +71,8 @@ class Poll(carousel.Selector):
     async def get_results(self, async_send_message):
         results = []
 
-        for idx in range(len(self.items)):
-            results.append("%s: %s" % (self.items[idx], self.score[idx]))
+        for key, val in self.score.items():
+            results.append("%s: %s" % (key, val))
 
         content = paged.element(
             text_list=results,
@@ -243,7 +243,7 @@ async def close_poll(text, storage, async_send_message, server):
         await async_send_message("No polls active")
         return
 
-    for poll in active_polls:
+    for poll in active_polls[server.id]:
         if not poll.is_active:
             continue
 
