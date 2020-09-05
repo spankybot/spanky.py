@@ -181,7 +181,7 @@ def sync_polls(storage):
             storage["polls"][poll.get_link()] = elem
             storage.sync()
 
-@hook.command()
+@hook.command(permissions=Permission.admin)
 async def create_poll(text, event, storage, async_send_message):
     """
     <title %% option1 %% option2 %% ...> - create a poll with a title and multiple options
@@ -206,7 +206,7 @@ async def create_poll(text, event, storage, async_send_message):
     sync_polls(storage)
 
 
-@hook.command()
+@hook.command(permissions=Permission.admin)
 async def list_polls(async_send_message, storage, server):
     """
     Lists active polls
