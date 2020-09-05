@@ -703,6 +703,10 @@ async def make_chan_private(server, storage, chan, cat):
     # Restore OPs
     for op_id in storage["irc_chans"][chan.id]["ops"]:
         op = dutils.get_user_by_id(server, op_id)
+
+        if not op:
+            continue
+
         await set_channel_op(chan, op)
 
     role = give_assoc_role(server, storage, chan)
@@ -724,11 +728,17 @@ async def make_chan_public(server, storage, chan, cat):
     # Restore OPs
     for op_id in storage["irc_chans"][chan.id]["ops"]:
         op = dutils.get_user_by_id(server, op_id)
+        if not op:
+            continue
         await set_channel_op(chan, op)
 
     # Restore ignores
     for ignoring_id in storage["irc_chans"][chan.id]["ignoring"]:
         ignoring = dutils.get_user_by_id(server, ignoring_id)
+
+        if not ignoring:
+            continue
+
         await ignore_channel(chan, ignoring)
 
 async def make_chan_archived(server, storage, chan, cat):
