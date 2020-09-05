@@ -52,7 +52,7 @@ SITEMS = [
 
 
 class Selector:
-    POSTED_MESSAGES = deque(maxlen=50) # class variable holding posted selectors
+    POSTED_MESSAGES = deque(maxlen=250) # class variable holding posted selectors
 
     def __init__(self, title, footer, call_dict):
         self.shown_page = 0
@@ -177,9 +177,12 @@ class Selector:
         await self.msg.clear_reactions()
         await self.add_emojis()
 
-    async def do_send(self, event):
+    def add_to_cache(self):
         # Add selector to posted messages
         Selector.POSTED_MESSAGES.append(self)
+
+    async def do_send(self, event):
+        self.add_to_cache()
 
         await self.send_one_page(event)
 
