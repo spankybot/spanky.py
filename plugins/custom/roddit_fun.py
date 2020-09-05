@@ -157,18 +157,36 @@ def maslina(send_message, text):
     send_message(random.choice(dance))
 
 @hook.command(server_id=RODDIT_ID)
-def vasile(send_message):
+def vasile(send_message, text):
     txt = [
-            "vreau sa fut",
-            "Imi place mult sa fut",
-            "e singura manifestare care e umana",
-            "miau trecut anii si de abia acum miam dat seama ca pula si pizda sunt cele mai importante organe mai tari deca t ministrul justitiei organele de interne ale SRI-ului organele prezidentiale pula si pizda si coaiele sunt cele mai tari lucruri",
-            "vreau sa fut si eu sa ma simt bine",
-            "negrii siau dat seama de mult americanii la fel au inalta stiinta au viagra ei au aduso si aici si face pula mare",
-            "doctorii au descoperit multe panacee universale care face pule mari pule mari si coaie mari lucruri care vor sa si le revendice femeile acum pentru ca sunt batran si sunt la varsta senectutii",
-            "intelepciunea mea nu depaseste organul genital eu am capul cap de pula",
-            "nu imi trece sa am vreo manifestare vreo stiinta in mine daca mi se scoala pula",
-            "vreau pizda vreau intre tate vreau in anus sa io bag si in multe alte alea la muie in gura sai bag",
-            "vreau sami pun bile de aceea asteptatima sa imi pun bile 10 bile voi pune voi fute mai mult ca oricand acum la batranete"
-            ]
-    send_message(random.choice(txt))
+        "vreau sa fut",
+        "Imi place mult sa fut",
+        "e singura manifestare care e umana",
+        "miau trecut anii si de abia acum miam dat seama ca pula si pizda sunt cele mai importante organe mai tari deca t ministrul justitiei organele de interne ale SRI-ului organele prezidentiale pula si pizda si coaiele sunt cele mai tari lucruri",
+        "vreau sa fut si eu sa ma simt bine",
+        "negrii siau dat seama de mult americanii la fel au inalta stiinta au viagra ei au aduso si aici si face pula mare",
+        "doctorii au descoperit multe panacee universale care face pule mari pule mari si coaie mari lucruri care vor sa si le revendice femeile acum pentru ca sunt batran si sunt la varsta senectutii",
+        "intelepciunea mea nu depaseste organul genital eu am capul cap de pula",
+        "nu imi trece sa am vreo manifestare vreo stiinta in mine daca mi se scoala pula",
+        "vreau pizda vreau intre tate vreau in anus sa io bag si in multe alte alea la muie in gura sai bag",
+        "vreau sami pun bile de aceea asteptatima sa imi pun bile 10 bile voi pune voi fute mai mult ca oricand acum la batranete"
+        ]
+
+    txt_en = [
+        "I want to fuck"
+        "I really like to fuck,"
+        "it's the only deed that is human,"
+        "my peak has passed and only now I realized that dick and pussy are the most important bodies better than the ministry of justice the bodies of internal affairs of the CIA the presidential boies dick and pussy and balls are the best things",
+        "I want to fuck and I feel good,"
+        "Blacks have long realized that Americans also have high science, they have viagra, they have brought it here and it's a big dick."
+        "Doctors have discovered many universal panacea that makes big cocks big cocks and big balls things that women want to claim now because they are old and old in old age."
+        "my wisdom does not exceed the genital organ I have the head of the head of the cock",
+        "I don't care if I have any manifestation or science in me if my cock rises",
+        "I want a pussy, I want between my tits, I want to put it in her anus and in many other things I put it in her mouth in her mouth",
+        "I want to put balls on my own therefore wait to put balls 10 balls I will put I will fuck more than ever now that I'm old"
+        ]
+
+    if text == "en":
+        send_message(random.choice(txt_en))
+    else:
+        send_message(random.choice(txt))
