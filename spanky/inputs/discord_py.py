@@ -438,6 +438,10 @@ class Message():
     def created_at(self):
         return self._raw.created_at.timestamp()
 
+    @property
+    def channel(self):
+        return Channel(self._raw.channel)
+
     async def async_add_reaction(self, string):
         try:
             await self._raw.add_reaction(string)

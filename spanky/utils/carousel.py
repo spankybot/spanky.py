@@ -322,6 +322,59 @@ class RoleSelector(Selector):
             check_old=False,
         )
 
+    def serialize(self):
+        data = {}
+        data["server_id"] = self.server.id
+        data["channel_id"] = self.msg.channel.id
+        data["role_ids"] = self.roles
+        data["max_selectable"] = self.max_selectable
+        data["title"] = self.title
+        data["msg_id"] = self.get_msg_id()
+        data["shown_page"] = self.shown_page
+
+        return data
+
+    @staticmethod
+    async def deserialize(bot, data):
+        # Get the server
+        server = None
+        for elem in bot.get_servers():
+            if elem.id == data["server_id"]:
+                server = elem
+                break
+
+        if not server:
+            print("Could not find server id %s" % data["server_id"])
+            return None
+
+        # Get the channel
+        chan = dutils.get_channel_by_id(server, data["channel_id"])
+
+        # Create the selector
+        selector = RoleSelector(
+            server,
+            data["role_ids"],
+            data["title"],
+            data["max_selectable"])
+
+        # Set selector page
+        selector.shown_page = data["shown_page"]
+
+        # Rebuild message cache
+        msg_id = data["msg_id"]
+
+        # Get the saved message and set it
+        msg = await chan.async_get_message(msg_id)
+        selector.msg = msg
+
+        # Add message to backend cache
+        bot.backend.add_msg_to_cache(msg)
+
+        # Remove reacts from other people
+        await selector.reset_reacts(bot)
+
+        return selector
+
 class RoleSelectorInterval(RoleSelector):
     def __init__(self, server, channel, first_role, last_role, title, max_selectable):
         super(RoleSelector, self).__init__(title=title, footer="Max selectable: %d" % max_selectable, call_dict={})

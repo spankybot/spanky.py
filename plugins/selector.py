@@ -65,6 +65,9 @@ def permanent_selector(text, storage, event):
     if "chan_selectors" not in storage:
         storage["chan_selectors"] = []
 
+    if "simple_selectors" not in storage:
+        storage["simple_selectors"] = []
+
     data = None
     try:
         data = selector.serialize()
@@ -76,6 +79,8 @@ def permanent_selector(text, storage, event):
         storage["role_selectors"].append(data)
     elif type(selector) == roddit.ChanSelector:
         storage["chan_selectors"].append(data)
+    elif type(selector) == carousel.RoleSelector:
+        storage["simple_selectors"].append(data)
 
     storage.sync()
 
@@ -92,7 +97,7 @@ def list_permanent_selectors(text, storage):
     if "role_selectors" not in storage:
         return retval
 
-    for data in list(storage["role_selectors"]) + list(storage["chan_selectors"]):
+    for data in list(storage["role_selectors"]) + list(storage["chan_selectors"]) + list(storage["simple_selectors"]):
         retval.append(
             dutils.return_message_link(data["server_id"], data["channel_id"], data["msg_id"]))
 
@@ -121,6 +126,13 @@ def del_permanent_selector(text, storage):
     for data in storage["chan_selectors"]:
         if data["msg_id"] == msg_id:
             storage["chan_selectors"].remove(data)
+            storage.sync()
+            break
+
+
+    for data in storage["simple_selectors"]:
+        if data["msg_id"] == msg_id:
+            storage["simple_selectors"].remove(data)
             storage.sync()
             break
 
@@ -154,4 +166,15 @@ async def rebuild_selectors(bot):
                     # Add it to the permanent message list
                     permanent_messages.append(selector)
                 except:
+                    print(element)
+
+        if "simple_selectors" in storage:
+            for element in storage["simple_selectors"]:
+                try:
+                    selector = await carousel.RoleSelector.deserialize(bot, element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except:
+                    import traceback
+                    traceback.print_exc()
                     print(element)
