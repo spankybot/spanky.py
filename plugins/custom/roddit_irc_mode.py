@@ -264,7 +264,7 @@ class ChanSelector(Selector):
 async def toggle_chan_presence(server, storage, chname, event, force_toggle):
     # Lookup channel
     target_chan, categ = get_irc_chan(
-        server, storage, chname)
+        server, storage, dutils.str_to_id(chname))
 
     if not target_chan:
         await event.async_send_message(
@@ -925,7 +925,7 @@ async def add_op(text, event, server, storage, reply):
         return
 
     await set_channel_op(event.channel, user)
-    save_server_cfg(server, storage)
+    await save_server_cfg(server, storage)
     reply("Done!")
 
 @hook.command(server_id=SRV)
@@ -954,7 +954,7 @@ async def remove_op(text, event, server, storage, reply):
         return
 
     await remove_from_overwrites(event.channel, user)
-    save_server_cfg(server, storage)
+    await save_server_cfg(server, storage)
     reply("Done!")
 
 @hook.command(server_id=SRV)
@@ -1067,9 +1067,9 @@ async def ban_member(text, event, server, storage, reply):
         # Remove private members
         await ignore_channel(event.channel, user)
 
-    save_server_cfg(server, storage)
+    await save_server_cfg(server, storage)
     add_to_banlist(storage, event.channel, user)
-    save_server_cfg(server, storage)
+    await save_server_cfg(server, storage)
     reply("Done")
 
 @hook.command(server_id=SRV)
@@ -1287,7 +1287,7 @@ async def create_channel(text, server, reply, storage):
 
     # Add the OP
     await set_channel_op(new_chan, user)
-    save_server_cfg(server, storage)
+    await save_server_cfg(server, storage)
 
 
 # @hook.command(permissions=Permission.admin, server_id=SRV)
