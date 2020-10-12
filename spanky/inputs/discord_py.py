@@ -785,6 +785,13 @@ class Server():
 
         print("Could not find role %s to delete" % role_name)
 
+    @property
+    def banner_url(self):
+        return self._raw.banner_url
+
+    async def set_banner(self, data):
+        await self._raw.edit(banner=data)
+
 class Role():
     hash = random.randint(0, 2 ** 31)
 
