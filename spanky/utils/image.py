@@ -35,6 +35,10 @@ class Image():
         self._url = url
         self._first_frame_sz = 0
 
+    @property
+    def url(self):
+        return self._url
+
     def append(self, img_data):
         """
         Append a frame to the raw data
@@ -184,7 +188,7 @@ class Image():
             # If download time exceeds the given timeout, exit
             if time.time() - start > timeout_sec:
                 print("Image %s took too long to download" % url)
-                raise
+                raise TimeoutError("Timeout error downloading %s" % url)
 
             content += chunk
             size += len(chunk)
@@ -192,7 +196,7 @@ class Image():
             # If the size eceeds the given maximum size, exit
             if size > max_size:
                 print("Image %s is too large" % url)
-                raise
+                raise PermissionError("Image too large")
 
         self.set_raw_data(content)
 
