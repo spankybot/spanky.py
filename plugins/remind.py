@@ -46,6 +46,7 @@ def remind_check_server(server, storage, send_pm):
         if elem["deadline"] < time_utils.tnow():
             # Remove it from list
             storage["remind"].remove(elem)
+            storage.sync()
 
             # Get target user
             target_user = dutils.get_user_by_id(server, elem["author"])
