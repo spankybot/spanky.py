@@ -21,6 +21,8 @@ class EventType(enum.Enum):
     reaction_add    = 11
     reaction_remove = 12
 
+    msg_bulk_del    = 13
+
     other = 99
     action = 100
 

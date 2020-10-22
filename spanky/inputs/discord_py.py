@@ -303,10 +303,15 @@ class EventMember(DiscordUtils):
         return None
 
 class EventMessage(DiscordUtils):
-    def __init__(self, event_type, message, before=None, deleted=False):
+    def __init__(self, event_type, message, before=None, deleted=False, messages=[]):
         self.type = event_type
 
-        self.msg = Message(message)
+        if message is not None:
+            self.msg = Message(message)
+        else:
+            self.msg = Message(messages[0])
+        self.msgs = [Message(message) for message in messages]
+        
         self.channel = Channel(message.channel)
         self.author = User(message.author)
 
@@ -346,6 +351,9 @@ class EventMessage(DiscordUtils):
 
     def get_msg(self):
         return self.msg
+
+    def get_msgs(self):
+        return self.msgs
 
     @property
     def attachments(self):
@@ -940,6 +948,10 @@ async def on_message_edit(before, after):
 @client.event
 async def on_message_delete(message):
     await call_func(bot.on_message_delete, message)
+
+@client.event
+async def on_bulk_message_delete(messages): 
+	await call_func(bot.on_bulk_message_delete, messages)
 
 @client.event
 async def on_message(message):
