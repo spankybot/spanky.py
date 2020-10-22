@@ -132,8 +132,14 @@ class Bot():
 # ----------------
 
     def on_message_delete(self, message):
-        """On message edit external hook"""
+        """On message delete external hook"""
         evt = self.input.EventMessage(EventType.message_del, message, deleted=True)
+
+        self.do_text_event(evt)
+	
+    def on_bulk_message_delete(self, messages):
+        """On message bulk delete external hook"""
+        evt = self.input.EventMessage(EventType.msg_bulk_del, messages[0], deleted=True, messages=messages)
 
         self.do_text_event(evt)
 

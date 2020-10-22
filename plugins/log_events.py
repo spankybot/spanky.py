@@ -134,6 +134,14 @@ def log_message_del(event, send_message, storage):
         event.author.id
         ))
 
+@hook.event(EventType.msg_bulk_del)
+def log_msg_blk_del(event, send_message, storage):
+	if event.channel.id in storage["chan_filter_list"]:
+		return 
+	
+	send_message(target=storage["evt_chan"],
+		text=f"`Bulk Delete in` {event.channel.name} `by` {event.author.name} / {event.author.id}")
+
 @hook.event(EventType.member_update)
 def log_member_update(event, send_message, storage):
     if set(event.before.member.roles) != set(event.after.member.roles):
