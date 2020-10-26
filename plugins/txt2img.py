@@ -86,7 +86,7 @@ def txt2img(text,event,send_file,reply):
         if(len(param) > 3 ):
             font_bg = param[3]
     except Error:
-            print("bg not found")
+            print("bg color not found")
     font+='.ttf'
     font = 'plugin_data/fonts/' + font
     image = text_image(strd,font,int(font_size),font_color,font_bg)
