@@ -15,7 +15,6 @@ PIXEL_ON = 0  # PIL color to use for "on"
 PIXEL_OFF = 255  # PIL color to use for "off"
 
 
-@hook.command()
 def text_image(
         string,
         font_path=None,
