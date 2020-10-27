@@ -20,7 +20,11 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-client = discord.Client()
+# Enable intents god damn it discord
+intents = discord.Intents.default()
+intents.members = True
+
+client = discord.Client(intents=intents)
 bot = None
 bot_replies = {}
 to_delete = {}
@@ -311,7 +315,7 @@ class EventMessage(DiscordUtils):
         else:
             self.msg = Message(messages[0])
         self.msgs = [Message(message) for message in messages]
-        
+
         self.channel = Channel(message.channel)
         self.author = User(message.author)
 
@@ -950,7 +954,7 @@ async def on_message_delete(message):
     await call_func(bot.on_message_delete, message)
 
 @client.event
-async def on_bulk_message_delete(messages): 
+async def on_bulk_message_delete(messages):
 	await call_func(bot.on_bulk_message_delete, messages)
 
 @client.event
