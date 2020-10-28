@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package spanky;
+
+service Spanky {
+    // When a client connects it exposes methods that the server can call
+    rpc NewPluginManager(NewPM) returns (AckPM) {}
+
+    // Set or update the command list for a plugin manager
+    rpc SetCommandList(ReqCmdList) returns (RespCmdList) {}
+
+    // Connect to the server and get stream of things to do
+    rpc HandleEvents(HandleEventsReq) returns (stream Event) {}
+}
+
+message NewPM {
+    string PluginMgrName = 1;
+}
+
+message AckPM {
+    string PluginMgrID = 1;
+}
+
+message ReqCmdList {
+    string PluginMgrID = 1;
+    repeated string CmdRequestList = 2;
+}
+
+message RespCmdList {
+    repeated string CmdResponseList = 1;
+}
+
+
+
+message HandleEventsReq {
+    string PluginMgrID = 1;
+}
+
+
+// message Command {
+//     Message msg = 1;
+//     Reaction react = 2;
+//     User user = 3;
+//     Channel chan = 4;
+// }
+
+// message WorkResponse {
+//     string workResult = 1;
+// }
+
+message Message {
+    string text = 1;
+    string id = 2;
+    string author_id = 3;
+    string server_id = 4;
+}
+
+// message Reaction { // TODO
+//     uint64 msg_id = 1;
+// }
+
+message Event {
+    enum EventType {
+        message         = 0;
+        message_edit    = 1;
+        message_del     = 2;
+        join            = 3;
+        part            = 4;
+        chan_del        = 5;
+        chan_add        = 6;
+        chan_upd        = 7;
+
+        member_ban      = 8;
+        member_unban    = 9;
+        member_update   = 10;
+
+        reaction_add    = 11;
+        reaction_remove = 12;
+
+        msg_bulk_del    = 13;
+
+        other = 99;
+    }
+    EventType event_type = 1;
+
+    oneof payload {
+        Message msg = 2;
+    }
+    // Reaction react = 3;
+    // User user = 4;
+    // Channel chan = 5;
+}
+
+// message User {
+//     string name = 1;
+//     int32 discriminator = 2;
+//     string nickname = 3;
+//     uint64 id = 4;
+// }

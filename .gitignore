@@ -1,0 +1,7 @@
+bot_config.json
+*.db
+*.pyc
+storage_data
+logs
+*.log
+.pyenv
