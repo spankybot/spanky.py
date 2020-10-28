@@ -14,7 +14,8 @@ logger = logging.getLogger('workerpy')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
@@ -53,9 +54,11 @@ class PluginManager():
 
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
-            success = self.launch(OnStartEvent(bot=self.bot, hook=on_start_hook))
+            success = self.launch(OnStartEvent(
+                bot=self.bot, hook=on_start_hook))
             if not success:
-                logger.warning("Not registering hooks from plugin {}: on_start hook errored".format(plugin.name))
+                logger.warning(
+                    "Not registering hooks from plugin {}: on_start hook errored".format(plugin.name))
 
                 # unregister databases
                 plugin.unregister_tables(self.db)
@@ -77,7 +80,6 @@ class PluginManager():
         #         self.launch(OnConnReadyEvent(
         #             bot=self.bot,
         #             hook=on_conn_ready_hook))
-
 
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
@@ -146,13 +148,14 @@ class PluginManager():
         parameters = []
 
         if "storage" in hook.required_args:
-            stor_name = hook.plugin.name.replace(".py", "").replace("/","_")
-            event.storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
+            stor_name = hook.plugin.name.replace(".py", "").replace("/", "_")
+            event.storage = event.permission_mgr.get_plugin_storage(
+                stor_name + ".json")
 
         if "storage_loc" in hook.required_args:
             event.storage_loc = \
                 event.permission_mgr.get_data_location(
-                    hook.plugin.name.replace(".py", "").replace("/","_"))
+                    hook.plugin.name.replace(".py", "").replace("/", "_"))
 
         if "cmd_args" in hook.required_args and hook.param_list is not None:
             event.cmd_args = map_params(event.text, hook.param_list)
@@ -186,7 +189,8 @@ class PluginManager():
             try:
                 await hook.function(*parameters)
             except:
-                import traceback; traceback.print_exc()
+                import traceback
+                traceback.print_exc()
 
         if not asyncio.iscoroutinefunction(hook.function):
             return hook.function(*parameters)
@@ -239,10 +243,12 @@ class PluginManager():
 
             # Ask the sieves to validate our command
             for sieve in self.sieves:
-                args = {"bot": self.bot, "bot_event":launch_event}
+                args = {"bot": self.bot, "bot_event": launch_event}
                 if "storage" in sieve.required_args:
-                    stor_name = sieve.plugin.name.replace(".py", "").replace("/","_")
-                    storage = launch_event.permission_mgr.get_plugin_storage(stor_name + ".json")
+                    stor_name = sieve.plugin.name.replace(
+                        ".py", "").replace("/", "_")
+                    storage = launch_event.permission_mgr.get_plugin_storage(
+                        stor_name + ".json")
                     args["storage"] = storage
                 can_run, msg = sieve.function(**args)
                 if msg:
@@ -311,7 +317,8 @@ class PluginManager():
                 for trigger in raw_hook.triggers:
                     assert trigger in self.raw_triggers  # this can't be not true
                     self.raw_triggers[trigger].remove(raw_hook)
-                    if not self.raw_triggers[trigger]:  # if that was the last hook for this trigger
+                    # if that was the last hook for this trigger
+                    if not self.raw_triggers[trigger]:
                         del self.raw_triggers[trigger]
 
         # unregister events
@@ -319,7 +326,8 @@ class PluginManager():
             for event_type in event_hook.types:
                 assert event_type in self.event_type_hooks  # this can't be not true
                 self.event_type_hooks[event_type].remove(event_hook)
-                if not self.event_type_hooks[event_type]:  # if that was the last hook for this event type
+                # if that was the last hook for this event type
+                if not self.event_type_hooks[event_type]:
                     del self.event_type_hooks[event_type]
 
         # unregister regexps
@@ -379,7 +387,7 @@ class PluginManager():
             return plugin_module
         except Exception as e:
             import traceback
-            logger.debug("Error loading %s:\n\t%s" %(fname, e))
+            logger.debug("Error loading %s:\n\t%s" % (fname, e))
             traceback.print_exc()
             return None
 
@@ -396,6 +404,7 @@ class PluginManager():
                 plugin_dict[file] = Plugin(file, plugin_data)
 
         return plugin_dict
+
 
 class Plugin():
     def __init__(self, name, module):

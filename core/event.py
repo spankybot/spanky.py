@@ -3,28 +3,30 @@ import logging
 
 logger = logging.getLogger("spanky")
 
+
 @enum.unique
 class EventType(enum.Enum):
-    message         = 0
-    message_edit    = 1
-    message_del     = 2
-    join            = 3
-    part            = 4
-    chan_del        = 5
-    chan_add        = 6
-    chan_upd        = 7
+    message = 0
+    message_edit = 1
+    message_del = 2
+    join = 3
+    part = 4
+    chan_del = 5
+    chan_add = 6
+    chan_upd = 7
 
-    member_ban      = 8
-    member_unban    = 9
-    member_update   = 10
+    member_ban = 8
+    member_unban = 9
+    member_update = 10
 
-    reaction_add    = 11
+    reaction_add = 11
     reaction_remove = 12
 
-    msg_bulk_del    = 13
+    msg_bulk_del = 13
 
     other = 99
     action = 100
+
 
 class BaseEvent():
     def __init__(self, bot):
@@ -40,7 +42,8 @@ class BaseEvent():
             raise ValueError("event.hook is required to prepare an event")
 
         if "db" in self.hook.required_args:
-            logger.debug("Opening database session for {}:threaded=True".format(self.hook.description))
+            logger.debug("Opening database session for {}:threaded=True".format(
+                self.hook.description))
 
             self.db = self.db.db_session()
 
@@ -63,16 +66,18 @@ class BaseEvent():
             self.db = None
 
     def reply(self, text):
-        self.event.reply(text)
+        self.bot.send_message(text, self.channel_id)
+
 
 class TextEvent(BaseEvent):
-    def __init__(self, hook, text, triggered_command, event, bot, permission_mgr):
+    def __init__(self, hook, text, triggered_command, event, bot, permission_mgr, channel_id):
         super().__init__(bot)
         self.hook = hook
         self.text = text
         self.triggered_command = triggered_command
         self.event = event
         self.permission_mgr = permission_mgr
+        self.channel_id = channel_id
 
         self.doc = self.hook.doc
 
@@ -82,10 +87,12 @@ class TextEvent(BaseEvent):
         """
         self.notice("unimplemented docstring", target=target)
 
+
 class OnStartEvent(BaseEvent):
     def __init__(self, bot, hook):
         super().__init__(bot)
         self.hook = hook
+
 
 class OnReadyEvent(BaseEvent):
     def __init__(self, bot, hook, permission_mgr, server):
@@ -95,11 +102,13 @@ class OnReadyEvent(BaseEvent):
         self.server = server
         self.event = None
 
+
 class OnConnReadyEvent(BaseEvent):
     def __init__(self, bot, hook):
         super().__init__(bot)
         self.hook = hook
         self.event = None
+
 
 class TimeEvent(BaseEvent):
     def __init__(self, bot, hook, event):
@@ -107,12 +116,14 @@ class TimeEvent(BaseEvent):
         self.hook = hook
         self.event = event
 
+
 class HookEvent(BaseEvent):
     def __init__(self, bot, hook, event, permission_mgr):
         super().__init__(bot)
         self.hook = hook
         self.event = event
         self.permission_mgr = permission_mgr
+
 
 class RegexEvent(BaseEvent):
     """
