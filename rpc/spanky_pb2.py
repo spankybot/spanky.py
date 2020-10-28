@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x10rpc/spanky.proto\x12\x06spanky\"\x1e\n\x05NewPM\x12\x15\n\rPluginMgrName\x18\x01 \x01(\t\"\x1c\n\x05\x41\x63kPM\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"9\n\nReqCmdList\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x16\n\x0e\x43mdRequestList\x18\x02 \x03(\t\"&\n\x0bRespCmdList\x12\x17\n\x0f\x43mdResponseList\x18\x01 \x03(\t\"&\n\x0fHandleEventsReq\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"I\n\x07Message\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x11\n\tauthor_id\x18\x03 \x01(\t\x12\x11\n\tserver_id\x18\x04 \x01(\t\"\xd4\x02\n\x05\x45vent\x12+\n\nevent_type\x18\x01 \x01(\x0e\x32\x17.spanky.Event.EventType\x12\x1e\n\x03msg\x18\x02 \x01(\x0b\x32\x0f.spanky.MessageH\x00\"\xf2\x01\n\tEventType\x12\x0b\n\x07message\x10\x00\x12\x10\n\x0cmessage_edit\x10\x01\x12\x0f\n\x0bmessage_del\x10\x02\x12\x08\n\x04join\x10\x03\x12\x08\n\x04part\x10\x04\x12\x0c\n\x08\x63han_del\x10\x05\x12\x0c\n\x08\x63han_add\x10\x06\x12\x0c\n\x08\x63han_upd\x10\x07\x12\x0e\n\nmember_ban\x10\x08\x12\x10\n\x0cmember_unban\x10\t\x12\x11\n\rmember_update\x10\n\x12\x10\n\x0creaction_add\x10\x0b\x12\x13\n\x0freaction_remove\x10\x0c\x12\x10\n\x0cmsg_bulk_del\x10\r\x12\t\n\x05other\x10\x63\x42\t\n\x07payload2\xb5\x01\n\x06Spanky\x12\x32\n\x10NewPluginManager\x12\r.spanky.NewPM\x1a\r.spanky.AckPM\"\x00\x12;\n\x0eSetCommandList\x12\x12.spanky.ReqCmdList\x1a\x13.spanky.RespCmdList\"\x00\x12:\n\x0cHandleEvents\x12\x17.spanky.HandleEventsReq\x1a\r.spanky.Event\"\x00\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x10rpc/spanky.proto\x12\x06spanky\".\n\x0bSentMessage\x12\x11\n\tChannelID\x18\x01 \x01(\x04\x12\x0c\n\x04Text\x18\x03 \x01(\t\"\x1a\n\x0cSendResponse\x12\n\n\x02ID\x18\x01 \x01(\x04\"\x1e\n\x05NewPM\x12\x15\n\rPluginMgrName\x18\x01 \x01(\t\"\x1c\n\x05\x41\x63kPM\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"9\n\nReqCmdList\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x16\n\x0e\x43mdRequestList\x18\x02 \x03(\t\"&\n\x0bRespCmdList\x12\x17\n\x0f\x43mdResponseList\x18\x01 \x03(\t\"&\n\x0fHandleEventsReq\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"I\n\x07Message\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x11\n\tauthor_id\x18\x03 \x01(\t\x12\x11\n\tserver_id\x18\x04 \x01(\t\"\xd4\x02\n\x05\x45vent\x12+\n\nevent_type\x18\x01 \x01(\x0e\x32\x17.spanky.Event.EventType\x12\x1e\n\x03msg\x18\x02 \x01(\x0b\x32\x0f.spanky.MessageH\x00\"\xf2\x01\n\tEventType\x12\x0b\n\x07message\x10\x00\x12\x10\n\x0cmessage_edit\x10\x01\x12\x0f\n\x0bmessage_del\x10\x02\x12\x08\n\x04join\x10\x03\x12\x08\n\x04part\x10\x04\x12\x0c\n\x08\x63han_del\x10\x05\x12\x0c\n\x08\x63han_add\x10\x06\x12\x0c\n\x08\x63han_upd\x10\x07\x12\x0e\n\nmember_ban\x10\x08\x12\x10\n\x0cmember_unban\x10\t\x12\x11\n\rmember_update\x10\n\x12\x10\n\x0creaction_add\x10\x0b\x12\x13\n\x0freaction_remove\x10\x0c\x12\x10\n\x0cmsg_bulk_del\x10\r\x12\t\n\x05other\x10\x63\x42\t\n\x07payload2\xf1\x01\n\x06Spanky\x12\x32\n\x10NewPluginManager\x12\r.spanky.NewPM\x1a\r.spanky.AckPM\"\x00\x12;\n\x0eSetCommandList\x12\x12.spanky.ReqCmdList\x1a\x13.spanky.RespCmdList\"\x00\x12:\n\x0bSendMessage\x12\x13.spanky.SentMessage\x1a\x14.spanky.SendResponse\"\x00\x12:\n\x0cHandleEvents\x12\x17.spanky.HandleEventsReq\x1a\r.spanky.Event\"\x00\x30\x01\x62\x06proto3'
 )
 
 
@@ -109,10 +109,81 @@ _EVENT_EVENTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=392,
-  serialized_end=634,
+  serialized_start=468,
+  serialized_end=710,
 )
 _sym_db.RegisterEnumDescriptor(_EVENT_EVENTTYPE)
+
+
+_SENTMESSAGE = _descriptor.Descriptor(
+  name='SentMessage',
+  full_name='spanky.SentMessage',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ChannelID', full_name='spanky.SentMessage.ChannelID', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='Text', full_name='spanky.SentMessage.Text', index=1,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=28,
+  serialized_end=74,
+)
+
+
+_SENDRESPONSE = _descriptor.Descriptor(
+  name='SendResponse',
+  full_name='spanky.SendResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ID', full_name='spanky.SendResponse.ID', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=76,
+  serialized_end=102,
+)
 
 
 _NEWPM = _descriptor.Descriptor(
@@ -142,8 +213,8 @@ _NEWPM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=28,
-  serialized_end=58,
+  serialized_start=104,
+  serialized_end=134,
 )
 
 
@@ -174,8 +245,8 @@ _ACKPM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=60,
-  serialized_end=88,
+  serialized_start=136,
+  serialized_end=164,
 )
 
 
@@ -213,8 +284,8 @@ _REQCMDLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=90,
-  serialized_end=147,
+  serialized_start=166,
+  serialized_end=223,
 )
 
 
@@ -245,8 +316,8 @@ _RESPCMDLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=149,
-  serialized_end=187,
+  serialized_start=225,
+  serialized_end=263,
 )
 
 
@@ -277,8 +348,8 @@ _HANDLEEVENTSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=189,
-  serialized_end=227,
+  serialized_start=265,
+  serialized_end=303,
 )
 
 
@@ -330,8 +401,8 @@ _MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=229,
-  serialized_end=302,
+  serialized_start=305,
+  serialized_end=378,
 )
 
 
@@ -375,8 +446,8 @@ _EVENT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=305,
-  serialized_end=645,
+  serialized_start=381,
+  serialized_end=721,
 )
 
 _EVENT.fields_by_name['event_type'].enum_type = _EVENT_EVENTTYPE
@@ -385,6 +456,8 @@ _EVENT_EVENTTYPE.containing_type = _EVENT
 _EVENT.oneofs_by_name['payload'].fields.append(
   _EVENT.fields_by_name['msg'])
 _EVENT.fields_by_name['msg'].containing_oneof = _EVENT.oneofs_by_name['payload']
+DESCRIPTOR.message_types_by_name['SentMessage'] = _SENTMESSAGE
+DESCRIPTOR.message_types_by_name['SendResponse'] = _SENDRESPONSE
 DESCRIPTOR.message_types_by_name['NewPM'] = _NEWPM
 DESCRIPTOR.message_types_by_name['AckPM'] = _ACKPM
 DESCRIPTOR.message_types_by_name['ReqCmdList'] = _REQCMDLIST
@@ -393,6 +466,20 @@ DESCRIPTOR.message_types_by_name['HandleEventsReq'] = _HANDLEEVENTSREQ
 DESCRIPTOR.message_types_by_name['Message'] = _MESSAGE
 DESCRIPTOR.message_types_by_name['Event'] = _EVENT
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+SentMessage = _reflection.GeneratedProtocolMessageType('SentMessage', (_message.Message,), {
+  'DESCRIPTOR' : _SENTMESSAGE,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.SentMessage)
+  })
+_sym_db.RegisterMessage(SentMessage)
+
+SendResponse = _reflection.GeneratedProtocolMessageType('SendResponse', (_message.Message,), {
+  'DESCRIPTOR' : _SENDRESPONSE,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.SendResponse)
+  })
+_sym_db.RegisterMessage(SendResponse)
 
 NewPM = _reflection.GeneratedProtocolMessageType('NewPM', (_message.Message,), {
   'DESCRIPTOR' : _NEWPM,
@@ -452,8 +539,8 @@ _SPANKY = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=648,
-  serialized_end=829,
+  serialized_start=724,
+  serialized_end=965,
   methods=[
   _descriptor.MethodDescriptor(
     name='NewPluginManager',
@@ -476,9 +563,19 @@ _SPANKY = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='SendMessage',
+    full_name='spanky.Spanky.SendMessage',
+    index=2,
+    containing_service=None,
+    input_type=_SENTMESSAGE,
+    output_type=_SENDRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='HandleEvents',
     full_name='spanky.Spanky.HandleEvents',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_HANDLEEVENTSREQ,
     output_type=_EVENT,

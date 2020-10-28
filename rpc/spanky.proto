@@ -9,8 +9,20 @@ service Spanky {
     // Set or update the command list for a plugin manager
     rpc SetCommandList(ReqCmdList) returns (RespCmdList) {}
 
+	// Send message to specified channel
+	rpc SendMessage(SentMessage) returns (SendResponse) {}
+
     // Connect to the server and get stream of things to do
     rpc HandleEvents(HandleEventsReq) returns (stream Event) {}
+}
+
+message SentMessage {
+	uint64 ChannelID = 1;
+	string Text = 3;
+}
+
+message SendResponse {
+	uint64 ID = 1;
 }
 
 message NewPM {

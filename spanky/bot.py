@@ -17,7 +17,8 @@ logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 audit = logging.getLogger("audit")
@@ -28,16 +29,13 @@ fh = logging.FileHandler('audit.log')
 fh.setLevel(logging.DEBUG)
 audit.addHandler(fh)
 
+
 class Servicer(SpankyServicer):
-    def __init__(self):
+    def __init__(self, backend):
         super().__init__()
 
         self.work_queue = asyncio.Queue()
-
-    async def ExposeMethods(self, request, context):
-        print(request)
-
-        return spanky_pb2.AckCli(methods="plm")
+        self.backend = backend
 
     async def NewPluginManager(self, request, context):
         logger.info(f"New plugin manager registered: {request.PluginMgrName}")
@@ -45,29 +43,43 @@ class Servicer(SpankyServicer):
             PluginMgrID="plm")
 
     async def SetCommandList(self, request, context):
-        logger.info(f"Plugin manager with ID {request.PluginMgrID} exposes: {request.CmdRequestList}")
+        logger.info(
+            f"Plugin manager with ID {request.PluginMgrID} exposes: {request.CmdRequestList}")
         return spanky_pb2.RespCmdList(
             CmdResponseList=request.CmdRequestList)
+
+    async def SendMessage(self, request, context):
+        """Send message to specified channel
+        """
+
+        logger.Info(
+            f"Trying to send message: {request.Text} in channel {request.ChannelID}")
+
+        channel = self.backend.client.get_channel(request.ChannelID)
+        msg = await channel.send(content=request.Text)
+
+        spanky_pb2.SentMessage()
+        return spanky_pb2.SentMessage(ID=msg.id)
 
     async def HandleEvents(self, request, context):
         while True:
             evt = await self.work_queue.get()
 
             yield spanky_pb2.Event(
-                    event_type=spanky_pb2.Event.EventType.message,
-                    msg=spanky_pb2.Message(
-                        text=evt.msg.text,
-                        id=evt.msg.id,
-                        author_id=evt.author.id,
-                        server_id=evt.server.id,
-                    )
+                event_type=spanky_pb2.Event.EventType.message,
+                msg=spanky_pb2.Message(
+                    text=evt.msg.text,
+                    id=evt.msg.id,
+                    author_id=evt.author.id,
+                    server_id=evt.server.id,
                 )
+            )
 
 
 class Bot():
-    async def init_grpc_server(self):
+    async def init_grpc_server(self, backend):
         server = grpc.aio.server()
-        servicer = Servicer()
+        servicer = Servicer(backend=backend)
         add_SpankyServicer_to_server(servicer, server)
 
         server.add_insecure_port("[::]:5151")
@@ -98,15 +110,17 @@ class Bot():
             sys.exit(1)
 
     async def start(self):
-        # Initialize the GRPC server
-        self.rpc_server, self.servicer = await self.init_grpc_server()
-        asyncio.run_coroutine_threadsafe(self.rpc_server.wait_for_termination(), self.loop)
 
         # Initialize the backend module
         logger.info("Starting backend")
         self.backend = self.input.Init(self)
         await self.backend.do_init()
         logger.info("Started backend")
+
+        # Initialize the GRPC server
+        self.rpc_server, self.servicer = await self.init_grpc_server(backend=self.backend)
+        asyncio.run_coroutine_threadsafe(
+            self.rpc_server.wait_for_termination(), self.loop)
 
     def run_on_ready_work(self):
         return
@@ -123,9 +137,9 @@ class Bot():
         # Run on connection ready hooks
         for on_conn_ready in self.plugin_manager.run_on_conn_ready:
             self.plugin_manager.launch(
-                    OnConnReadyEvent(
-                        bot=self,
-                        hook=on_conn_ready))
+                OnConnReadyEvent(
+                    bot=self,
+                    hook=on_conn_ready))
 
     def ready(self):
         return
@@ -188,13 +202,15 @@ class Bot():
 
     def on_message_delete(self, message):
         """On message delete external hook"""
-        evt = self.input.EventMessage(EventType.message_del, message, deleted=True)
+        evt = self.input.EventMessage(
+            EventType.message_del, message, deleted=True)
 
         self.do_text_event(evt)
 
     def on_bulk_message_delete(self, messages):
         """On message bulk delete external hook"""
-        evt = self.input.EventMessage(EventType.msg_bulk_del, messages[0], deleted=True, messages=messages)
+        evt = self.input.EventMessage(
+            EventType.msg_bulk_del, messages[0], deleted=True, messages=messages)
 
         self.do_text_event(evt)
 
@@ -206,15 +222,17 @@ class Bot():
 
     async def on_message(self, message):
         """On message external hook"""
-        evt = self.input.EventMessage(spanky_pb2.Event.EventType.message, message)
+        evt = self.input.EventMessage(
+            spanky_pb2.Event.EventType.message, message)
         await self.servicer.work_queue.put(evt)
-        #self.do_text_event(evt)
+        # self.do_text_event(evt)
 
 # ----------------
 # Member events
 # ----------------
     def on_member_update(self, before, after):
-        evt = self.input.EventMember(EventType.member_update, member=before, member_after=after)
+        evt = self.input.EventMember(
+            EventType.member_update, member=before, member_after=after)
         self.do_non_text_event(evt)
 
     def on_member_join(self, member):
@@ -235,13 +253,14 @@ class Bot():
 # Reaction events
 # ----------------
     def on_reaction_add(self, reaction, user):
-        evt = self.input.EventReact(EventType.reaction_add, user=user, reaction=reaction)
+        evt = self.input.EventReact(
+            EventType.reaction_add, user=user, reaction=reaction)
         self.do_non_text_event(evt)
 
     def on_reaction_remove(self, reaction, user):
-        evt = self.input.EventReact(EventType.reaction_remove, user=user, reaction=reaction)
+        evt = self.input.EventReact(
+            EventType.reaction_remove, user=user, reaction=reaction)
         self.do_non_text_event(evt)
-
 
     def run_type_events(self, event):
         # Raw hooks
@@ -285,64 +304,45 @@ class Bot():
         if event.author.bot or not event.do_trigger:
             return
 
-        piped_cmds = []
         # Check if the command starts with .
-        if len(event.msg.text) > 0 and event.msg.text[0] == ".":
-            # Check if commands are piped
-            piped_cmds = event.msg.text.split("|")
-
-            # Check that each piped split is a command
-            for pos, piped_cmd in enumerate(piped_cmds):
-                if len(piped_cmd) == 0 or piped_cmd.lstrip()[0] != ".":
-                    piped_cmds = [event.msg.text]
-                    is_piped = False
-                    break
-
-                # Clean up the text if it starts with spaces
-                piped_cmds[pos] = piped_cmd.lstrip()
-        else:
+        if not (len(event.msg.text) > 0 and event.msg.text[0] == "."):
             return
 
-        for cmd_text in piped_cmds:
-            # Get the actual command
-            cmd_split = cmd_text[1:].split(maxsplit=1)
+        cmd_text = event.msg.text
 
-            command = cmd_split[0]
-            logger.debug("Got command %s" % str(command))
+        # Get the actual command
+        cmd_split = cmd_text[1:].split(maxsplit=1)
 
-            # Check if it's in the command list
-            if command in self.plugin_manager.commands.keys():
-                hook = self.plugin_manager.commands[command]
+        command = cmd_split[0]
+        logger.debug("Got command %s" % str(command))
 
-                if len(cmd_split) > 1:
-                    event_text = cmd_split[1]
-                else:
-                    event_text = ""
+        # Check if it's in the command list
+        if command in self.plugin_manager.commands.keys():
+            hook = self.plugin_manager.commands[command]
 
-                text_event = TextEvent(
-                    hook=hook,
-                    text=event_text,
-                    triggered_command=command,
-                    event=event,
-                    bot=self,
-                    permission_mgr=self.get_pmgr(event.server.id))
+            if len(cmd_split) > 1:
+                event_text = cmd_split[1]
+            else:
+                event_text = ""
 
-                # Log audit data
-                audit.info("[%s][%s][%s] / <%s> %s" % (
-                    event.server.name,
-                    event.msg.id,
-                    event.channel.name,
-                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                    event.text))
-                self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
+            text_event = TextEvent(
+                hook=hook,
+                text=event_text,
+                triggered_command=command,
+                event=event,
+                bot=self,
+                permission_mgr=self.get_pmgr(event.server.id))
 
-        # Regex hooks
-        for regex, regex_hook in self.plugin_manager.regex_hooks:
-            regex_match = regex.search(event.msg.text)
-            if regex_match:
-                regex_event = RegexEvent(bot=self, hook=regex_hook, match=regex_match, event=event)
-                thread = threading.Thread(target=self.plugin_manager.launch, args=(regex_event,))
-                thread.start()
+            # Log audit data
+            audit.info("[%s][%s][%s] / <%s> %s" % (
+                event.server.name,
+                event.msg.id,
+                event.channel.name,
+                event.author.name + "/" +
+                str(event.author.id) + "/" + event.author.nick,
+                event.text))
+            self.run_in_thread(
+                target=self.plugin_manager.launch, args=(text_event,))
 
     def on_periodic(self):
         if not self.is_ready:
@@ -358,5 +358,15 @@ class Bot():
                     event = TimeEvent(bot=self, hook=periodic, event=t_event)
 
                     # TODO account for these
-                    thread = threading.Thread(target=self.plugin_manager.launch, args=(event,))
+                    thread = threading.Thread(
+                        target=self.plugin_manager.launch, args=(event,))
                     thread.start()
+
+    def dispatch_text_event(self, message):
+        pass
+
+    def dispatch_react_event(self, react):
+        pass
+
+    def dispatch_time_event(self, timer):
+        pass
