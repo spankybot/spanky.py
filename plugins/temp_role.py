@@ -194,7 +194,7 @@ async def userhistory(text, storage, async_send_message, server):
 
     try:
         # Get the user
-        user_id = str_to_id(text)
+        user_id = dutils.str_to_id(text)
 
         # Get reasons
         usr_hist = get_reasons(text, storage, user_id)
