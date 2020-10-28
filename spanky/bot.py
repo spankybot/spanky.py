@@ -52,14 +52,13 @@ class Servicer(SpankyServicer):
         """Send message to specified channel
         """
 
-        logger.Info(
-            f"Trying to send message: {request.Text} in channel {request.ChannelID}")
+        logger.info(
+            f"Trying to send message: {request.text} in channel {request.channel_id}")
 
-        channel = self.backend.client.get_channel(request.ChannelID)
-        msg = await channel.send(content=request.Text)
+        channel = self.backend.client.get_channel(request.channel_id)
+        msg = await channel.send(content=request.text)
 
-        spanky_pb2.SentMessage()
-        return spanky_pb2.SentMessage(ID=msg.id)
+        return spanky_pb2.SendResponse(id=int(msg.id))
 
     async def HandleEvents(self, request, context):
         while True:
@@ -69,9 +68,10 @@ class Servicer(SpankyServicer):
                 event_type=spanky_pb2.Event.EventType.message,
                 msg=spanky_pb2.Message(
                     text=evt.msg.text,
-                    id=evt.msg.id,
-                    author_id=evt.author.id,
-                    server_id=evt.server.id,
+                    id=int(evt.msg.id),
+                    author_id=int(evt.author.id),
+                    server_id=int(evt.server.id),
+                    channel_id=int(evt.channel.id)
                 )
             )
 
@@ -82,7 +82,7 @@ class Bot():
         servicer = Servicer(backend=backend)
         add_SpankyServicer_to_server(servicer, server)
 
-        server.add_insecure_port("[::]:5151")
+        server.add_insecure_port("localhost:5151")
         await server.start()
         logger.info("Started GRPC server")
 
@@ -114,13 +114,15 @@ class Bot():
         # Initialize the backend module
         logger.info("Starting backend")
         self.backend = self.input.Init(self)
-        await self.backend.do_init()
-        logger.info("Started backend")
-
+        
         # Initialize the GRPC server
         self.rpc_server, self.servicer = await self.init_grpc_server(backend=self.backend)
         asyncio.run_coroutine_threadsafe(
             self.rpc_server.wait_for_termination(), self.loop)
+        
+        await self.backend.do_init()
+        logger.info("Started backend")
+
 
     def run_on_ready_work(self):
         return

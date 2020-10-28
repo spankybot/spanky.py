@@ -17,12 +17,12 @@ service Spanky {
 }
 
 message SentMessage {
-	uint64 ChannelID = 1;
-	string Text = 3;
+	uint64 channel_id = 1;
+	string text = 3;
 }
 
 message SendResponse {
-	uint64 ID = 1;
+	uint64 id = 1;
 }
 
 message NewPM {
@@ -62,9 +62,10 @@ message HandleEventsReq {
 
 message Message {
     string text = 1;
-    string id = 2;
-    string author_id = 3;
-    string server_id = 4;
+    uint64 id = 2;
+    uint64 author_id = 3;
+    uint64 server_id = 4;
+	uint64 channel_id = 5;
 }
 
 // message Reaction { // TODO
