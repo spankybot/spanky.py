@@ -140,7 +140,7 @@ def log_msg_blk_del(event, send_message, storage):
 		return 
 	
 	send_message(target=storage["evt_chan"],
-		text=f"`Bulk Delete in` {event.channel.name} `by` {event.author.name} / {event.author.id}")
+		text=f"`Bulk Delete ` {len(event.msgs)} ` in` {event.channel.name} `by` {event.author.name} / {event.author.id}")
 
 @hook.event(EventType.member_update)
 def log_member_update(event, send_message, storage):

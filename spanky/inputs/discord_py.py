@@ -154,7 +154,7 @@ class DiscordUtils(abc.ABC):
         elif embed:
             await msg._raw.edit(embed=embed)
 
-    async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0, check_old=True):
+    async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0, check_old=True, allowed_mentions=allowed_mentions):
         # Get target, if given
         channel = self.get_channel(target, server)
 
@@ -175,9 +175,9 @@ class DiscordUtils(abc.ABC):
                 if old_reply and old_reply._raw.channel.id == channel.id:
                     # Send the message
                     if text != None:
-                        await old_reply._raw.edit(content=text)
+                        await old_reply._raw.edit(content=text, allowed_mentions=allowed_mentions)
                     elif embed != None:
-                        await old_reply._raw.edit(embed=embed)
+                        await old_reply._raw.edit(embed=embed, allowed_mentions=allowed_mentions)
                     # Register the bot reply
                     #add_bot_reply(self.get_server().id, self.msg, msg)
 
@@ -185,9 +185,9 @@ class DiscordUtils(abc.ABC):
 
             # Send anything that we should send
             if text != None:
-                msg = Message(await channel.send(text), timeout)
+                msg = Message(await channel.send(text, allowed_mentions=allowed_mentions), timeout)
             elif embed != None:
-                msg = Message(await channel.send(text, embed=embed), timeout)
+                msg = Message(await channel.send(text, embed=embed, allowed_mentions=allowed_mentions), timeout)
 
             # Add the bot reply
             if msg:

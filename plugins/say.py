@@ -1,10 +1,11 @@
 import spanky.utils.discord_utils as dutils
+from discord import AllowedMentions
 
 from spanky.plugin.permissions import Permission
 from spanky.plugin import hook, permissions
 
 @hook.command(permissions=Permission.admin)
-def say(text, server, event, send_message):
+async def say(text, server, event, async_send_message):
     """
     <channel message> - Send a message to a channel
     """
@@ -16,4 +17,4 @@ def say(text, server, event, send_message):
 
     print(channel.name)
 
-    send_message(text=data[1], target=channel.id)
+    await async_send_message(text=data[1], target=channel.id, allowed_mentions=AllowedMentions.all())
