@@ -24,7 +24,9 @@ logger.addHandler(handler)
 intents = discord.Intents.default()
 intents.members = True
 
-client = discord.Client(intents=intents)
+allowed_mentions = discord.AllowedMentions(everyone=False, users=True, roles=True)
+
+client = discord.Client(intents=intents, allowed_mentions=allowed_mentions)
 bot = None
 bot_replies = {}
 to_delete = {}
@@ -155,13 +157,6 @@ class DiscordUtils(abc.ABC):
     async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0, check_old=True):
         # Get target, if given
         channel = self.get_channel(target, server)
-
-        # Avoid @here and @everyone
-        # TODO remove user ID hack
-        if text != None and ("@here" in text or "@everyone" in text):
-            await self.async_send_pm("User tried using: `%s` in <#%s> " %
-                (text, channel.id), self.user_id_to_object("278247547838136320"))
-            return
 
         # If no target was found, exit
         if not channel:
