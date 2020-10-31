@@ -1,4 +1,4 @@
-from spanky.bot import Bot
+from bot import Bot
 
 bot = Bot("discord_py")
 bot.loop.run_until_complete(bot.start())

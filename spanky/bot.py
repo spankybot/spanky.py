@@ -101,7 +101,7 @@ class Bot():
 
         # Import the backend
         try:
-            module = importlib.import_module("spanky.inputs.%s" % input_type)
+            module = importlib.import_module("inputs.%s" % input_type)
             self.input = module
         except:
             import traceback
@@ -114,12 +114,12 @@ class Bot():
         # Initialize the backend module
         logger.info("Starting backend")
         self.backend = self.input.Init(self)
-        
+
         # Initialize the GRPC server
         self.rpc_server, self.servicer = await self.init_grpc_server(backend=self.backend)
         asyncio.run_coroutine_threadsafe(
             self.rpc_server.wait_for_termination(), self.loop)
-        
+
         await self.backend.do_init()
         logger.info("Started backend")
 
