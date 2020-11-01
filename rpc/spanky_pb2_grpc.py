@@ -26,13 +26,18 @@ class SpankyStub(object):
                 )
         self.SendMessage = channel.unary_unary(
                 '/spanky.Spanky/SendMessage',
-                request_serializer=rpc_dot_spanky__pb2.SentMessage.SerializeToString,
-                response_deserializer=rpc_dot_spanky__pb2.SendResponse.FromString,
+                request_serializer=rpc_dot_spanky__pb2.OutgoingMessage.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
                 )
-        self.HandleEvents = channel.unary_stream(
-                '/spanky.Spanky/HandleEvents',
-                request_serializer=rpc_dot_spanky__pb2.HandleEventsReq.SerializeToString,
+        self.GetEvent = channel.unary_stream(
+                '/spanky.Spanky/GetEvent',
+                request_serializer=rpc_dot_spanky__pb2.GetEventReq.SerializeToString,
                 response_deserializer=rpc_dot_spanky__pb2.Event.FromString,
+                )
+        self.GetServers = channel.unary_unary(
+                '/spanky.Spanky/GetServers',
+                request_serializer=rpc_dot_spanky__pb2.AckPM.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.RespServers.FromString,
                 )
 
 
@@ -60,8 +65,15 @@ class SpankyServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def HandleEvents(self, request, context):
-        """Connect to the server and get stream of things to do
+    def GetEvent(self, request, context):
+        """Interface that streams events
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetServers(self, request, context):
+        """Get server list
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -82,13 +94,18 @@ def add_SpankyServicer_to_server(servicer, server):
             ),
             'SendMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.SendMessage,
-                    request_deserializer=rpc_dot_spanky__pb2.SentMessage.FromString,
-                    response_serializer=rpc_dot_spanky__pb2.SendResponse.SerializeToString,
+                    request_deserializer=rpc_dot_spanky__pb2.OutgoingMessage.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
             ),
-            'HandleEvents': grpc.unary_stream_rpc_method_handler(
-                    servicer.HandleEvents,
-                    request_deserializer=rpc_dot_spanky__pb2.HandleEventsReq.FromString,
+            'GetEvent': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetEvent,
+                    request_deserializer=rpc_dot_spanky__pb2.GetEventReq.FromString,
                     response_serializer=rpc_dot_spanky__pb2.Event.SerializeToString,
+            ),
+            'GetServers': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetServers,
+                    request_deserializer=rpc_dot_spanky__pb2.AckPM.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.RespServers.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -146,13 +163,13 @@ class Spanky(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/SendMessage',
-            rpc_dot_spanky__pb2.SentMessage.SerializeToString,
-            rpc_dot_spanky__pb2.SendResponse.FromString,
+            rpc_dot_spanky__pb2.OutgoingMessage.SerializeToString,
+            rpc_dot_spanky__pb2.SomeObjectID.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def HandleEvents(request,
+    def GetEvent(request,
             target,
             options=(),
             channel_credentials=None,
@@ -162,8 +179,25 @@ class Spanky(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/spanky.Spanky/HandleEvents',
-            rpc_dot_spanky__pb2.HandleEventsReq.SerializeToString,
+        return grpc.experimental.unary_stream(request, target, '/spanky.Spanky/GetEvent',
+            rpc_dot_spanky__pb2.GetEventReq.SerializeToString,
             rpc_dot_spanky__pb2.Event.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetServers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetServers',
+            rpc_dot_spanky__pb2.AckPM.SerializeToString,
+            rpc_dot_spanky__pb2.RespServers.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

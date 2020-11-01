@@ -275,8 +275,17 @@ def find_hooks(parent, module):
     on_start = []
     on_ready = []
     on_conn_ready = []
-    type_lists = {"command": command, "regex": regex, "msg_raw": raw, "sieve": sieve, "event": event,
-                  "periodic": periodic, "on_start": on_start, "on_ready": on_ready, "on_connection_ready": on_conn_ready}
+    type_lists = {
+        "command": command,
+        "regex": regex,
+        "msg_raw": raw,
+        "sieve": sieve,
+        "event": event,
+        "periodic": periodic,
+        "on_start": on_start,
+        "on_ready": on_ready,
+        "on_connection_ready": on_conn_ready}
+
     for name, func in module.__dict__.items():
         if hasattr(func, "_cloudbot_hook"):
             # if it has cloudbot hook

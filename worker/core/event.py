@@ -1,31 +1,8 @@
-import enum
 import logging
 
+from common.event import EventType
+
 logger = logging.getLogger("spanky")
-
-
-@enum.unique
-class EventType(enum.Enum):
-    message = 0
-    message_edit = 1
-    message_del = 2
-    join = 3
-    part = 4
-    chan_del = 5
-    chan_add = 6
-    chan_upd = 7
-
-    member_ban = 8
-    member_unban = 9
-    member_update = 10
-
-    reaction_add = 11
-    reaction_remove = 12
-
-    msg_bulk_del = 13
-
-    other = 99
-    action = 100
 
 
 class BaseEvent():
@@ -66,7 +43,7 @@ class BaseEvent():
             self.db = None
 
     def reply(self, text):
-        self.bot.send_message(text, self.channel_id)
+        self.event.send_message(text, self.channel_id)
 
 
 class TextEvent(BaseEvent):

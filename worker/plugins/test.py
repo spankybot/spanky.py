@@ -13,7 +13,8 @@ def test2():
     return "test222"
 
 
-@hook.command()
+#@hook.on_start()
 def test3():
     """test3"""
+    print("on_start")
     return "test333"
