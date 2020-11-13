@@ -146,38 +146,34 @@ def del_permanent_selector(text, storage):
     return "Done"
 
 
-@hook.on_connection_ready()
-async def rebuild_selectors(bot):
-    for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_selector.json")
+@hook.on_ready()
+async def rebuild_selectors(server, storage):
+    if "role_selectors" in storage:
+        for element in storage["role_selectors"]:
+            try:
+                selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
 
-        if "role_selectors" in storage:
-            for element in storage["role_selectors"]:
-                try:
-                    selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
+                # Add it to the permanent message list
+                permanent_messages.append(selector)
+            except:
+                print(element)
 
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except:
-                    print(element)
+    if "chan_selectors" in storage:
+        for element in storage["chan_selectors"]:
+            try:
+                selector = await roddit.ChanSelector.deserialize(bot, element)
+                # Add it to the permanent message list
+                permanent_messages.append(selector)
+            except:
+                print(element)
 
-        if "chan_selectors" in storage:
-            for element in storage["chan_selectors"]:
-                try:
-                    selector = await roddit.ChanSelector.deserialize(bot, element)
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except:
-                    print(element)
-
-        if "simple_selectors" in storage:
-            for element in storage["simple_selectors"]:
-                try:
-                    selector = await carousel.RoleSelector.deserialize(bot, element)
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except:
-                    import traceback
-                    traceback.print_exc()
-                    print(element)
+    if "simple_selectors" in storage:
+        for element in storage["simple_selectors"]:
+            try:
+                selector = await carousel.RoleSelector.deserialize(bot, element)
+                # Add it to the permanent message list
+                permanent_messages.append(selector)
+            except:
+                import traceback
+                traceback.print_exc()
+                print(element)

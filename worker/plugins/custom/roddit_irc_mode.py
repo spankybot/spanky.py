@@ -230,7 +230,7 @@ class ChanSelector(Selector):
         selector = ChanSelector(
             server,
             chan,
-            bot.server_permissions[server.id].get_plugin_storage(
+            bot.server_permissions[server.id].get_plugin_storage_raw(
                 "plugins_custom_roddit_irc_mode.json"))
 
         # Set selector page

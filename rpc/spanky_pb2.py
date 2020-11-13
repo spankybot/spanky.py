@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x10rpc/spanky.proto\x12\x06spanky\"\x1e\n\x05NewPM\x12\x15\n\rPluginMgrName\x18\x01 \x01(\t\"\x1c\n\x05\x41\x63kPM\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"9\n\nReqCmdList\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x16\n\x0e\x43mdRequestList\x18\x02 \x03(\t\"&\n\x0bRespCmdList\x12\x17\n\x0f\x43mdResponseList\x18\x01 \x03(\t\"3\n\x0fOutgoingMessage\x12\x12\n\nchannel_id\x18\x01 \x01(\x04\x12\x0c\n\x04text\x18\x02 \x01(\t\"\x1a\n\x0cSomeObjectID\x12\n\n\x02id\x18\x01 \x01(\x04\"5\n\x0bGetEventReq\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x11\n\tEventList\x18\x02 \x01(\x03\"\xfc\x02\n\x05\x45vent\x12+\n\nevent_type\x18\x01 \x01(\x0e\x32\x17.spanky.Event.EventType\x12\x1e\n\x03msg\x18\x02 \x01(\x0b\x32\x0f.spanky.MessageH\x00\x12#\n\x05\x65mpty\x18\x03 \x01(\x0b\x32\x12.spanky.EmptyEventH\x00\"\xf5\x01\n\tEventType\x12\x0b\n\x07message\x10\x00\x12\x10\n\x0cmessage_edit\x10\x01\x12\x0f\n\x0bmessage_del\x10\x02\x12\x08\n\x04join\x10\x03\x12\x08\n\x04part\x10\x04\x12\x0c\n\x08\x63han_del\x10\x05\x12\x0c\n\x08\x63han_add\x10\x06\x12\x0c\n\x08\x63han_upd\x10\x07\x12\x0e\n\nmember_ban\x10\x08\x12\x10\n\x0cmember_unban\x10\t\x12\x11\n\rmember_update\x10\n\x12\x10\n\x0creaction_add\x10\x0b\x12\x13\n\x0freaction_remove\x10\x0c\x12\x10\n\x0cmsg_bulk_del\x10\r\x12\x0c\n\x08on_ready\x10\x14\x42\t\n\x07payload\"6\n\x04User\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\x04\"#\n\x07\x43hannel\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\"\"\n\x06Server\x12\n\n\x02id\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\",\n\x0bRespServers\x12\x1d\n\x05slist\x18\x01 \x03(\x0b\x32\x0e.spanky.Server\"k\n\x07Message\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\x12\x1c\n\x06\x61uthor\x18\x03 \x01(\x0b\x32\x0c.spanky.User\x12\x12\n\nchannel_id\x18\x04 \x01(\x04\x12\x11\n\tserver_id\x18\x05 \x01(\x04\"N\n\x0bMessageEdit\x12\x1f\n\x06\x62\x65\x66ore\x18\x01 \x01(\x0b\x32\x0f.spanky.Message\x12\x1e\n\x05\x61\x66ter\x18\x02 \x01(\x0b\x32\x0f.spanky.Message\"\x0c\n\nEmptyEvent2\xa1\x02\n\x06Spanky\x12\x32\n\x10NewPluginManager\x12\r.spanky.NewPM\x1a\r.spanky.AckPM\"\x00\x12;\n\x0eSetCommandList\x12\x12.spanky.ReqCmdList\x1a\x13.spanky.RespCmdList\"\x00\x12>\n\x0bSendMessage\x12\x17.spanky.OutgoingMessage\x1a\x14.spanky.SomeObjectID\"\x00\x12\x32\n\x08GetEvent\x12\x13.spanky.GetEventReq\x1a\r.spanky.Event\"\x00\x30\x01\x12\x32\n\nGetServers\x12\r.spanky.AckPM\x1a\x13.spanky.RespServers\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x10rpc/spanky.proto\x12\x06spanky\"\x1e\n\x05NewPM\x12\x15\n\rPluginMgrName\x18\x01 \x01(\t\"\x1c\n\x05\x41\x63kPM\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"9\n\nReqCmdList\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x16\n\x0e\x43mdRequestList\x18\x02 \x03(\t\"&\n\x0bRespCmdList\x12\x17\n\x0f\x43mdResponseList\x18\x01 \x03(\t\"3\n\x0fOutgoingMessage\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x12\n\nchannel_id\x18\x02 \x01(\x04\"(\n\nEmbedField\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\"\xa9\x01\n\rOutgoingEmbed\x12\r\n\x05title\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\x12\"\n\x06\x66ields\x18\x03 \x03(\x0b\x32\x12.spanky.EmbedField\x12\x15\n\rinline_fields\x18\x04 \x01(\x08\x12\x11\n\timage_url\x18\x05 \x01(\t\x12\x12\n\nfooter_txt\x18\x06 \x01(\t\x12\x12\n\nchannel_id\x18\x07 \x01(\x03\"\x1a\n\x0cSomeObjectID\x12\n\n\x02id\x18\x01 \x01(\x04\"5\n\x0bGetEventReq\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x11\n\tEventList\x18\x02 \x01(\x03\"\x8a\x03\n\x05\x45vent\x12+\n\nevent_type\x18\x01 \x01(\x0e\x32\x17.spanky.Event.EventType\x12\x1e\n\x03msg\x18\x02 \x01(\x0b\x32\x0f.spanky.MessageH\x00\x12#\n\x05\x65mpty\x18\x03 \x01(\x0b\x32\x12.spanky.EmptyEventH\x00\"\x83\x02\n\tEventType\x12\x0b\n\x07message\x10\x00\x12\x10\n\x0cmessage_edit\x10\x01\x12\x0f\n\x0bmessage_del\x10\x02\x12\x08\n\x04join\x10\x03\x12\x08\n\x04part\x10\x04\x12\x0c\n\x08\x63han_del\x10\x05\x12\x0c\n\x08\x63han_add\x10\x06\x12\x0c\n\x08\x63han_upd\x10\x07\x12\x0e\n\nmember_ban\x10\x08\x12\x10\n\x0cmember_unban\x10\t\x12\x11\n\rmember_update\x10\n\x12\x10\n\x0creaction_add\x10\x0b\x12\x13\n\x0freaction_remove\x10\x0c\x12\x10\n\x0cmsg_bulk_del\x10\r\x12\x0c\n\x08on_start\x10\x14\x12\x0c\n\x08on_ready\x10\x15\x42\t\n\x07payload\"6\n\x04User\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\x04\"#\n\x07\x43hannel\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\"\"\n\x06Server\x12\n\n\x02id\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\",\n\x0bRespServers\x12\x1d\n\x05slist\x18\x01 \x03(\x0b\x32\x0e.spanky.Server\"k\n\x07Message\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\x12\x1c\n\x06\x61uthor\x18\x03 \x01(\x0b\x32\x0c.spanky.User\x12\x12\n\nchannel_id\x18\x04 \x01(\x04\x12\x11\n\tserver_id\x18\x05 \x01(\x04\"N\n\x0bMessageEdit\x12\x1f\n\x06\x62\x65\x66ore\x18\x01 \x01(\x0b\x32\x0f.spanky.Message\x12\x1e\n\x05\x61\x66ter\x18\x02 \x01(\x0b\x32\x0f.spanky.Message\"\x0c\n\nEmptyEvent2\xdd\x02\n\x06Spanky\x12\x32\n\x10NewPluginManager\x12\r.spanky.NewPM\x1a\r.spanky.AckPM\"\x00\x12;\n\x0eSetCommandList\x12\x12.spanky.ReqCmdList\x1a\x13.spanky.RespCmdList\"\x00\x12>\n\x0bSendMessage\x12\x17.spanky.OutgoingMessage\x1a\x14.spanky.SomeObjectID\"\x00\x12:\n\tSendEmbed\x12\x15.spanky.OutgoingEmbed\x1a\x14.spanky.SomeObjectID\"\x00\x12\x32\n\x08GetEvent\x12\x13.spanky.GetEventReq\x1a\r.spanky.Event\"\x00\x30\x01\x12\x32\n\nGetServers\x12\r.spanky.AckPM\x1a\x13.spanky.RespServers\"\x00\x62\x06proto3'
 )
 
 
@@ -102,15 +102,20 @@ _EVENT_EVENTTYPE = _descriptor.EnumDescriptor(
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='on_ready', index=14, number=20,
+      name='on_start', index=14, number=20,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='on_ready', index=15, number=21,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=450,
-  serialized_end=695,
+  serialized_start=664,
+  serialized_end=923,
 )
 _sym_db.RegisterEnumDescriptor(_EVENT_EVENTTYPE)
 
@@ -259,16 +264,16 @@ _OUTGOINGMESSAGE = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='channel_id', full_name='spanky.OutgoingMessage.channel_id', index=0,
-      number=1, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
+      name='text', full_name='spanky.OutgoingMessage.text', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='text', full_name='spanky.OutgoingMessage.text', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='channel_id', full_name='spanky.OutgoingMessage.channel_id', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -286,6 +291,119 @@ _OUTGOINGMESSAGE = _descriptor.Descriptor(
   ],
   serialized_start=189,
   serialized_end=240,
+)
+
+
+_EMBEDFIELD = _descriptor.Descriptor(
+  name='EmbedField',
+  full_name='spanky.EmbedField',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='spanky.EmbedField.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='spanky.EmbedField.text', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=242,
+  serialized_end=282,
+)
+
+
+_OUTGOINGEMBED = _descriptor.Descriptor(
+  name='OutgoingEmbed',
+  full_name='spanky.OutgoingEmbed',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='title', full_name='spanky.OutgoingEmbed.title', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='description', full_name='spanky.OutgoingEmbed.description', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='fields', full_name='spanky.OutgoingEmbed.fields', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='inline_fields', full_name='spanky.OutgoingEmbed.inline_fields', index=3,
+      number=4, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image_url', full_name='spanky.OutgoingEmbed.image_url', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='footer_txt', full_name='spanky.OutgoingEmbed.footer_txt', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel_id', full_name='spanky.OutgoingEmbed.channel_id', index=6,
+      number=7, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=285,
+  serialized_end=454,
 )
 
 
@@ -316,8 +434,8 @@ _SOMEOBJECTID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=242,
-  serialized_end=268,
+  serialized_start=456,
+  serialized_end=482,
 )
 
 
@@ -355,8 +473,8 @@ _GETEVENTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=270,
-  serialized_end=323,
+  serialized_start=484,
+  serialized_end=537,
 )
 
 
@@ -407,8 +525,8 @@ _EVENT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=326,
-  serialized_end=706,
+  serialized_start=540,
+  serialized_end=934,
 )
 
 
@@ -453,8 +571,8 @@ _USER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=708,
-  serialized_end=762,
+  serialized_start=936,
+  serialized_end=990,
 )
 
 
@@ -492,8 +610,8 @@ _CHANNEL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=764,
-  serialized_end=799,
+  serialized_start=992,
+  serialized_end=1027,
 )
 
 
@@ -531,8 +649,8 @@ _SERVER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=801,
-  serialized_end=835,
+  serialized_start=1029,
+  serialized_end=1063,
 )
 
 
@@ -563,8 +681,8 @@ _RESPSERVERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=837,
-  serialized_end=881,
+  serialized_start=1065,
+  serialized_end=1109,
 )
 
 
@@ -623,8 +741,8 @@ _MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=883,
-  serialized_end=990,
+  serialized_start=1111,
+  serialized_end=1218,
 )
 
 
@@ -662,8 +780,8 @@ _MESSAGEEDIT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=992,
-  serialized_end=1070,
+  serialized_start=1220,
+  serialized_end=1298,
 )
 
 
@@ -687,10 +805,11 @@ _EMPTYEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1072,
-  serialized_end=1084,
+  serialized_start=1300,
+  serialized_end=1312,
 )
 
+_OUTGOINGEMBED.fields_by_name['fields'].message_type = _EMBEDFIELD
 _EVENT.fields_by_name['event_type'].enum_type = _EVENT_EVENTTYPE
 _EVENT.fields_by_name['msg'].message_type = _MESSAGE
 _EVENT.fields_by_name['empty'].message_type = _EMPTYEVENT
@@ -710,6 +829,8 @@ DESCRIPTOR.message_types_by_name['AckPM'] = _ACKPM
 DESCRIPTOR.message_types_by_name['ReqCmdList'] = _REQCMDLIST
 DESCRIPTOR.message_types_by_name['RespCmdList'] = _RESPCMDLIST
 DESCRIPTOR.message_types_by_name['OutgoingMessage'] = _OUTGOINGMESSAGE
+DESCRIPTOR.message_types_by_name['EmbedField'] = _EMBEDFIELD
+DESCRIPTOR.message_types_by_name['OutgoingEmbed'] = _OUTGOINGEMBED
 DESCRIPTOR.message_types_by_name['SomeObjectID'] = _SOMEOBJECTID
 DESCRIPTOR.message_types_by_name['GetEventReq'] = _GETEVENTREQ
 DESCRIPTOR.message_types_by_name['Event'] = _EVENT
@@ -756,6 +877,20 @@ OutgoingMessage = _reflection.GeneratedProtocolMessageType('OutgoingMessage', (_
   # @@protoc_insertion_point(class_scope:spanky.OutgoingMessage)
   })
 _sym_db.RegisterMessage(OutgoingMessage)
+
+EmbedField = _reflection.GeneratedProtocolMessageType('EmbedField', (_message.Message,), {
+  'DESCRIPTOR' : _EMBEDFIELD,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.EmbedField)
+  })
+_sym_db.RegisterMessage(EmbedField)
+
+OutgoingEmbed = _reflection.GeneratedProtocolMessageType('OutgoingEmbed', (_message.Message,), {
+  'DESCRIPTOR' : _OUTGOINGEMBED,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.OutgoingEmbed)
+  })
+_sym_db.RegisterMessage(OutgoingEmbed)
 
 SomeObjectID = _reflection.GeneratedProtocolMessageType('SomeObjectID', (_message.Message,), {
   'DESCRIPTOR' : _SOMEOBJECTID,
@@ -836,8 +971,8 @@ _SPANKY = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1087,
-  serialized_end=1376,
+  serialized_start=1315,
+  serialized_end=1664,
   methods=[
   _descriptor.MethodDescriptor(
     name='NewPluginManager',
@@ -870,9 +1005,19 @@ _SPANKY = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='SendEmbed',
+    full_name='spanky.Spanky.SendEmbed',
+    index=3,
+    containing_service=None,
+    input_type=_OUTGOINGEMBED,
+    output_type=_SOMEOBJECTID,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='GetEvent',
     full_name='spanky.Spanky.GetEvent',
-    index=3,
+    index=4,
     containing_service=None,
     input_type=_GETEVENTREQ,
     output_type=_EVENT,
@@ -882,7 +1027,7 @@ _SPANKY = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetServers',
     full_name='spanky.Spanky.GetServers',
-    index=4,
+    index=5,
     containing_service=None,
     input_type=_ACKPM,
     output_type=_RESPSERVERS,

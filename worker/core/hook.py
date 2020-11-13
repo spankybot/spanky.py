@@ -1,10 +1,20 @@
+import enum
 import inspect
 import re
 import collections
 
-from core.event import EventType
-
 valid_command_re = re.compile(r"^\w+$")
+
+
+@enum.unique
+class Permission(enum.Enum):
+    """
+    Permissions for triggering a plugin
+    """
+
+    admin = 0  # Can be used by anyone with admin rights in a server
+    bot_owner = 99  # Bot big boss
+
 
 class _Hook:
     """
@@ -45,7 +55,7 @@ class _CommandHook(_Hook):
         self.main_alias = None
 
         if function.__doc__:
-            self.doc = function.__doc__.split('\n', 1)[0]
+            self.doc = function.__doc__.split("\n", 1)[0]
         else:
             self.doc = None
 
@@ -156,17 +166,10 @@ class _EventHook(_Hook):
     """
 
     def __init__(self, function):
-        """
-        :type function: function
-        """
         _Hook.__init__(self, function, "event")
         self.types = set()
 
     def add_hook(self, trigger_param, kwargs):
-        """
-        :type trigger_param: cloudbot.event.EventType | list[cloudbot.event.EventType]
-        :type kwargs: dict[str, unknown]
-        """
         self._add_hook(kwargs)
 
         if isinstance(trigger_param, EventType):
@@ -177,23 +180,24 @@ class _EventHook(_Hook):
 
 
 def _add_hook(func, hook):
-    if not hasattr(func, "_cloudbot_hook"):
-        func._cloudbot_hook = {}
+    if not hasattr(func, "_bot_hook"):
+        func._bot_hook = {}
     else:
-        assert hook.type not in func._cloudbot_hook  # in this case the hook should be using the add_hook method
-    func._cloudbot_hook[hook.type] = hook
+        # in this case the hook should be using the add_hook method
+        assert hook.type not in func._bot_hook
+    func._bot_hook[hook.type] = hook
 
 
 def _get_hook(func, hook_type):
-    if hasattr(func, "_cloudbot_hook") and hook_type in func._cloudbot_hook:
-        return func._cloudbot_hook[hook_type]
+    if hasattr(func, "_bot_hook") and hook_type in func._bot_hook:
+        return func._bot_hook[hook_type]
 
     return None
 
 
 def command(*args, **kwargs):
-    """External command decorator. Can be used directly as a decorator, or with args to return a decorator.
-    :type param: str | list[str] | function
+    """External command decorator.
+    Can be used directly as a decorator, or with args to return a decorator.
     """
 
     def _command_hook(func, alias_param=None):
@@ -205,9 +209,10 @@ def command(*args, **kwargs):
         hook.add_hook(alias_param, kwargs)
         return func
 
-    if len(args) == 1 and callable(args[0]):  # this decorator is being used directly
+    # this decorator is being used directly
+    if len(args) == 1 and callable(args[0]):
         return _command_hook(args[0])
-    else:  # this decorator is being used indirectly, so return a decorator function
+    else:
         return lambda func: _command_hook(func, alias_param=args)
 
 
@@ -225,8 +230,12 @@ def msg_raw(triggers_param, **kwargs):
         hook.add_hook(triggers_param, kwargs)
         return func
 
-    if callable(triggers_param):  # this decorator is being used directly, which isn't good
-        raise TypeError("@msg_raw() must be used as a function that returns a decorator")
+    if callable(
+        triggers_param
+    ):  # this decorator is being used directly, which isn't good
+        raise TypeError(
+            "@msg_raw() must be used as a function that returns a decorator"
+        )
     else:  # this decorator is being used as a function, so return a decorator
         return lambda func: _raw_hook(func)
 
@@ -246,7 +255,9 @@ def event(types_param, **kwargs):
         return func
 
     if callable(types_param):  # this decorator is being used directly, which isn't good
-        raise TypeError("@msg_raw() must be used as a function that returns a decorator")
+        raise TypeError(
+            "@msg_raw() must be used as a function that returns a decorator"
+        )
     else:  # this decorator is being used as a function, so return a decorator
         return lambda func: _event_hook(func)
 
@@ -267,7 +278,9 @@ def regex(regex_param, **kwargs):
         return func
 
     if callable(regex_param):  # this decorator is being used directly, which isn't good
-        raise TypeError("@regex() hook must be used as a function that returns a decorator")
+        raise TypeError(
+            "@regex() hook must be used as a function that returns a decorator"
+        )
     else:  # this decorator is being used as a function, so return a decorator
         return lambda func: _regex_hook(func)
 
@@ -280,7 +293,8 @@ def sieve(param=None, **kwargs):
     def _sieve_hook(func):
         hook = _get_hook(func, "sieve")
         if hook is None:
-            hook = _Hook(func, "sieve")  # there's no need to have a specific SieveHook object
+            # there's no need to have a specific SieveHook object
+            hook = _Hook(func, "sieve")
             _add_hook(func, hook)
 
         hook._add_hook(kwargs)
@@ -307,9 +321,12 @@ def periodic(interval, **kwargs):
         return func
 
     if callable(interval):  # this decorator is being used directly, which isn't good
-        raise TypeError("@periodic() hook must be used as a function that returns a decorator")
+        raise TypeError(
+            "@periodic() hook must be used as a function that returns a decorator"
+        )
     else:  # this decorator is being used as a function, so return a decorator
         return lambda func: _periodic_hook(func)
+
 
 def on_start(param=None, **kwargs):
     """External on_start decorator. Can be used directly as a decorator, or with args to return a decorator
@@ -330,6 +347,7 @@ def on_start(param=None, **kwargs):
     else:
         return lambda func: _on_start_hook(func)
 
+
 def on_ready(param=None, **kwargs):
     """external on_ready decorator. Can be used directly as a decorator, or with args to return a decorator
     :type param: function | none
@@ -348,22 +366,3 @@ def on_ready(param=None, **kwargs):
         return _on_ready_hook(param)
     else:
         return lambda func: _on_ready_hook(func)
-
-def on_connection_ready(param=None, **kwargs):
-    """external on_connection_ready decorator. can be used directly as a decorator, or with args to return a decorator
-    :type param: function | none
-    """
-
-    def _on_connection_ready_hook(func):
-        hook = _get_hook(func, "on_connection_ready")
-        if hook is None:
-            hook = _Hook(func, "on_connection_ready")
-            _add_hook(func, hook)
-
-        hook._add_hook(kwargs)
-        return func
-
-    if callable(param):
-        return _on_connection_ready_hook(param)
-    else:
-        return lambda func: _on_connection_ready_hook(func)

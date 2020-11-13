@@ -3,11 +3,9 @@ from typing import Optional
 
 import googlemaps
 import collections
-import database
 
 from forecastiopy.ForecastIO import ForecastIO
 from googlemaps.exceptions import ApiError
-from sqlalchemy import Table, Column, PrimaryKeyConstraint, String
 
 from core import hook
 
@@ -21,27 +19,25 @@ class PluginData:
 data = PluginData()
 ds_key = None
 
-# Define database table
-
-table = Table(
-    "weather",
-    database.metadata,
-    Column('nick', String),
-    Column('loc', String),
-    PrimaryKeyConstraint('nick')
-)
-
 location_cache = []
 
 BEARINGS = (
-    'N', 'NNE',
-    'NE', 'ENE',
-    'E', 'ESE',
-    'SE', 'SSE',
-    'S', 'SSW',
-    'SW', 'WSW',
-    'W', 'WNW',
-    'NW', 'NNW',
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW",
 )
 
 # math constants
@@ -54,7 +50,8 @@ def bearing_to_card(bearing):
     if bearing > 360 or bearing < 0:
         raise ValueError("Invalid wind bearing: {}".format(bearing))
 
-    # Derived from values from http://snowfence.umn.edu/Components/winddirectionanddegreeswithouttable3.htm
+    # Derived from values from
+    # http://snowfence.umn.edu/Components/winddirectionanddegreeswithouttable3.htm
     index = int(NUM_BEARINGS * (((bearing + BEARING_RANGE) % 360) / 360))
     return BEARINGS[index]
 
@@ -78,36 +75,17 @@ def find_location(location, bias=None):
     :return: dict
     """
     json = data.maps_api.geocode(location, region=bias)[0]
-    out = json['geometry']['location']
-    out['address'] = json['formatted_address']
+    out = json["geometry"]["location"]
+    out["address"] = json["formatted_address"]
     return out
 
 
-def add_location(nick, location, db):
-    test = dict(location_cache)
-    location = str(location)
-    if nick.lower() in test:
-        db.execute(table.update().values(loc=location.lower()
-                                         ).where(table.c.nick == nick.lower()))
-        db.commit()
-        load_cache(db)
-    else:
-        db.execute(table.insert().values(
-            nick=nick.lower(), loc=location.lower()))
-        db.commit()
-        load_cache(db)
+def add_location(nick, location, storage):
+    if storage["data"] is None:
+        storage["data"] = {}
 
-
-@hook.on_start
-def load_cache(db):
-    new_cache = []
-    for row in db.execute(table.select()):
-        nick = row["nick"]
-        location = row["loc"]
-        new_cache.append((nick, location))
-
-    location_cache.clear()
-    location_cache.extend(new_cache)
+    storage["data"][nick] = str(location)
+    storage.sync()
 
 
 @hook.on_start()
@@ -124,17 +102,19 @@ def create_maps_api(bot):
     ds_key = bot.config.get("api_keys", {}).get("darksky", None)
 
 
-def get_location(nick):
-    """looks in location_cache for a saved location"""
-    location = [row[1] for row in location_cache if nick.lower() == row[0]]
-    if not location:
-        return
+def get_location(nick, storage):
+    """
+    looks in location_cache for a saved location
+    """
+    if not storage["data"]:
+        storage["data"] = {}
+        return None
 
-    location = location[0]
-    return location
+    if nick in storage["data"]:
+        return storage["data"][nick]
 
 
-def check_and_parse(nick, text, db):
+def check_and_parse(nick, text, storage):
     """
     Check for the API keys and parse the location from user input
     """
@@ -146,13 +126,12 @@ def check_and_parse(nick, text, db):
 
     # If no input try the db
     if not text:
-        location = get_location(nick)
+        location = get_location(nick, storage)
         if not location:
-            return (weather.__doc__)
+            return weather.__doc__
     else:
         location = text
-        add_location(nick, location, db)
-    print("loc=" + location)
+        add_location(nick, location, storage)
 
     # use find_location to get location data from the user input
     try:
@@ -162,45 +141,56 @@ def check_and_parse(nick, text, db):
         raise
 
     fio = ForecastIO(
-        ds_key, units=ForecastIO.UNITS_US,
-        latitude=location_data['lat'],
-        longitude=location_data['lng']
+        ds_key,
+        units=ForecastIO.UNITS_US,
+        latitude=location_data["lat"],
+        longitude=location_data["lng"],
     )
 
     return (location_data, fio), None
 
 
-@hook.command("weather", "we", autohelp=False)
-def weather(reply, db, event, text, send_embed):
+@hook.command()
+def weather(reply, event, text, reply_embed, storage):
     """<location> - Gets weather data for <location>."""
-    res, err = check_and_parse(event.author.name, text, db)
+    res, err = check_and_parse(event.author.name, text, storage)
+
     if not res:
         return err
 
     location_data, fio = res
 
-    daily_conditions = fio.get_daily()['data']
+    daily_conditions = fio.get_daily()["data"]
     current = fio.get_currently()
     today, tomorrow, *three_days = daily_conditions[:5]
 
     reply = collections.OrderedDict()
-    reply["Current"] = "{summary}, {temp:.0f}C; Humidity: {humidity:.0%}; Wind: {wind_speed:.0f}KPH {wind_direction}".format(
+    reply[
+        "Current"
+    ] = "{summary}, {temp:.0f}C; Humidity: {humidity:.0%}; Wind: {wind_speed:.0f}KPH {wind_direction}".format(
         summary=current["summary"],
         temp=convert_f2c(current["temperature"]),
         humidity=current["humidity"],
         wind_speed=mph_to_kph(current["windSpeed"]),
-        wind_direction=bearing_to_card(current['windBearing']),
+        wind_direction=bearing_to_card(current["windBearing"]),
     )
 
     today["name"] = "Today"
     tomorrow["name"] = "Tomorrow"
 
     for day_fc in (today, tomorrow):
-        reply[day_fc["name"]] = "\n {summary}; High: {temp_high:.0f}C; Low: {temp_low:.0f}C; Humidity: {humidity:.0%}".format(
+        reply[
+            day_fc["name"]
+        ] = "\n {summary}; High: {temp_high:.0f}C; Low: {temp_low:.0f}C; Humidity: {humidity:.0%}".format(
             day=day_fc["name"],
             summary=day_fc["summary"],
             temp_high=convert_f2c(day_fc["temperatureHigh"]),
             temp_low=convert_f2c(day_fc["temperatureLow"]),
-            humidity=day_fc["humidity"])
+            humidity=day_fc["humidity"],
+        )
 
-    send_embed("Weather for " + location_data["address"], "", reply)
+    reply_embed(
+        title="Weather for " + location_data["address"],
+        description="",
+        fields=reply
+    )

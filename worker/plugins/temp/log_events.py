@@ -17,7 +17,8 @@ def log_prepare(storage):
 def set_event_log_chan(text, storage, str_to_id):
     """
     <channel> - Activate event logging and log to channel.
-Logged events: user join, user leave, message edit, message delete, member update, member ban, member unban.
+Logged events: user join, user leave, message edit, \
+message delete, member update, member ban, member unban.
     """
     storage["evt_chan"] = str_to_id(text)
     return "Done."
@@ -92,8 +93,8 @@ def list_filtered_out_channels(id_to_chan, storage):
 
 
 def escape(msg):
-    msg = msg.replace("<@", "<\@")
-    msg = msg.replace("`", "\`")
+    msg = msg.replace(r"<@", r"<\@")
+    msg = msg.replace("`", r"\`")
     return msg
 
 
@@ -117,7 +118,8 @@ def log_message_edit(event, send_message, storage, bot):
     if event.before.channel.id in storage["chan_filter_list"]:
         return
 
-    if event.before.text == event.after.text or event.before.author.id == bot.get_own_id():
+    if event.before.text == event.after.text or \
+       event.before.author.id == bot.get_own_id():
         return
 
     send_message(
@@ -151,8 +153,9 @@ def log_msg_blk_del(event, send_message, storage):
     if event.channel.id in storage["chan_filter_list"]:
         return
 
-    send_message(target=storage["evt_chan"],
-                 text=f"`Bulk Delete in` {event.channel.name} `by` {event.author.name} / {event.author.id}")
+    send_message(
+        target=storage["evt_chan"],
+        text=f"`Bulk Delete in` {event.channel.name} `by` {event.author.name} / {event.author.id}")
 
 
 @hook.event(EventType.member_update)
@@ -185,7 +188,7 @@ def log_member_unban(event, send_message, storage):
 @hook.command(permissions=Permission.admin)
 def add_bad_word(storage, text):
     """<word> - remove a message it contains 'word'"""
-    if storage["bad"] == None:
+    if storage["bad"] is None:
         storage["bad"] = []
     storage["bad"].append(text)
 

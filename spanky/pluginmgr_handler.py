@@ -12,7 +12,7 @@ class RPCServicer(rpcif.Servicer):
     _crt_base_id = "%s" % tutils.tnow()
     _pm_seq = 0
 
-    class RemotePM():
+    class RemotePM:
         """
         Remote plugin manager instance
         """
@@ -50,7 +50,7 @@ class RPCServicer(rpcif.Servicer):
         for pm in self.pm_id_to_name.values():
             await pm.queue.put((EventType.on_ready, None))
 
-    def new_plugin_manager(self, new_pm_name):
+    async def new_plugin_manager(self, new_pm_name):
         """
         Called when a new plugin manager is registered
 
@@ -68,13 +68,15 @@ class RPCServicer(rpcif.Servicer):
 
         if not reply_id:
             # Create a new ID and save it
-            reply_id = "%s_%s" % (
-                RPCServicer._crt_base_id, RPCServicer._pm_seq)
-            self.pm_id_to_name[reply_id] = RPCServicer.RemotePM(
-                new_pm_name, reply_id)
+            reply_id = "%s_%s" % (RPCServicer._crt_base_id, RPCServicer._pm_seq)
+            self.pm_id_to_name[reply_id] = RPCServicer.RemotePM(new_pm_name, reply_id)
             self.logger.info(f"PM registered as : {reply_id}")
 
             RPCServicer._pm_seq += 1
+
+        # Enqueue on_ready when it's going to connect
+        if self.bot.is_ready:
+            await self.pm_id_to_name[reply_id].queue.put((EventType.on_ready, None))
 
         return reply_id
 
@@ -84,11 +86,11 @@ class RPCServicer(rpcif.Servicer):
         """
         if pm_id not in self.pm_id_to_name.keys():
             self.logger.error(
-                f"Got request from unknown PM ID {pm_id} exposing: {cmd_list}")
+                f"Got request from unknown PM ID {pm_id} exposing: {cmd_list}"
+            )
             return []
 
-        self.logger.info(
-            f"Plugin manager with ID {pm_id} exposes: {cmd_list}")
+        self.logger.info(f"Plugin manager with ID {pm_id} exposes: {cmd_list}")
 
         # TODO parse cmd list
         return cmd_list
@@ -106,7 +108,6 @@ class RPCServicer(rpcif.Servicer):
         """
         Send message
         """
-
         channel = self.backend.client.get_channel(channel_id)
         msg = await channel.send(content=text)
 
@@ -114,3 +115,32 @@ class RPCServicer(rpcif.Servicer):
 
     def get_servers(self, pm_id):
         return self.backend.get_servers()
+
+    async def send_embed(
+        self,
+        title,
+        description=None,
+        fields=None,
+        inline_fields=True,
+        image_url=None,
+        footer_txt=None,
+        channel_id=-1,
+    ):
+        try:
+            channel = self.backend.client.get_channel(channel_id)
+
+            embed = self.backend.prepare_embed(
+                title=title,
+                description=description,
+                fields=fields,
+                inline_fields=inline_fields,
+                image_url=image_url,
+                footer_txt=footer_txt
+            )
+
+            msg = await channel.send(embed=embed)
+
+            return msg.id
+        except:
+            import traceback;
+            traceback.print_exc()

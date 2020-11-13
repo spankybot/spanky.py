@@ -67,28 +67,26 @@ def reload_file(bot):
     bot.plugin_manager.load_plugin(dirname + "/" + fname)
 
 
-@hook.on_connection_ready()
-def init_cmds(bot):
+@hook.on_ready()
+def init_cmds(server, storage):
     """
     Register all commands on bot ready
     """
+    storage = bot.server_permissions[server.id].get_plugin_storage_raw(
+        "plugins_temp_role.json")
 
-    for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_temp_role.json")
+    if "cmds" not in storage:
+        return
 
-        if "cmds" not in storage:
-            continue
-
-        for cmd in storage["cmds"]:
-            print("[%s] Registering %s" % (server.id, cmd))
-            register_cmd(storage["cmds"][cmd], server)
+    for cmd in storage["cmds"]:
+        print("[%s] Registering %s" % (server.id, cmd))
+        register_cmd(storage["cmds"][cmd], server)
 
     # TODO: workaround - look into adding commands dinamically
     if not get_vdata("temp_role_reload"):
         print("temp_role_reload")
         set_vdata("temp_role_reload", True)
-        reload_file(bot)
+        #reload_file(bot)
 
 
 @hook.command(permissions=Permission.admin)
@@ -610,7 +608,7 @@ async def check_expired_bans(server, storage):
 async def check_expired_time(bot):
     # Check timeouts for each server
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
+        storage = bot.server_permissions[server.id].get_plugin_storage_raw(
             "plugins_temp_role.json")
 
         if "temp_roles" in storage:

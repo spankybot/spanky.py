@@ -1,3 +1,0 @@
-
-metadata = None
-base = None

@@ -4,6 +4,7 @@ from rpc import spanky_pb2
 # The server/client should extend these classes if needed as this only
 # implements serialization deserialization according to the proto file
 
+
 class Server():
     def __init__(self, sid, name):
         self.id = sid
@@ -17,8 +18,9 @@ class Server():
     @classmethod
     def deserialize(cls, obj):
         return cls(
-            sid=obj.id,
+            sid=str(obj.id),
             name=obj.name)
+
 
 class User():
     def __init__(self, uid, name, display_name):
@@ -41,11 +43,11 @@ class User():
 
 
 class Message():
-    def __init__(self, content, mid, author, guild_id, channel_id):
+    def __init__(self, content, mid, author, server_id, channel_id):
         self.content = content
         self.id = mid
         self.author = author
-        self.guild_id = guild_id
+        self.server_id = server_id
         self.channel_id = channel_id
 
     def serialize(self):
@@ -53,7 +55,7 @@ class Message():
             content=self.content,
             id=self.id,
             author=self.author.serialize(),
-            server_id=self.guild_id,
+            server_id=self.server_id,
             channel_id=self.channel_id
         )
 
@@ -61,8 +63,8 @@ class Message():
     def deserialize(cls, obj):
         return cls(
             content=obj.content,
-            mid=obj.id,
+            message_id=obj.id,
             author=User.deserialize(obj.author),
-            guild_id=obj.server_id,
+            server_id=obj.server_id,
             channel_id=obj.channel_id
         )

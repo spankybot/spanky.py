@@ -1,27 +1,26 @@
-import logging
 import asyncio
 import glob
 import os
 import importlib
-import asyncio
 
 from .reloader import PluginReloader
-from .hook_logic import find_hooks, find_tables
-from .event import EventType, OnStartEvent, OnReadyEvent, OnConnReadyEvent
-from .hook_parameters import map_params
+from .hook_logic import find_hooks
+# from .hook_parameters import map_params
+from .serverdata import ServerData
 
-logger = logging.getLogger('workerpy')
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+from common.event import EventType
+# from utils import bot_utils as butils
+
+import utils.time_utils as tutils
+
+import common.log as log
+import rpc_client
+
+logger = log.botlog("manager", console_level=log.loglevel.DEBUG)
 
 
-class PluginManager():
-    def __init__(self, path_list, bot, db):
+class PluginManager:
+    def __init__(self, path_list, bot):
         self.modules = []
         self.plugins = {}
         self.commands = {}
@@ -32,67 +31,78 @@ class PluginManager():
         self.run_on_ready = []
         self.run_on_conn_ready = []
         self.raw_triggers = []
+
         self.bot = bot
-        self.db = db
 
         self.loop = asyncio.get_event_loop()
 
         # Load each path
         for path in path_list:
-            self.plugins.update(self.load_plugins(path))
+            plugins = glob.iglob(os.path.join(path, "*.py"))
+            for pfile in plugins:
+                self.load_plugin(pfile)
 
         self.reloader = {}
         for path in path_list:
             self.reloader[path] = PluginReloader(self)
             self.reloader[path].start([path])
 
-        for plugin in self.plugins.values():
-            self.finalize_plugin(plugin)
+        # Current servers
+        self._servers = {}  # Map of server id -> ServerData
 
-    def finalize_plugin(self, plugin):
-        plugin.create_tables(self.db)
+    def add_new_server(self, server):
+        """
+        Add a new server to the server list
+        """
+        if server.id in self._servers.keys():
+            raise ValueError(f"{server.id} already in the server list")
 
+        if server.id not in self._servers.keys():
+            self._servers[server.id] = ServerData(server)
+
+        return self._servers[server.id]
+
+    def get_server_data(self, server_id):
+        """
+        Get the server data instance for a server ID
+        """
+        if server_id not in self._servers.keys():
+            raise ValueError(f"{server_id} not in server list")
+
+        return self._servers[server_id]
+
+    async def finalize_plugin(self, plugin):
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
-            success = self.launch(OnStartEvent(
-                bot=self.bot, hook=on_start_hook))
-            if not success:
-                logger.warning(
-                    "Not registering hooks from plugin {}: on_start hook errored".format(plugin.name))
+            try:
+                await self.launch_event(on_start_hook, EventType.on_start)
+            except:
+                import traceback
 
-                # unregister databases
-                plugin.unregister_tables(self.db)
+                traceback.print_exc()
+                logger.warning(
+                    f"Not registering hooks from plugin {plugin.name}: on_start hook errored"
+                )
                 return
 
         # run on_ready hooks if bot ready
-        # if self.bot.is_ready:
-        #     # Run the on ready hooks per server
-        #     for server in self.bot.backend.get_servers():
-        #         for on_ready_hook in plugin.run_on_ready:
-        #             self.launch(OnReadyEvent(
-        #                 bot=self.bot,
-        #                 hook=on_ready_hook,
-        #                 permission_mgr=self.bot.get_pmgr(server.id),
-        #                 server=server))
-
-        #     # Run connection ready hooks too
-        #     for on_conn_ready_hook in plugin.run_on_conn_ready:
-        #         self.launch(OnConnReadyEvent(
-        #             bot=self.bot,
-        #             hook=on_conn_ready_hook))
+        if self.bot._is_ready:
+            # Run the on ready hooks per server
+            for server in self.bot.backend.get_servers():
+                for on_ready_hook in plugin.run_on_ready:
+                    pass
 
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
 
         # register commands
         for command_hook in plugin.commands:
-            for alias in command_hook.aliases:
-                if alias in self.commands:
-                    logger.warning(
-                        "Plugin {} attempted to register command {} which was already registered by {}. "
-                        "Ignoring new assignment.".format(plugin.name, alias, self.commands[alias].plugin.name))
-                else:
-                    self.commands[alias] = command_hook
+            # Check for duplicates
+            if command_hook.name in self.commands.keys():
+                logger.debug(f"Duplicate name {command_hook.name}. Skipping")
+                continue
+
+            self.commands[command_hook.name] = command_hook
             logger.debug("Loaded {}".format(repr(command_hook)))
 
         # register raw hooks
@@ -126,177 +136,166 @@ class PluginManager():
         for sieve_hook in plugin.sieves:
             self.sieves.append(sieve_hook)
 
-        # register on connection ready hooks
+        # register on ready hooks
         for on_ready_hook in plugin.run_on_ready:
             self.run_on_ready.append(on_ready_hook)
-
-        # register on ready hooks
-        for on_conn_ready_hook in plugin.run_on_conn_ready:
-            self.run_on_conn_ready.append(on_conn_ready_hook)
 
         # sort sieve hooks by priority
         self.sieves.sort(key=lambda x: x.priority)
 
-    def _prepare_parameters(self, hook, event):
+    async def launch_hooks_by_event(self, event_type):
         """
-        Prepares arguments for the given hook
-
-        :type hook: cloudbot.plugin.Hook
-        :type event: cloudbot.event.Event
-        :rtype: list
+        Launch all hooks that belong to an event type
         """
-        parameters = []
+        to_run = []
 
-        if "storage" in hook.required_args:
-            stor_name = hook.plugin.name.replace(".py", "").replace("/", "_")
-            event.storage = event.permission_mgr.get_plugin_storage(
-                stor_name + ".json")
+        # On ready hooks
+        if event_type == EventType.on_ready:
+            to_run = self.run_on_ready
 
-        if "storage_loc" in hook.required_args:
-            event.storage_loc = \
-                event.permission_mgr.get_data_location(
-                    hook.plugin.name.replace(".py", "").replace("/", "_"))
+        # Timer events
+        elif event_type == EventType.timer_event:
+            # Gather only expired events
+            # TODO put these in a queue to make it more efficient
+            now = tutils.tnow()
+            for plugin in self.plugins.values():
+                for hook in plugin.periodic:
+                    # If it expired, add it to the queue
+                    if now - hook.last_time > hook.interval:
+                        to_run.append(hook)
+                        hook.last_time = now
 
-        if "cmd_args" in hook.required_args and hook.param_list is not None:
-            event.cmd_args = map_params(event.text, hook.param_list)
+        for hook in to_run:
+            for server in self._servers:
+                await self.launch_server_event(hook, server, event_type)
+
+    async def execute_hook(self, hook, args):
+        """
+        Runs the hook
+
+        Returns the hook result
+        """
+
+        result = None
+        # If async plugin, await its result
+        if asyncio.iscoroutinefunction(hook.function):
+            result = await hook.function(**args)
         else:
-            event.cmd_args = {}
+            result = hook.function(**args)
 
-        for required_arg in hook.required_args:
-            if hasattr(event, required_arg):
-                value = getattr(event, required_arg)
-                parameters.append(value)
-            elif hasattr(event.event, required_arg):
-                value = getattr(event.event, required_arg)
-                parameters.append(value)
-            else:
-                logger.error("Plugin {} asked for invalid argument '{}', cancelling execution!"
-                             .format(hook.description, required_arg))
-                print(dir(event))
-                print(dir(event.event))
-                return None
-        return parameters
-
-    def _execute_hook(self, hook, event):
-        event.prepare()
-
-        parameters = self._prepare_parameters(hook, event)
-        if parameters is None:
-            return None
-
-        # shitty workaround
-        async def call_func():
-            try:
-                await hook.function(*parameters)
-            except:
-                import traceback
-                traceback.print_exc()
-
-        if not asyncio.iscoroutinefunction(hook.function):
-            return hook.function(*parameters)
-        else:
-            asyncio.run_coroutine_threadsafe(call_func(), self.bot.loop)
-            return None
-
-    def execute_hook(self, hook, event):
-        """
-        Runs the specific hook with the given bot and event.
-
-        Returns False if the hook errored, True otherwise.
-        """
-
-        out = self._execute_hook(hook, event)
-
-        if out is not None:
-            if isinstance(out, (list, tuple)):
-                # if there are multiple items in the response, return them on multiple lines
-                event.reply(*out)
-            else:
-                event.reply(str(out))
-
-        return (True)
-
-    def correct_format(self, hook, text):
-        """Check if the request has the required format"""
-        if hook.format:
-            if len(hook.format.split()) == len(text.split()):
-                return True
-            else:
-                return False
-        else:
-            return True
-
-        return False
-
-    def launch(self, launch_event):
-        """
-        Dispatch a given event to a given hook using a given bot object.
-        Returns False if the hook didn't run successfully, and True if it ran successfully.
-        """
-
-        hook = launch_event.hook
-
-        if hook.type in ("command"):
-            # Run hooks on only the servers where they should run
-            if launch_event.hook.server_id and not launch_event.hook.has_server_id(str(launch_event.event.server.id)):
-                return
-
-            # Ask the sieves to validate our command
-            for sieve in self.sieves:
-                args = {"bot": self.bot, "bot_event": launch_event}
-                if "storage" in sieve.required_args:
-                    stor_name = sieve.plugin.name.replace(
-                        ".py", "").replace("/", "_")
-                    storage = launch_event.permission_mgr.get_plugin_storage(
-                        stor_name + ".json")
-                    args["storage"] = storage
-                can_run, msg = sieve.function(**args)
-                if msg:
-                    launch_event.event.reply(msg, timeout=15)
-                if not can_run:
-                    return
-
-            if not self.correct_format(hook, launch_event.text):
-                func_doc = hook.function.__doc__
-
-                msg = "Invalid format"
-
-                if func_doc:
-                    msg += ": " + "\n`" + hook.function.__doc__.strip() + "`"
-                launch_event.event.reply(msg, timeout=15)
-                return
-
-        elif hook.type == "on_ready":
-            if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.server.id):
-                return
-
-        elif hook.type == "event" and launch_event.event.type == EventType.message:
-            if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.event.server.id):
-                return
-
-        if hook.single_thread:
-            # TODO
-            pass
-        else:
-            # Run the plugin with the message, and wait for it to finish
-            result = self.execute_hook(hook, launch_event)
-
-        # Return the result
         return result
+
+    def _prepare_parameters(self, hook, args):
+        #
+        required = set(hook.required_args)
+        given = set(args.keys())
+
+        # Save the difference between required and given args
+        diff = required - given
+        if diff:
+            raise ValueError(
+                f"Args required by {hook.name} not found: {list(diff)}")
+
+        actual_args = {}
+        for arg in required:
+            actual_args[arg] = args[arg]
+
+        return actual_args
+
+    async def launch_command(self, hook, event, event_text):
+        if not event.server_id:
+            # It's a PM
+            return
+
+        # Check if the command should run in the triggered server
+        # TODO save commands per server
+        if not hook.has_server_id(str(event.server_id)):
+            return
+
+        # Prepare the args for the function call
+        # TODO export this to a visible structure
+        args = {}
+        args["bot"] = self.bot
+        args["event"] = event
+        args["text"] = event_text
+        args["reply"] = event.reply
+        args["reply_embed"] = event.reply_embed
+
+        # Add storage if needed
+        if hook.needs_storage:
+            # Get sever data
+            srv_data = self.get_server_data(event.server_id)
+
+            # Fill in extra parameters
+            args["storage"] = srv_data.get_plugin_storage(hook.plugin.name)
+            args["storage_loc"] = srv_data.get_data_location(hook.plugin.name)
+
+        # Get proper args
+        parsed_args = self._prepare_parameters(hook, args)
+
+        # Run the plugin and return the result
+        ret_value = await self.execute_hook(hook, parsed_args)
+
+        # By default, reply() with the result
+        if ret_value:
+            event.reply(str(ret_value))
+
+    async def launch_server_event(self, hook, server, event_type):
+        """
+        Launch an event triggered on a server
+        """
+        # Prepare the args for the function call
+        # TODO export this to a visible structure
+        args = {}
+        args["bot"] = self.bot
+        args["server"] = server
+        args["send_message"] = self.bot.client.send_message
+
+        # Add storage if needed
+        if hook.needs_storage:
+            # Get sever data
+            srv_data = self.get_server_data(server.id)
+
+            # Fill in extra parameters
+            args["storage"] = srv_data.get_plugin_storage(hook.plugin.name)
+            args["storage_loc"] = srv_data.get_data_location(hook.plugin.name)
+
+        # Get proper args
+        parsed_args = self._prepare_parameters(hook, args)
+
+        # Run the plugin and return the result
+        return await self.execute_hook(hook, parsed_args)
+
+    async def launch_event(self, hook, event_type):
+        """
+        Launch a event that does not belong to a server
+        """
+        # Prepare the args for the function call
+        # TODO export this to a visible structure
+        args = {}
+        args["bot"] = self.bot
+        args["send_message"] = self.bot.client.send_message
+
+        # Get proper args
+        parsed_args = self._prepare_parameters(hook, args)
+
+        # Run the plugin and return the result
+        return await self.execute_hook(hook, parsed_args)
 
     def unload_plugin(self, path):
         """
-        Unloads the plugin from the given path, unregistering all hooks from the plugin.
+        Unloads the plugin from the given path, unregistering all hooks
+        from the plugin.
 
-        Returns True if the plugin was unloaded, False if the plugin wasn't loaded in the first place.
+        Returns True if the plugin was unloaded, False if the plugin wasn't
+        loaded in the first place.
 
         :type path: str
         :rtype: bool
         """
 
         # make sure this plugin is actually loaded
-        if not path in self.plugins:
-            print("No such plugin found to unload: %s" % path)
+        if path not in self.plugins:
             return False
 
         # get the loaded plugin
@@ -304,10 +303,8 @@ class PluginManager():
 
         # unregister commands
         for command_hook in plugin.commands:
-            for alias in command_hook.aliases:
-                if alias in self.commands and self.commands[alias] == command_hook:
-                    # we need to make sure that there wasn't a conflict, so we don't delete another plugin's command
-                    del self.commands[alias]
+            if command_hook.name in self.commands:
+                del self.commands[command_hook.name]
 
         # unregister raw hooks
         for raw_hook in plugin.raw_hooks:
@@ -315,7 +312,9 @@ class PluginManager():
                 self.catch_all_triggers.remove(raw_hook)
             else:
                 for trigger in raw_hook.triggers:
-                    assert trigger in self.raw_triggers  # this can't be not true
+                    # this can't be not true
+                    assert trigger in self.raw_triggers
+
                     self.raw_triggers[trigger].remove(raw_hook)
                     # if that was the last hook for this trigger
                     if not self.raw_triggers[trigger]:
@@ -324,7 +323,9 @@ class PluginManager():
         # unregister events
         for event_hook in plugin.events:
             for event_type in event_hook.types:
-                assert event_type in self.event_type_hooks  # this can't be not true
+                # this can't be not true
+                assert event_type in self.event_type_hooks
+
                 self.event_type_hooks[event_type].remove(event_hook)
                 # if that was the last hook for this event type
                 if not self.event_type_hooks[event_type]:
@@ -339,9 +340,6 @@ class PluginManager():
         for sieve_hook in plugin.sieves:
             self.sieves.remove(sieve_hook)
 
-        # unregister databases
-        plugin.unregister_tables(self.db)
-
         # remove last reference to plugin
         del self.plugins[plugin.name]
 
@@ -352,7 +350,6 @@ class PluginManager():
     def load_plugin(self, fname):
         """
         Load a whole plugin file
-        :param fname: file name to load
         """
 
         # Try unloading the file first
@@ -361,14 +358,15 @@ class PluginManager():
 
         if plugin:
             self.plugins[fname] = Plugin(fname, plugin)
-            self.finalize_plugin(self.plugins[fname])
+            asyncio.run_coroutine_threadsafe(
+                self.finalize_plugin(self.plugins[fname]),
+                self.bot.loop)
 
     def _load_plugin(self, fname):
         """
-        Load a plugin.
+        Load a plugin and return the importlib result
         """
         logger.debug("Loading %s" % fname)
-        basename = os.path.basename(fname)
 
         # Build file name
         plugin_name = fname.replace("/", ".").replace(".py", "")
@@ -387,57 +385,27 @@ class PluginManager():
             return plugin_module
         except Exception as e:
             import traceback
+
             logger.debug("Error loading %s:\n\t%s" % (fname, e))
             traceback.print_exc()
             return None
 
-    def load_plugins(self, path):
-        """
-        Load plugins from a specified path.
-        """
-        plugins = glob.iglob(os.path.join(path, '*.py'))
-        plugin_dict = {}
-        for file in plugins:
-            plugin_data = self._load_plugin(file)
 
-            if plugin_data:
-                plugin_dict[file] = Plugin(file, plugin_data)
+class Plugin:
+    """
+    Hold data about a plugin file
+    """
 
-        return plugin_dict
-
-
-class Plugin():
     def __init__(self, name, module):
         self.name = name
 
-        self.commands, \
-            self.regexes, \
-            self.raw_hooks, \
-            self.sieves, \
-            self.events, \
-            self.periodic, \
-            self.run_on_start, \
-            self.run_on_ready, \
-            self.run_on_conn_ready = find_hooks(self, module)
-
-        self.tables = find_tables(module)
-
-    def create_tables(self, db_data):
-
-        if self.tables:
-            logger.info("Registering tables for {}".format(self.name))
-
-            for table in self.tables:
-                if not (table.exists(db_data.db_engine)):
-                    table.create(db_data.db_engine)
-
-    def unregister_tables(self, db_data):
-        """
-        Unregisters all sqlalchemy Tables registered to the global metadata by this plugin
-        """
-        if self.tables:
-            # if there are any tables
-            logger.info("Unregistering tables for {}".format(self.name))
-
-            for table in self.tables:
-                db_data.db_metadata.remove(table)
+        (
+            self.commands,
+            self.regexes,
+            self.raw_hooks,
+            self.sieves,
+            self.events,
+            self.periodic,
+            self.run_on_start,
+            self.run_on_ready,
+        ) = find_hooks(self, module)

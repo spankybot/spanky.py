@@ -78,7 +78,7 @@ def load_key(bot):
 
 
 @hook.command("youtube")
-def youtube(text, reply, send_embed):
+def youtube(text, reply):
     """<query> - Returns the first YouTube search result for <query>."""
     if not dev_key:
         return "This command requires a Google Developers Console API key."

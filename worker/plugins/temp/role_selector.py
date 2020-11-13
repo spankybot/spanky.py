@@ -50,26 +50,21 @@ def reload_file(bot):
     bot.plugin_manager.load_plugin(dirname + "/" + fname)
 
 
-@hook.on_connection_ready()
-def init_cmds(bot):
-    """Register all commands on bot ready"""
-    print("Connection ready")
-    for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_role_selector.json"
-        )
-        if "selectors" not in storage or storage["selectors"] == {}:
-            continue
+@hook.on_ready()
+def init_cmds(server, storage):
+    """Register commands on bot ready"""
+    if "selectors" not in storage or storage["selectors"] == {}:
+        return
 
-        for cmd in storage["selectors"]:
-            print(f"[{server.id}] Registering {cmd}")
-            register_cmd(storage["selectors"][cmd], server)
+    for cmd in storage["selectors"]:
+        print(f"[{server.id}] Registering {cmd}")
+        register_cmd(storage["selectors"][cmd], server)
 
     # TODO: workaround - look into adding commands dinamically
     if not get_vdata("selector_reload"):
         print("selector_reload")
         set_vdata("selector_reload", True)
-        reload_file(bot)
+        #reload_file(bot)
 
 
 #

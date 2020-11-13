@@ -2,7 +2,12 @@ import os
 
 from core import hook, permissions
 from core.permissions import Permission, PermissionMgr
-from utils.setclearfactory import SetClearFactory, data_type_string, data_type_dynamic, data_type_list
+from utils.setclearfactory import (
+    SetClearFactory,
+    data_type_string,
+    data_type_dynamic,
+    data_type_list,
+)
 
 chgroups = {}
 channels_in_chgroups = {}
@@ -13,7 +18,7 @@ free_to_use_cmds = {}
 superpower = {}  # Assign superpowers to bot owners on servers
 
 
-class CmdPerms():
+class CmdPerms:
     def __init__(self, storage, cmd):
         self.cmd = cmd
 
@@ -52,14 +57,16 @@ class CmdPerms():
                     storage["chgroups"][chgroup]["channels"])
 
         self.unrestricted = False
-        if "unrestricted" in storage["commands"][cmd].keys() and \
-                storage["commands"][cmd]["unrestricted"] == "Yes":
+        if (
+            "unrestricted" in storage["commands"][cmd].keys()
+            and storage["commands"][cmd]["unrestricted"] == "Yes"
+        ):
             self.unrestricted = True
 
 
 @hook.sieve
 def check_permissions(bot, bot_event, storage):
-    if storage['admin_roles'] is None:
+    if storage["admin_roles"] is None:
         invalidate_caches(bot, bot_event.event.server)
         return True, None
 
@@ -68,19 +75,26 @@ def check_permissions(bot, bot_event, storage):
     user_roles = set([i.id for i in bot_event.event.author.roles])
 
     # Get a list of administrator roles
-    allowed_roles = set(storage['admin_roles'] + cmd.owners_ids)
+    allowed_roles = set(storage["admin_roles"] + cmd.owners_ids)
 
-    # Grant bot owners that are listed in the bot config the right to run any command
+    # Grant bot owners that are listed in the bot
+    # config the right to run any command
     if bot_event.hook.permissions == permissions.Permission.bot_owner:
-        if "bot_owners" in bot.config and \
-                bot_event.event.author.id in bot.config["bot_owners"]:
+        if (
+            "bot_owners" in bot.config
+            and bot_event.event.author.id in bot.config["bot_owners"]
+        ):
             return True, None
 
         return False, "Command restricted to bot owners only"
 
     elif bot_event.hook.permissions == permissions.Permission.admin:
-        if storage["admin_roles"] == None:
-            return True, "Warning! Admin not set! Use .add_admin_role to set an administrator."
+        if storage["admin_roles"] is None:
+            return (
+                True,
+                "Warning! Admin not set! Use .add_admin_role to \
+set an administrator.",
+            )
         if user_roles & allowed_roles:
             return True, None
         return False, "You're not allowed to use that."
@@ -89,76 +103,104 @@ def check_permissions(bot, bot_event, storage):
     if cmd.is_customized:
         if cmd.unrestricted:
             return True, None
-        if len(cmd.forbid_channel_ids) > 0 and bot_event.event.channel.id in cmd.forbid_channel_ids:
+        if (
+            len(cmd.forbid_channel_ids) > 0
+            and bot_event.event.channel.id in cmd.forbid_channel_ids
+        ):
             bot_event.event.msg.delete_message()
-            return False, "Command can't be used in " + \
-                ", ".join(bot_event.event.id_to_chan(i)
-                          for i in cmd.forbid_channel_ids)
+            return False, "Command can't be used in " + ", ".join(
+                bot_event.event.id_to_chan(i) for i in cmd.forbid_channel_ids
+            )
 
-        if len(cmd.channel_ids) > 0 and bot_event.event.channel.id not in cmd.channel_ids:
+        if (
+            len(cmd.channel_ids) > 0
+            and bot_event.event.channel.id not in cmd.channel_ids
+        ):
             bot_event.event.msg.delete_message()
-            return False, "Command can't be used here. Try using it in " + \
-                ", ".join(bot_event.event.id_to_chan(i)
-                          for i in cmd.channel_ids)
+            return False,
+            "Command can't be used here. Try using it in " + ", ".join(
+                bot_event.event.id_to_chan(i) for i in cmd.channel_ids
+            )
 
-    elif storage["default_bot_chan"] and bot_event.event.channel.id != storage["default_bot_chan"]:
+    elif (
+        storage["default_bot_chan"]
+        and bot_event.event.channel.id != storage["default_bot_chan"]
+    ):
         bot_event.event.msg.delete_message()
-        return False, "Command can only be used in " + bot_event.event.id_to_chan(storage["default_bot_chan"])
+        return False,
+        "Command can only be used in " + bot_event.event.id_to_chan(
+            storage["default_bot_chan"]
+        )
 
     return True, None
 
 
 @hook.on_ready
 def map_objects_to_servers(server, storage):
-    chgroups[server.id] = SetClearFactory(name="chgroups",
-                                          description="Manages groups of channels.\
-A group of channels can be associated to a command, so that the command can be used only in the channels listed in the group of channels.",
-                                          data_ref=storage,
-                                          data_format="group_name",
-                                          data_hierarchy='{"group_name":{}}',
-                                          group_name=data_type_string())
+    chgroups[server.id] = SetClearFactory(
+        name="chgroups",
+        description="Manages groups of channels.\
+A group of channels can be associated to a command, \
+so that the command can be used only in the channels \
+listed in the group of channels.",
+        data_ref=storage,
+        data_format="group_name",
+        data_hierarchy='{"group_name":{}}',
+        group_name=data_type_string(),
+    )
 
-    channels_in_chgroups[server.id] = SetClearFactory(name="chgroups",
-                                                      description="Manages the channels inside a group of channels.",
-                                                      data_ref=storage,
-                                                      data_format="channels group_name",
-                                                      data_hierarchy='{"group_name":{"channels":[]}}',
-                                                      channels=data_type_string(),
-                                                      group_name=data_type_dynamic(chgroups[server.id]))
+    channels_in_chgroups[server.id] = SetClearFactory(
+        name="chgroups",
+        description="Manages the channels inside a group of channels.",
+        data_ref=storage,
+        data_format="channels group_name",
+        data_hierarchy='{"group_name":{"channels":[]}}',
+        channels=data_type_string(),
+        group_name=data_type_dynamic(chgroups[server.id]),
+    )
 
-    cgroups_own_cmds[server.id] = SetClearFactory(name="commands",
-                                                  description="Manage channel groups that are associated to a command.",
-                                                  data_ref=storage,
-                                                  data_format="cmd groups",
-                                                  data_hierarchy='{"cmd":{"groups":[]}}',
-                                                  groups=data_type_dynamic(
-                                                      channels_in_chgroups[server.id]),
-                                                  cmd=data_type_string())
+    cgroups_own_cmds[server.id] = SetClearFactory(
+        name="commands",
+        description="Manage channel groups that are associated to a command.",
+        data_ref=storage,
+        data_format="cmd groups",
+        data_hierarchy='{"cmd":{"groups":[]}}',
+        groups=data_type_dynamic(channels_in_chgroups[server.id]),
+        cmd=data_type_string(),
+    )
 
-    cgroups_forbid_cmds[server.id] = SetClearFactory(name="commands",
-                                                     description="Manage forbidden channel groups that are associated to a command.",
-                                                     data_ref=storage,
-                                                     data_format="cmd fgroups",
-                                                     data_hierarchy='{"cmd":{"fgroups":[]}}',
-                                                     fgroups=data_type_dynamic(
-                                                         channels_in_chgroups[server.id]),
-                                                     cmd=data_type_string())
+    cgroups_forbid_cmds[server.id] = SetClearFactory(
+        name="commands",
+        description="Manage forbidden channel groups that are associated \
+to a command.",
+        data_ref=storage,
+        data_format="cmd fgroups",
+        data_hierarchy='{"cmd":{"fgroups":[]}}',
+        fgroups=data_type_dynamic(channels_in_chgroups[server.id]),
+        cmd=data_type_string(),
+    )
 
-    ugroups_own_cmds[server.id] = SetClearFactory(name="commands",
-                                                  description="Manage user groups that are associated to a command.",
-                                                  data_ref=storage,
-                                                  data_format="cmd owner",
-                                                  data_hierarchy='{"cmd":{"owner":[]}}',
-                                                  owner=data_type_string(),
-                                                  cmd=data_type_string())
+    ugroups_own_cmds[server.id] = SetClearFactory(
+        name="commands",
+        description="Manage user groups that are associated to a command.",
+        data_ref=storage,
+        data_format="cmd owner",
+        data_hierarchy='{"cmd":{"owner":[]}}',
+        owner=data_type_string(),
+        cmd=data_type_string(),
+    )
 
-    free_to_use_cmds[server.id] = SetClearFactory(name="commands",
-                                                  description="Don't restrict commands from being used only in certain channels.",
-                                                  data_ref=storage,
-                                                  data_format="cmd unrestricted",
-                                                  data_hierarchy='{"cmd":{"unrestricted":[]}}',
-                                                  cmd=data_type_string(),
-                                                  unrestricted=data_type_list(["Yes"]))
+    free_to_use_cmds[server.id] = SetClearFactory(
+        name="commands",
+        description="Don't restrict commands from being used only in certain \
+channels.",
+        data_ref=storage,
+        data_format="cmd unrestricted",
+        data_hierarchy='{"cmd":{"unrestricted":[]}}',
+        cmd=data_type_string(),
+        unrestricted=data_type_list(["Yes"]),
+    )
+
 
 # Enable superpower for bot owners
 @hook.command(permissions=Permission.bot_owner)
@@ -171,12 +213,15 @@ def irbaboon(server):
     if server.id in superpower:
         superpower[server.id] = False
 
+
 # Invalidate storage cache for a server
 @hook.command(permissions=Permission.bot_owner)
 def invalidate_caches(bot, server):
     bot.server_permissions[server.id] = PermissionMgr(server)
 
     return "Done"
+
+
 #
 # Channel groups
 #
@@ -200,6 +245,7 @@ def list_channel_groups(send_message, server):
 @hook.command(permissions=Permission.admin, format="chan")
 def del_channel_group(send_message, text, server, storage):
     """<group-name> - Delete a group of channels"""
+
     def dummy_send(text):
         pass
 
@@ -207,6 +253,7 @@ def del_channel_group(send_message, text, server, storage):
         del_chgroup_from_cmd(dummy_send, cmd + " " + text, server)
 
     send_message(chgroups[server.id].del_thing(text))
+
 
 #
 # Channels in channel groups
@@ -222,6 +269,7 @@ def list_chans_in_chgroup(send_message, text, server, id_to_chan):
     """<channel-group> - List channels in channel-group"""
     vals = channels_in_chgroups[server.id].list_things_for_thing(
         text, "channels")
+
     if vals:
         send_message(", ".join(id_to_chan(i) for i in vals))
     else:
@@ -233,12 +281,14 @@ def del_chan_from_chgroup(send_message, text, server, str_to_id):
     """<channel channel-group> - Delete channel from channel group"""
     send_message(channels_in_chgroups[server.id].del_thing(str_to_id(text)))
 
+
 #
 # Channels that own commands
 #
 @hook.command(permissions=Permission.admin, format="command channel-group")
 def add_chgroup_to_cmd(send_message, text, server):
-    """<command channel-group> - Add a channel-group to a command. The command will only be usable in that channel."""
+    """<command channel-group> - Add a channel-group to a command. \
+The command will only be usable in that channel."""
     send_message(cgroups_own_cmds[server.id].add_thing(text))
 
 
@@ -254,8 +304,10 @@ def list_chgroups_for_cmd(send_message, text, server):
 
 @hook.command(permissions=Permission.admin, format="command channel-group")
 def del_chgroup_from_cmd(send_message, text, server):
-    """<command channel-group> - Delete a user-group from a command's ownership"""
+    """<command channel-group> - Delete a user-group from \
+a command's ownership"""
     send_message(cgroups_own_cmds[server.id].del_thing(text))
+
 
 #
 # Channels that forbid commands
@@ -271,6 +323,7 @@ def list_fchgroups_for_cmd(send_message, text, server):
     """<command> - List in what channel-groups command is NOT usable"""
     vals = cgroups_forbid_cmds[server.id].list_things_for_thing(
         text, "fgroups")
+
     if vals:
         send_message(", ".join(i for i in vals))
     else:
@@ -279,8 +332,10 @@ def list_fchgroups_for_cmd(send_message, text, server):
 
 @hook.command(permissions=Permission.admin, format="command channel-group")
 def del_fchgroup_from_cmd(send_message, text, server):
-    """<command channel-group> - Delete a user-group from a command's forbidden list"""
+    """<command channel-group> - Delete a user-group from a \
+command's forbidden list"""
     send_message(cgroups_forbid_cmds[server.id].del_thing(text))
+
 
 #
 # User groups that own commands
@@ -307,12 +362,14 @@ def del_owner_from_cmd(send_message, text, server):
     """<command user-group> - Delete user-group from command ownership list"""
     send_message(ugroups_own_cmds[server.id].del_thing(text))
 
+
 #
 # Commands that have no channel restrictions
 #
 @hook.command(permissions=Permission.admin, format="cmd")
 def remove_restrictions_for_cmd(send_message, text, server, str_to_id):
-    """<command> - Remove channel restrictions for a command to make it usable on the whole server"""
+    """<command> - Remove channel restrictions for a command to make \
+it usable on the whole server"""
     send_message(free_to_use_cmds[server.id].add_thing(text + " Yes"))
 
 
@@ -321,6 +378,7 @@ def is_cmd_unrestricted(send_message, text, server):
     """<command> - Check if command is channel restricted or not"""
     val = free_to_use_cmds[server.id].list_things_for_thing(
         text, "unrestricted")
+
     if val:
         send_message("Command is unrestricted")
     else:
@@ -332,6 +390,7 @@ def is_cmd_unrestricted(send_message, text, server):
 def restore_restrictions_for_cmd(send_message, text, server):
     """<command user-group> - Restore channel restrictions for command"""
     send_message(free_to_use_cmds[server.id].del_thing(text))
+
 
 #
 # Admin
@@ -354,7 +413,9 @@ def add_admin_role(text, str_to_id, storage, send_message, server):
 
     if drole is None:
         send_message(
-            "Not a role. Use either role name or mention the role when running the command")
+            "Not a role. Use either role name or mention the role when \
+running the command"
+        )
         return
 
     if "admin_roles" not in storage:
@@ -391,7 +452,9 @@ def remove_admin_role(send_message, str_to_id, storage, text):
 
     if len(roles) == 1:
         send_message(
-            "Cannot remove role, because this is the only admin role for this server")
+            "Cannot remove role, because this is the only admin \
+role for this server"
+        )
         return
 
     if roles and role_id in roles:
@@ -401,13 +464,15 @@ def remove_admin_role(send_message, str_to_id, storage, text):
     else:
         send_message("Could not find role in admin list.")
 
+
 #
 # Bot channel
 #
 @hook.command(permissions=Permission.admin, format="chan")
 def set_default_bot_channel(text, str_to_id, storage, send_message):
     """
-    <channel> - Configure a channel where any bot command can be used, unless otherwise specified by other rules.
+    <channel> - Configure a channel where any bot command can be used, \
+unless otherwise specified by other rules.
     """
     channel_id = str_to_id(text)
 
@@ -419,7 +484,8 @@ def set_default_bot_channel(text, str_to_id, storage, send_message):
 @hook.command(permissions=Permission.admin)
 def clear_default_bot_channel(storage, send_message):
     """
-    <channel> - Configure a channel where any bot command can be used, unless otherwise specified.
+    <channel> - Configure a channel where any bot command can be used, \
+unless otherwise specified.
     """
     storage["default_bot_chan"] = None
 

@@ -25,3 +25,7 @@ class EventType():
 
     # Bot events
     on_ready = spanky_pb2.Event.EventType.on_ready
+    on_start = spanky_pb2.Event.EventType.on_start
+
+    # Non-grpc events
+    timer_event = 1000

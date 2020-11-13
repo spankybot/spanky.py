@@ -2,19 +2,31 @@ from core import hook
 
 
 @hook.command()
-def test1():
+def test1(reply):
     """test1"""
+
+    reply("a")
+
     return "test111"
 
 
-@hook.command()
-def test2():
-    """test2"""
-    return "test222"
+# @hook.periodic(2)
+# async def test2(send_message):
+#     """test2"""
+#     print("Asdx")
+
+#     return "test222"
 
 
-#@hook.on_start()
+@hook.on_start()
 def test3():
     """test3"""
     print("on_start")
     return "test333"
+
+
+@hook.on_ready()
+def test4():
+    """test4"""
+    print("on_ready")
+    return "test444"

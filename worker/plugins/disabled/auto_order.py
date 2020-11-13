@@ -99,6 +99,6 @@ def do_auto_order(server, chanlist):
 @hook.periodic(5)
 def order_chans(bot):
     for server in bot.backend.get_servers():
-        stor = bot.server_permissions[server.id].get_plugin_storage("plugins_auto_order.json")
+        stor = bot.server_permissions[server.id].get_plugin_storage_raw("plugins_auto_order.json")
         if "auto_order" in stor:
             do_auto_order(server, stor["auto_order"])

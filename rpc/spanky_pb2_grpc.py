@@ -29,6 +29,11 @@ class SpankyStub(object):
                 request_serializer=rpc_dot_spanky__pb2.OutgoingMessage.SerializeToString,
                 response_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
                 )
+        self.SendEmbed = channel.unary_unary(
+                '/spanky.Spanky/SendEmbed',
+                request_serializer=rpc_dot_spanky__pb2.OutgoingEmbed.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
+                )
         self.GetEvent = channel.unary_stream(
                 '/spanky.Spanky/GetEvent',
                 request_serializer=rpc_dot_spanky__pb2.GetEventReq.SerializeToString,
@@ -65,6 +70,13 @@ class SpankyServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SendEmbed(self, request, context):
+        """Send message to specified channel
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetEvent(self, request, context):
         """Interface that streams events
         """
@@ -95,6 +107,11 @@ def add_SpankyServicer_to_server(servicer, server):
             'SendMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.SendMessage,
                     request_deserializer=rpc_dot_spanky__pb2.OutgoingMessage.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
+            ),
+            'SendEmbed': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendEmbed,
+                    request_deserializer=rpc_dot_spanky__pb2.OutgoingEmbed.FromString,
                     response_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
             ),
             'GetEvent': grpc.unary_stream_rpc_method_handler(
@@ -164,6 +181,23 @@ class Spanky(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/SendMessage',
             rpc_dot_spanky__pb2.OutgoingMessage.SerializeToString,
+            rpc_dot_spanky__pb2.SomeObjectID.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SendEmbed(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/SendEmbed',
+            rpc_dot_spanky__pb2.OutgoingEmbed.SerializeToString,
             rpc_dot_spanky__pb2.SomeObjectID.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

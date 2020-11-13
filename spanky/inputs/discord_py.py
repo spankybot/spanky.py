@@ -11,29 +11,30 @@ import json
 import abc
 from gc import collect
 from utils import time_utils
-#from utils import discord_utils as dutils
+
+# from utils import discord_utils as dutils
 
 import rpc.rpc_objects as rpcobj
 
-logger = logging.getLogger('discord')
+logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(
-    filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
+handler.setFormatter(
+    logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+)
 logger.addHandler(handler)
 
 # Enable intents god damn it discord
 intents = discord.Intents.default()
 intents.members = True
 
-allowedMentions = discord.AllowedMentions(
-    everyone=False, users=True, roles=True)
+allowedMentions = discord.AllowedMentions(everyone=False, users=True, roles=True)
 
 client = discord.Client(intents=intents, allowed_mentions=allowedMentions)
 bot = None
 
-class Init():
+
+class Init:
     def __init__(self, bot_inst):
         global client
         global bot
@@ -52,39 +53,77 @@ class Init():
         """
         servers = []
         for server in client.guilds:
-            servers.append(Server(server))
+            servers.append(SServer(server))
 
         return servers
 
-class Server(rpcobj.Server):
+    def prepare_embed(
+        self,
+        title,
+        description=None,
+        fields=None,
+        inline_fields=True,
+        image_url=None,
+        footer_txt=None,
+        thumbnail_url=None,
+        ):
+            """
+            Prepare an embed object
+            """
+            em = None
+
+            if description:
+                em = discord.Embed(title=title, description=description)
+            else:
+                em = discord.Embed(title=title)
+
+            if fields:
+                for el in fields:
+                    em.add_field(name=el, value=fields[el], inline=inline_fields)
+
+            if image_url:
+                em.set_image(url=image_url)
+
+            if footer_txt:
+                em.set_footer(text=footer_txt)
+
+            if thumbnail_url:
+                em.set_thumbnail(url=thumbnail_url)
+
+            return em
+
+
+
+class SServer(rpcobj.Server):
     def __init__(self, obj):
         self.id = obj.id
         self.name = obj.name
 
-class User(rpcobj.User):
+
+class SUser(rpcobj.User):
     def __init__(self, obj):
         self.id = obj.id
         self.name = obj.name
         self.display_name = obj.display_name
 
-class Message(rpcobj.Message):
+
+class SMessage(rpcobj.Message):
     def __init__(self, obj):
         self.content = obj.content
         self.id = obj.id
-        self.author = User(obj.author)
+        self.author = SUser(obj.author)
         self.channel_id = obj.channel.id
-        self.guild_id = obj.guild.id
+        self.server_id = obj.guild.id
 
         self.clean_content = obj.clean_content
 
 
-
 @client.event
 async def on_ready():
-    print('Logged in as')
+    print("Logged in as")
     print(client.user.name)
     print(client.user.id)
-    print('------')
+    print("------")
     await bot.ready()
 
 
@@ -94,6 +133,7 @@ async def call_func(func, *args, **kwargs):
     except:
         traceback.print_stack()
         traceback.print_exc()
+
 
 # Messages
 
@@ -115,7 +155,9 @@ async def on_bulk_message_delete(messages):
 
 @client.event
 async def on_message(message):
-    await call_func(bot.on_message, Message(message))
+    await call_func(bot.on_message, SMessage(message))
+
+
 ###
 
 # Members
@@ -144,6 +186,8 @@ async def on_member_ban(server, member):
 @client.event
 async def on_member_unban(server, user):
     await call_func(bot.on_member_unban, server, user)
+
+
 ###
 
 # Reactions
@@ -173,6 +217,8 @@ async def on_raw_reaction_add(reaction):
         reaction.channel = raw_msg_cache[msg_id]._raw.channel
 
         await call_func(bot.on_reaction_add, reaction, reaction.member)
+
+
 ###
 
 # Server
@@ -185,6 +231,7 @@ async def on_server_join(server):
 
 async def on_server_remove(server):
     await call_func(bot.on_server_leave, server)
+
 
 ###
 
@@ -199,5 +246,6 @@ async def periodic_task():
         except Exception:
             traceback.print_stack()
             traceback.print_exc()
+
 
 client.loop.create_task(periodic_task())
