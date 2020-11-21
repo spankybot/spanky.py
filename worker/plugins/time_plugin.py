@@ -1,6 +1,6 @@
 import datetime
 import re
-import time
+import time as ptime
 
 import requests
 
@@ -43,8 +43,8 @@ def load_key(bot):
     dev_key = bot.config.get("api_keys", {}).get("google_dev_key", None)
 
 
-@hook.command("time")
-def time_command(text, reply):
+@hook.command()
+def time(text, reply):
     """<location> - Gets the current time in <location>."""
     if not dev_key:
         return "This command requires a Google Developers Console API key."
@@ -90,7 +90,7 @@ def time_command(text, reply):
     # Now we have the co-ordinates, we use the Timezone API to get the timezone
     formatted_location = "{lat},{lng}".format(**location)
 
-    epoch = time.time()
+    epoch = ptime.time()
 
     params = {"location": formatted_location,
               "timestamp": epoch, "key": dev_key}
@@ -105,15 +105,15 @@ def time_command(text, reply):
 
     # I'm telling the time module to parse the data as GMT, but whatever, it doesn't matter
     # what the time module thinks the timezone is. I just need dumb time formatting here.
-    raw_time = time.gmtime(epoch + offset)
-    formatted_time = time.strftime('%I:%M %p, %A, %B %d, %Y', raw_time)
+    raw_time = ptime.gmtime(epoch + offset)
+    formatted_time = ptime.strftime('%I:%M %p, %A, %B %d, %Y', raw_time)
 
     timezone = json['timeZoneName']
 
     return "{} - {} ({})".format(formatted_time, location_name, timezone)
 
 
-@hook.command(autohelp=False)
+@hook.command()
 def beats(text):
     """- Gets the current time in .beats (Swatch Internet Time)."""
 

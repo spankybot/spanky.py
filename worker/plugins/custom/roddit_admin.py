@@ -5,7 +5,7 @@ import utils.discord_utils as dutils
 from core import hook
 from utils import time_utils
 from core.event import EventType
-from core.permissions import Permission
+from hook.permissions import Permission
 from plugins.temp_role import assign_temp_role, check_exp_time, get_reasons
 
 RODDIT_ID = "287285563118190592"

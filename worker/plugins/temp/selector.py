@@ -5,7 +5,7 @@ import utils.carousel as carousel
 from core.event import EventType
 from collections import OrderedDict, deque
 from utils import discord_utils as dutils
-from core.permissions import Permission
+from hook.permissions import Permission
 
 
 permanent_messages = []  # What permanent messages are held

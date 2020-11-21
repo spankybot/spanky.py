@@ -1,7 +1,7 @@
 import praw
 import time
 from core import hook
-from core.permissions import Permission
+from core.hook import Permission
 
 tstamps = {}
 reddit_inst = None

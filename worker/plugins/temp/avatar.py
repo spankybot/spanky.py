@@ -3,7 +3,7 @@ import io
 
 from PIL import ImageFont, ImageDraw
 from core import hook
-from core.permissions import Permission
+from hook.permissions import Permission
 from utils.image import Image
 
 BANNER_W = 960

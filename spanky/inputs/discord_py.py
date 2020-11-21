@@ -9,8 +9,10 @@ import collections
 import requests
 import json
 import abc
+import io
+
 from gc import collect
-from utils import time_utils
+from utils import time_utils as tutils
 
 # from utils import discord_utils as dutils
 
@@ -47,7 +49,7 @@ class Init:
         await client.login(bot.config["discord_token"])
         await client.connect()
 
-    def get_servers(self):
+    def get_server_ids(self):
         """
         Get list of servers
         """
@@ -56,6 +58,31 @@ class Init:
             servers.append(SServer(server))
 
         return servers
+
+    def get_server(self, sid):
+        return SServer(client.get_guild(sid))
+
+    def get_users(self, server_id):
+        """
+        Get list of users
+        """
+        guild = self.client.get_guild(server_id)
+
+        users = []
+        for user in guild.members:
+            users.append(SUser(user))
+
+        return users
+
+    def get_role(self, role_id, server_id):
+        guild = self.client.get_guild(server_id)
+
+        return SRole(guild.get_role(role_id))
+
+    def get_user(self, user_id, server_id):
+        guild = self.client.get_guild(server_id)
+
+        return SUser(guild.get_member(user_id))
 
     def prepare_embed(
         self,
@@ -66,56 +93,89 @@ class Init:
         image_url=None,
         footer_txt=None,
         thumbnail_url=None,
-        ):
-            """
-            Prepare an embed object
-            """
-            em = None
+    ):
+        """
+        Prepare an embed object
+        """
+        em = None
 
-            if description:
-                em = discord.Embed(title=title, description=description)
-            else:
-                em = discord.Embed(title=title)
+        if description:
+            em = discord.Embed(title=title, description=description)
+        else:
+            em = discord.Embed(title=title)
 
-            if fields:
-                for el in fields:
-                    em.add_field(name=el, value=fields[el], inline=inline_fields)
+        if fields:
+            for el in fields:
+                em.add_field(name=el, value=fields[el], inline=inline_fields)
 
-            if image_url:
-                em.set_image(url=image_url)
+        if image_url:
+            em.set_image(url=image_url)
 
-            if footer_txt:
-                em.set_footer(text=footer_txt)
+        if footer_txt:
+            em.set_footer(text=footer_txt)
 
-            if thumbnail_url:
-                em.set_thumbnail(url=thumbnail_url)
+        if thumbnail_url:
+            em.set_thumbnail(url=thumbnail_url)
 
-            return em
+        return em
 
+    async def send_file(self, data, fname, channel_id, server_id):
+        server = client.get_guild(server_id)
+        chan = server.get_channel(channel_id)
+
+        file_desc = io.BytesIO(data)
+        return await chan.send(file=discord.File(file_desc, filename=fname))
+
+    async def send_message(self, text, channel_id, server_id):
+        server = client.get_guild(server_id)
+        chan = server.get_channel(channel_id)
+
+        return await chan.send(content=text)
+
+    async def send_embed(self, data, fname, channel_id, server_id):
+        server = client.get_guild(server_id)
+        chan = server.get_channel(channel_id)
+
+        file_desc = io.BytesIO(data)
+        return await chan.send(file=discord.File(file_desc, filename=fname))
+
+    async def get_attachments(self, message_id, channel_id, server_id):
+        chan = client.get_channel(channel_id)
+        msg = await chan.fetch_message(message_id)
+
+        att_list = []
+        for attach in msg.attachments:
+            att_list.append(attach.url)
+
+        return att_list
 
 
 class SServer(rpcobj.Server):
     def __init__(self, obj):
+        self._raw = obj
         self.id = obj.id
-        self.name = obj.name
+
+
+class SRole(rpcobj.Role):
+    def __init__(self, obj):
+        self._raw = obj
 
 
 class SUser(rpcobj.User):
     def __init__(self, obj):
-        self.id = obj.id
-        self.name = obj.name
-        self.display_name = obj.display_name
+        self._raw = obj
+
+        self.joined_at = tutils.datetime_to_ts(obj.joined_at)
+        self.avatar_url = str(obj.avatar_url)
+
+        self.premium_since = None
+        if obj.premium_since:
+            obj.premium_since = tutils.datetime_to_ts(obj.premium_since)
 
 
 class SMessage(rpcobj.Message):
     def __init__(self, obj):
-        self.content = obj.content
-        self.id = obj.id
-        self.author = SUser(obj.author)
-        self.channel_id = obj.channel.id
-        self.server_id = obj.guild.id
-
-        self.clean_content = obj.clean_content
+        self._raw = obj
 
 
 @client.event

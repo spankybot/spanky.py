@@ -2,7 +2,7 @@ import praw
 import time
 from core import hook
 from datetime import datetime
-from core.permissions import Permission
+from hook.permissions import Permission
 
 USER_AGENT = ""
 LAST_CHECK = 0

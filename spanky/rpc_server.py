@@ -12,31 +12,50 @@ logger = log.botlog("rpc_server", console_level=log.loglevel.DEBUG)
 
 
 class ImplementMe:
-    async def new_plugin_manager(self, new_pm_name):
+    def new_plugin_manager(self, new_pm_name):
         raise NotImplementedError()
 
     def set_command_list(self, pm_id, cmd_list):
         raise NotImplementedError()
 
-    async def send_message(self, text, channel_id):
+    def send_message(self, text, channel_id, server_id):
         raise NotImplementedError()
 
-    async def get_raw_event(self, pm_id, req_list):
+    def get_raw_event(self, pm_id, req_list):
         raise NotImplementedError()
 
-    async def get_servers(self, pm_id):
+    def get_servers(self):
         raise NotImplementedError()
 
-    async def send_embed(
+    def get_server(self, sid):
+        raise NotImplementedError()
+
+    def get_role(self, role_id, server_id):
+        raise NotImplementedError()
+
+    def get_user(self, user_id, server_id):
+        raise NotImplementedError()
+
+    def get_users(self, server_id):
+        raise NotImplementedError()
+
+    def send_embed(
         self,
         title,
-        description=None,
-        fields=None,
-        inline_fields=True,
-        image_url=None,
-        footer_txt=None,
-        channel_id=-1,
+        description,
+        fields,
+        inline_fields,
+        image_url,
+        footer_txt,
+        channel_id,
+        server_id,
     ):
+        raise NotImplementedError()
+
+    def send_file(self, data, fname, channel_id, server_id):
+        raise NotImplementedError()
+
+    def get_attachments(self, message_id, channel_id, server_id):
         raise NotImplementedError()
 
 
@@ -54,27 +73,43 @@ class Servicer(SpankyServicer, ImplementMe):
         )
 
     async def SendMessage(self, request, context):
-        return spanky_pb2.SomeObjectID(
-            id=await self.send_message(text=request.text, channel_id=request.channel_id)
-        )
+        field = request.WhichOneof("payload")
 
-    async def SendEmbed(self, request, context):
-
-        fields = {}
-        for field in request.fields:
-            fields[field.name] = field.text
-
-        return spanky_pb2.SomeObjectID(
-            id=await self.send_embed(
-                title=request.title,
-                description=request.description,
-                fields=fields,
-                inline_fields=request.inline_fields,
-                image_url=request.image_url,
-                footer_txt=request.footer_txt,
-                channel_id=request.channel_id,
+        if field == "msg":
+            return spanky_pb2.SomeObjectID(
+                id=await self.send_message(
+                    text=request.msg.text,
+                    channel_id=request.channel_id,
+                    server_id=request.server_id,
+                )
             )
-        )
+        elif field == "embed":
+            fields = {}
+            for field in request.embed.fields:
+                fields[field.name] = field.text
+
+            return spanky_pb2.SomeObjectID(
+                id=await self.send_embed(
+                    title=request.embed.title,
+                    description=request.embed.description,
+                    fields=fields,
+                    inline_fields=request.embed.inline_fields,
+                    image_url=request.embed.image_url,
+                    footer_txt=request.embed.footer_txt,
+                    channel_id=request.channel_id,
+                    server_id=request.server_id,
+                )
+            )
+
+        elif field == "file":
+            return spanky_pb2.SomeObjectID(
+                id=await self.send_file(
+                    data=request.file.data,
+                    fname=request.file.fname,
+                    channel_id=request.channel_id,
+                    server_id=request.server_id,
+                )
+            )
 
     async def GetEvent(self, request, context):
         while True:
@@ -90,10 +125,39 @@ class Servicer(SpankyServicer, ImplementMe):
             else:
                 return
 
-    async def GetServers(self, request, context):
-        server_list = self.get_servers(request.PluginMgrID)
+    async def GetServer(self, request, context):
+        obj = self.get_server(request.id)
+        return obj.serialize()
 
-        return spanky_pb2.RespServers(slist=[i.serialize() for i in server_list])
+    async def GetServerIDs(self, request, context):
+        server_list = self.get_servers()
+
+        return spanky_pb2.ObjectIDList(ids=[i.id for i in server_list])
+
+    async def GetUsers(self, request, context):
+        ulist = self.get_users(request.id)
+
+        return spanky_pb2.UserList(user_list=[i.serialize() for i in ulist])
+
+    async def GetRole(self, request, context):
+        obj = self.get_role(request.role_id, request.server_id)
+        return obj.serialize()
+
+    async def GetUserByID(self, request, context):
+        obj = self.get_user(request.user_id, request.server_id)
+        return obj.serialize()
+
+    async def GetAttachments(self, request, context):
+        try:
+            obj = await self.get_attachments(
+                request.message_id, request.channel_id, request.server_id
+            )
+
+            return spanky_pb2.Attachments(urls=[i for i in obj])
+        except:
+            import traceback
+
+            traceback.print_exc()
 
 
 async def init_grpc_server(servicer):

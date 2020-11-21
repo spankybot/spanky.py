@@ -4,7 +4,7 @@ from collections import deque
 from core import hook
 from utils import time_utils
 from core.event import EventType
-from core.permissions import Permission
+from hook.permissions import Permission
 from plugins.temp_role import assign_temp_role, check_exp_time, get_reasons
 from utils.discord_utils import roles_from_list, remove_role_from_list, add_role_from_list, remove_given_role_from_list
 

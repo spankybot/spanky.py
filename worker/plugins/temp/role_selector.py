@@ -4,7 +4,7 @@ import utils.carousel as carousel
 import utils.discord_utils as dutils
 
 from core import hook
-from core.permissions import Permission
+from hook.permissions import Permission
 from utils.volatile import set_vdata, get_vdata
 
 

@@ -6,7 +6,7 @@ import utils.discord_utils as dutils
 from utils.carousel import Selector
 
 from core import hook
-from core.permissions import Permission
+from hook.permissions import Permission
 from core.event import EventType
 
 from utils import time_utils as tutils

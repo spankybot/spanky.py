@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x10rpc/spanky.proto\x12\x06spanky\"\x1e\n\x05NewPM\x12\x15\n\rPluginMgrName\x18\x01 \x01(\t\"\x1c\n\x05\x41\x63kPM\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"9\n\nReqCmdList\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x16\n\x0e\x43mdRequestList\x18\x02 \x03(\t\"&\n\x0bRespCmdList\x12\x17\n\x0f\x43mdResponseList\x18\x01 \x03(\t\"3\n\x0fOutgoingMessage\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x12\n\nchannel_id\x18\x02 \x01(\x04\"(\n\nEmbedField\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\"\xa9\x01\n\rOutgoingEmbed\x12\r\n\x05title\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\x12\"\n\x06\x66ields\x18\x03 \x03(\x0b\x32\x12.spanky.EmbedField\x12\x15\n\rinline_fields\x18\x04 \x01(\x08\x12\x11\n\timage_url\x18\x05 \x01(\t\x12\x12\n\nfooter_txt\x18\x06 \x01(\t\x12\x12\n\nchannel_id\x18\x07 \x01(\x03\"\x1a\n\x0cSomeObjectID\x12\n\n\x02id\x18\x01 \x01(\x04\"5\n\x0bGetEventReq\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x11\n\tEventList\x18\x02 \x01(\x03\"\x8a\x03\n\x05\x45vent\x12+\n\nevent_type\x18\x01 \x01(\x0e\x32\x17.spanky.Event.EventType\x12\x1e\n\x03msg\x18\x02 \x01(\x0b\x32\x0f.spanky.MessageH\x00\x12#\n\x05\x65mpty\x18\x03 \x01(\x0b\x32\x12.spanky.EmptyEventH\x00\"\x83\x02\n\tEventType\x12\x0b\n\x07message\x10\x00\x12\x10\n\x0cmessage_edit\x10\x01\x12\x0f\n\x0bmessage_del\x10\x02\x12\x08\n\x04join\x10\x03\x12\x08\n\x04part\x10\x04\x12\x0c\n\x08\x63han_del\x10\x05\x12\x0c\n\x08\x63han_add\x10\x06\x12\x0c\n\x08\x63han_upd\x10\x07\x12\x0e\n\nmember_ban\x10\x08\x12\x10\n\x0cmember_unban\x10\t\x12\x11\n\rmember_update\x10\n\x12\x10\n\x0creaction_add\x10\x0b\x12\x13\n\x0freaction_remove\x10\x0c\x12\x10\n\x0cmsg_bulk_del\x10\r\x12\x0c\n\x08on_start\x10\x14\x12\x0c\n\x08on_ready\x10\x15\x42\t\n\x07payload\"6\n\x04User\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\x04\"#\n\x07\x43hannel\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\"\"\n\x06Server\x12\n\n\x02id\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\",\n\x0bRespServers\x12\x1d\n\x05slist\x18\x01 \x03(\x0b\x32\x0e.spanky.Server\"k\n\x07Message\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\x12\x1c\n\x06\x61uthor\x18\x03 \x01(\x0b\x32\x0c.spanky.User\x12\x12\n\nchannel_id\x18\x04 \x01(\x04\x12\x11\n\tserver_id\x18\x05 \x01(\x04\"N\n\x0bMessageEdit\x12\x1f\n\x06\x62\x65\x66ore\x18\x01 \x01(\x0b\x32\x0f.spanky.Message\x12\x1e\n\x05\x61\x66ter\x18\x02 \x01(\x0b\x32\x0f.spanky.Message\"\x0c\n\nEmptyEvent2\xdd\x02\n\x06Spanky\x12\x32\n\x10NewPluginManager\x12\r.spanky.NewPM\x1a\r.spanky.AckPM\"\x00\x12;\n\x0eSetCommandList\x12\x12.spanky.ReqCmdList\x1a\x13.spanky.RespCmdList\"\x00\x12>\n\x0bSendMessage\x12\x17.spanky.OutgoingMessage\x1a\x14.spanky.SomeObjectID\"\x00\x12:\n\tSendEmbed\x12\x15.spanky.OutgoingEmbed\x1a\x14.spanky.SomeObjectID\"\x00\x12\x32\n\x08GetEvent\x12\x13.spanky.GetEventReq\x1a\r.spanky.Event\"\x00\x30\x01\x12\x32\n\nGetServers\x12\r.spanky.AckPM\x1a\x13.spanky.RespServers\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x10rpc/spanky.proto\x12\x06spanky\"\x1b\n\x0b\x41ttachments\x12\x0c\n\x04urls\x18\x01 \x03(\t\"K\n\x0eMessageRequest\x12\x12\n\nmessage_id\x18\x01 \x01(\x04\x12\x12\n\nchannel_id\x18\x02 \x01(\x04\x12\x11\n\tserver_id\x18\x03 \x01(\x04\"P\n\x0bRoleRequest\x12\x11\n\tserver_id\x18\x01 \x01(\x04\x12\x11\n\x07role_id\x18\x02 \x01(\x04H\x00\x12\x13\n\trole_name\x18\x03 \x01(\tH\x00\x42\x06\n\x04info\"1\n\x0bUserRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\x04\x12\x11\n\tserver_id\x18\x02 \x01(\x04\"\x07\n\x05\x45mpty\"+\n\x08UserList\x12\x1f\n\tuser_list\x18\x01 \x03(\x0b\x32\x0c.spanky.User\"\x1e\n\x05NewPM\x12\x15\n\rPluginMgrName\x18\x01 \x01(\t\"\x1c\n\x05\x41\x63kPM\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\"9\n\nReqCmdList\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x16\n\x0e\x43mdRequestList\x18\x02 \x03(\t\"&\n\x0bRespCmdList\x12\x17\n\x0f\x43mdResponseList\x18\x01 \x03(\t\"(\n\nEmbedField\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\"\xce\x01\n\rOutgoingThing\x12\x15\n\rsource_msg_id\x18\x01 \x01(\x04\x12\x12\n\nchannel_id\x18\x02 \x01(\x04\x12\x11\n\tserver_id\x18\x03 \x01(\x04\x12&\n\x03msg\x18\x04 \x01(\x0b\x32\x17.spanky.OutgoingMessageH\x00\x12&\n\x05\x65mbed\x18\x05 \x01(\x0b\x32\x15.spanky.OutgoingEmbedH\x00\x12$\n\x04\x66ile\x18\x06 \x01(\x0b\x32\x14.spanky.OutgoingFileH\x00\x42\t\n\x07payload\"\x1f\n\x0fOutgoingMessage\x12\x0c\n\x04text\x18\x01 \x01(\t\"\x95\x01\n\rOutgoingEmbed\x12\r\n\x05title\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\x12\"\n\x06\x66ields\x18\x03 \x03(\x0b\x32\x12.spanky.EmbedField\x12\x15\n\rinline_fields\x18\x04 \x01(\x08\x12\x11\n\timage_url\x18\x05 \x01(\t\x12\x12\n\nfooter_txt\x18\x06 \x01(\t\"+\n\x0cOutgoingFile\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\r\n\x05\x66name\x18\x02 \x01(\t\"\x1b\n\x0cObjectIDList\x12\x0b\n\x03ids\x18\x01 \x03(\x04\"\x1a\n\x0cSomeObjectID\x12\n\n\x02id\x18\x01 \x01(\x04\"5\n\x0bGetEventReq\x12\x13\n\x0bPluginMgrID\x18\x01 \x01(\t\x12\x11\n\tEventList\x18\x02 \x01(\x03\"\x8a\x03\n\x05\x45vent\x12+\n\nevent_type\x18\x01 \x01(\x0e\x32\x17.spanky.Event.EventType\x12\x1e\n\x03msg\x18\x02 \x01(\x0b\x32\x0f.spanky.MessageH\x00\x12#\n\x05\x65mpty\x18\x03 \x01(\x0b\x32\x12.spanky.EmptyEventH\x00\"\x83\x02\n\tEventType\x12\x0b\n\x07message\x10\x00\x12\x10\n\x0cmessage_edit\x10\x01\x12\x0f\n\x0bmessage_del\x10\x02\x12\x08\n\x04join\x10\x03\x12\x08\n\x04part\x10\x04\x12\x0c\n\x08\x63han_del\x10\x05\x12\x0c\n\x08\x63han_add\x10\x06\x12\x0c\n\x08\x63han_upd\x10\x07\x12\x0e\n\nmember_ban\x10\x08\x12\x10\n\x0cmember_unban\x10\t\x12\x11\n\rmember_update\x10\n\x12\x10\n\x0creaction_add\x10\x0b\x12\x13\n\x0freaction_remove\x10\x0c\x12\x10\n\x0cmsg_bulk_del\x10\r\x12\x0c\n\x08on_start\x10\x14\x12\x0c\n\x08on_ready\x10\x15\x42\t\n\x07payload\"3\n\x04Role\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\x12\x11\n\tserver_id\x18\x03 \x01(\x04\"\x99\x01\n\x04User\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\x04\x12\x11\n\tjoined_at\x18\x04 \x01(\x04\x12\x12\n\navatar_url\x18\x05 \x01(\t\x12\x15\n\rpremium_since\x18\x06 \x01(\x04\x12\x10\n\x08role_ids\x18\x07 \x03(\x04\x12\x11\n\tserver_id\x18\x08 \x01(\x04\"#\n\x07\x43hannel\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x04\"4\n\x06Server\x12\n\n\x02id\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08role_ids\x18\x03 \x03(\x04\"u\n\x07Message\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x13\n\x0b\x61uthor_name\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\x04\x12\x11\n\tauthor_id\x18\x04 \x01(\x04\x12\x12\n\nchannel_id\x18\x05 \x01(\x04\x12\x11\n\tserver_id\x18\x06 \x01(\x04\"N\n\x0bMessageEdit\x12\x1f\n\x06\x62\x65\x66ore\x18\x01 \x01(\x0b\x32\x0f.spanky.Message\x12\x1e\n\x05\x61\x66ter\x18\x02 \x01(\x0b\x32\x0f.spanky.Message\"\x0c\n\nEmptyEvent2\xb2\x04\n\x06Spanky\x12\x32\n\x10NewPluginManager\x12\r.spanky.NewPM\x1a\r.spanky.AckPM\"\x00\x12;\n\x0eSetCommandList\x12\x12.spanky.ReqCmdList\x1a\x13.spanky.RespCmdList\"\x00\x12<\n\x0bSendMessage\x12\x15.spanky.OutgoingThing\x1a\x14.spanky.SomeObjectID\"\x00\x12\x32\n\x08GetEvent\x12\x13.spanky.GetEventReq\x1a\r.spanky.Event\"\x00\x30\x01\x12\x35\n\x0cGetServerIDs\x12\r.spanky.Empty\x1a\x14.spanky.ObjectIDList\"\x00\x12\x33\n\tGetServer\x12\x14.spanky.SomeObjectID\x1a\x0e.spanky.Server\"\x00\x12\x34\n\x08GetUsers\x12\x14.spanky.SomeObjectID\x1a\x10.spanky.UserList\"\x00\x12\x32\n\x0bGetUserByID\x12\x13.spanky.UserRequest\x1a\x0c.spanky.User\"\x00\x12.\n\x07GetRole\x12\x13.spanky.RoleRequest\x1a\x0c.spanky.Role\"\x00\x12?\n\x0eGetAttachments\x12\x16.spanky.MessageRequest\x1a\x13.spanky.Attachments\"\x00\x62\x06proto3'
 )
 
 
@@ -114,10 +114,235 @@ _EVENT_EVENTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=664,
-  serialized_end=923,
+  serialized_start=1200,
+  serialized_end=1459,
 )
 _sym_db.RegisterEnumDescriptor(_EVENT_EVENTTYPE)
+
+
+_ATTACHMENTS = _descriptor.Descriptor(
+  name='Attachments',
+  full_name='spanky.Attachments',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='urls', full_name='spanky.Attachments.urls', index=0,
+      number=1, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=28,
+  serialized_end=55,
+)
+
+
+_MESSAGEREQUEST = _descriptor.Descriptor(
+  name='MessageRequest',
+  full_name='spanky.MessageRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='message_id', full_name='spanky.MessageRequest.message_id', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel_id', full_name='spanky.MessageRequest.channel_id', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.MessageRequest.server_id', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=57,
+  serialized_end=132,
+)
+
+
+_ROLEREQUEST = _descriptor.Descriptor(
+  name='RoleRequest',
+  full_name='spanky.RoleRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.RoleRequest.server_id', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='role_id', full_name='spanky.RoleRequest.role_id', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='role_name', full_name='spanky.RoleRequest.role_name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='info', full_name='spanky.RoleRequest.info',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+  ],
+  serialized_start=134,
+  serialized_end=214,
+)
+
+
+_USERREQUEST = _descriptor.Descriptor(
+  name='UserRequest',
+  full_name='spanky.UserRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='user_id', full_name='spanky.UserRequest.user_id', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.UserRequest.server_id', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=216,
+  serialized_end=265,
+)
+
+
+_EMPTY = _descriptor.Descriptor(
+  name='Empty',
+  full_name='spanky.Empty',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=267,
+  serialized_end=274,
+)
+
+
+_USERLIST = _descriptor.Descriptor(
+  name='UserList',
+  full_name='spanky.UserList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='user_list', full_name='spanky.UserList.user_list', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=276,
+  serialized_end=319,
+)
 
 
 _NEWPM = _descriptor.Descriptor(
@@ -147,8 +372,8 @@ _NEWPM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=28,
-  serialized_end=58,
+  serialized_start=321,
+  serialized_end=351,
 )
 
 
@@ -179,8 +404,8 @@ _ACKPM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=60,
-  serialized_end=88,
+  serialized_start=353,
+  serialized_end=381,
 )
 
 
@@ -218,8 +443,8 @@ _REQCMDLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=90,
-  serialized_end=147,
+  serialized_start=383,
+  serialized_end=440,
 )
 
 
@@ -250,47 +475,8 @@ _RESPCMDLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=149,
-  serialized_end=187,
-)
-
-
-_OUTGOINGMESSAGE = _descriptor.Descriptor(
-  name='OutgoingMessage',
-  full_name='spanky.OutgoingMessage',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='text', full_name='spanky.OutgoingMessage.text', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='channel_id', full_name='spanky.OutgoingMessage.channel_id', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=189,
-  serialized_end=240,
+  serialized_start=442,
+  serialized_end=480,
 )
 
 
@@ -328,8 +514,112 @@ _EMBEDFIELD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=242,
-  serialized_end=282,
+  serialized_start=482,
+  serialized_end=522,
+)
+
+
+_OUTGOINGTHING = _descriptor.Descriptor(
+  name='OutgoingThing',
+  full_name='spanky.OutgoingThing',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='source_msg_id', full_name='spanky.OutgoingThing.source_msg_id', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel_id', full_name='spanky.OutgoingThing.channel_id', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.OutgoingThing.server_id', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='msg', full_name='spanky.OutgoingThing.msg', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='embed', full_name='spanky.OutgoingThing.embed', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='file', full_name='spanky.OutgoingThing.file', index=5,
+      number=6, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='payload', full_name='spanky.OutgoingThing.payload',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+  ],
+  serialized_start=525,
+  serialized_end=731,
+)
+
+
+_OUTGOINGMESSAGE = _descriptor.Descriptor(
+  name='OutgoingMessage',
+  full_name='spanky.OutgoingMessage',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='text', full_name='spanky.OutgoingMessage.text', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=733,
+  serialized_end=764,
 )
 
 
@@ -383,10 +673,42 @@ _OUTGOINGEMBED = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=767,
+  serialized_end=916,
+)
+
+
+_OUTGOINGFILE = _descriptor.Descriptor(
+  name='OutgoingFile',
+  full_name='spanky.OutgoingFile',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
     _descriptor.FieldDescriptor(
-      name='channel_id', full_name='spanky.OutgoingEmbed.channel_id', index=6,
-      number=7, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
+      name='data', full_name='spanky.OutgoingFile.data', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='fname', full_name='spanky.OutgoingFile.fname', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -402,8 +724,40 @@ _OUTGOINGEMBED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=285,
-  serialized_end=454,
+  serialized_start=918,
+  serialized_end=961,
+)
+
+
+_OBJECTIDLIST = _descriptor.Descriptor(
+  name='ObjectIDList',
+  full_name='spanky.ObjectIDList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ids', full_name='spanky.ObjectIDList.ids', index=0,
+      number=1, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=963,
+  serialized_end=990,
 )
 
 
@@ -434,8 +788,8 @@ _SOMEOBJECTID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=456,
-  serialized_end=482,
+  serialized_start=992,
+  serialized_end=1018,
 )
 
 
@@ -473,8 +827,8 @@ _GETEVENTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=484,
-  serialized_end=537,
+  serialized_start=1020,
+  serialized_end=1073,
 )
 
 
@@ -525,8 +879,54 @@ _EVENT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=540,
-  serialized_end=934,
+  serialized_start=1076,
+  serialized_end=1470,
+)
+
+
+_ROLE = _descriptor.Descriptor(
+  name='Role',
+  full_name='spanky.Role',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='spanky.Role.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='id', full_name='spanky.Role.id', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.Role.server_id', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1472,
+  serialized_end=1523,
 )
 
 
@@ -559,6 +959,41 @@ _USER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='joined_at', full_name='spanky.User.joined_at', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='avatar_url', full_name='spanky.User.avatar_url', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='premium_since', full_name='spanky.User.premium_since', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='role_ids', full_name='spanky.User.role_ids', index=6,
+      number=7, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.User.server_id', index=7,
+      number=8, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -571,8 +1006,8 @@ _USER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=936,
-  serialized_end=990,
+  serialized_start=1526,
+  serialized_end=1679,
 )
 
 
@@ -610,8 +1045,8 @@ _CHANNEL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=992,
-  serialized_end=1027,
+  serialized_start=1681,
+  serialized_end=1716,
 )
 
 
@@ -637,34 +1072,9 @@ _SERVER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1029,
-  serialized_end=1063,
-)
-
-
-_RESPSERVERS = _descriptor.Descriptor(
-  name='RespServers',
-  full_name='spanky.RespServers',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
     _descriptor.FieldDescriptor(
-      name='slist', full_name='spanky.RespServers.slist', index=0,
-      number=1, type=11, cpp_type=10, label=3,
+      name='role_ids', full_name='spanky.Server.role_ids', index=2,
+      number=3, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -681,8 +1091,8 @@ _RESPSERVERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1065,
-  serialized_end=1109,
+  serialized_start=1718,
+  serialized_end=1770,
 )
 
 
@@ -702,29 +1112,36 @@ _MESSAGE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='id', full_name='spanky.Message.id', index=1,
-      number=2, type=4, cpp_type=4, label=1,
+      name='author_name', full_name='spanky.Message.author_name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='id', full_name='spanky.Message.id', index=2,
+      number=3, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='author', full_name='spanky.Message.author', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='channel_id', full_name='spanky.Message.channel_id', index=3,
+      name='author_id', full_name='spanky.Message.author_id', index=3,
       number=4, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='server_id', full_name='spanky.Message.server_id', index=4,
+      name='channel_id', full_name='spanky.Message.channel_id', index=4,
       number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='spanky.Message.server_id', index=5,
+      number=6, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -741,8 +1158,8 @@ _MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1111,
-  serialized_end=1218,
+  serialized_start=1772,
+  serialized_end=1889,
 )
 
 
@@ -780,8 +1197,8 @@ _MESSAGEEDIT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1220,
-  serialized_end=1298,
+  serialized_start=1891,
+  serialized_end=1969,
 )
 
 
@@ -805,10 +1222,29 @@ _EMPTYEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1300,
-  serialized_end=1312,
+  serialized_start=1971,
+  serialized_end=1983,
 )
 
+_ROLEREQUEST.oneofs_by_name['info'].fields.append(
+  _ROLEREQUEST.fields_by_name['role_id'])
+_ROLEREQUEST.fields_by_name['role_id'].containing_oneof = _ROLEREQUEST.oneofs_by_name['info']
+_ROLEREQUEST.oneofs_by_name['info'].fields.append(
+  _ROLEREQUEST.fields_by_name['role_name'])
+_ROLEREQUEST.fields_by_name['role_name'].containing_oneof = _ROLEREQUEST.oneofs_by_name['info']
+_USERLIST.fields_by_name['user_list'].message_type = _USER
+_OUTGOINGTHING.fields_by_name['msg'].message_type = _OUTGOINGMESSAGE
+_OUTGOINGTHING.fields_by_name['embed'].message_type = _OUTGOINGEMBED
+_OUTGOINGTHING.fields_by_name['file'].message_type = _OUTGOINGFILE
+_OUTGOINGTHING.oneofs_by_name['payload'].fields.append(
+  _OUTGOINGTHING.fields_by_name['msg'])
+_OUTGOINGTHING.fields_by_name['msg'].containing_oneof = _OUTGOINGTHING.oneofs_by_name['payload']
+_OUTGOINGTHING.oneofs_by_name['payload'].fields.append(
+  _OUTGOINGTHING.fields_by_name['embed'])
+_OUTGOINGTHING.fields_by_name['embed'].containing_oneof = _OUTGOINGTHING.oneofs_by_name['payload']
+_OUTGOINGTHING.oneofs_by_name['payload'].fields.append(
+  _OUTGOINGTHING.fields_by_name['file'])
+_OUTGOINGTHING.fields_by_name['file'].containing_oneof = _OUTGOINGTHING.oneofs_by_name['payload']
 _OUTGOINGEMBED.fields_by_name['fields'].message_type = _EMBEDFIELD
 _EVENT.fields_by_name['event_type'].enum_type = _EVENT_EVENTTYPE
 _EVENT.fields_by_name['msg'].message_type = _MESSAGE
@@ -820,28 +1256,77 @@ _EVENT.fields_by_name['msg'].containing_oneof = _EVENT.oneofs_by_name['payload']
 _EVENT.oneofs_by_name['payload'].fields.append(
   _EVENT.fields_by_name['empty'])
 _EVENT.fields_by_name['empty'].containing_oneof = _EVENT.oneofs_by_name['payload']
-_RESPSERVERS.fields_by_name['slist'].message_type = _SERVER
-_MESSAGE.fields_by_name['author'].message_type = _USER
 _MESSAGEEDIT.fields_by_name['before'].message_type = _MESSAGE
 _MESSAGEEDIT.fields_by_name['after'].message_type = _MESSAGE
+DESCRIPTOR.message_types_by_name['Attachments'] = _ATTACHMENTS
+DESCRIPTOR.message_types_by_name['MessageRequest'] = _MESSAGEREQUEST
+DESCRIPTOR.message_types_by_name['RoleRequest'] = _ROLEREQUEST
+DESCRIPTOR.message_types_by_name['UserRequest'] = _USERREQUEST
+DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
+DESCRIPTOR.message_types_by_name['UserList'] = _USERLIST
 DESCRIPTOR.message_types_by_name['NewPM'] = _NEWPM
 DESCRIPTOR.message_types_by_name['AckPM'] = _ACKPM
 DESCRIPTOR.message_types_by_name['ReqCmdList'] = _REQCMDLIST
 DESCRIPTOR.message_types_by_name['RespCmdList'] = _RESPCMDLIST
-DESCRIPTOR.message_types_by_name['OutgoingMessage'] = _OUTGOINGMESSAGE
 DESCRIPTOR.message_types_by_name['EmbedField'] = _EMBEDFIELD
+DESCRIPTOR.message_types_by_name['OutgoingThing'] = _OUTGOINGTHING
+DESCRIPTOR.message_types_by_name['OutgoingMessage'] = _OUTGOINGMESSAGE
 DESCRIPTOR.message_types_by_name['OutgoingEmbed'] = _OUTGOINGEMBED
+DESCRIPTOR.message_types_by_name['OutgoingFile'] = _OUTGOINGFILE
+DESCRIPTOR.message_types_by_name['ObjectIDList'] = _OBJECTIDLIST
 DESCRIPTOR.message_types_by_name['SomeObjectID'] = _SOMEOBJECTID
 DESCRIPTOR.message_types_by_name['GetEventReq'] = _GETEVENTREQ
 DESCRIPTOR.message_types_by_name['Event'] = _EVENT
+DESCRIPTOR.message_types_by_name['Role'] = _ROLE
 DESCRIPTOR.message_types_by_name['User'] = _USER
 DESCRIPTOR.message_types_by_name['Channel'] = _CHANNEL
 DESCRIPTOR.message_types_by_name['Server'] = _SERVER
-DESCRIPTOR.message_types_by_name['RespServers'] = _RESPSERVERS
 DESCRIPTOR.message_types_by_name['Message'] = _MESSAGE
 DESCRIPTOR.message_types_by_name['MessageEdit'] = _MESSAGEEDIT
 DESCRIPTOR.message_types_by_name['EmptyEvent'] = _EMPTYEVENT
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+Attachments = _reflection.GeneratedProtocolMessageType('Attachments', (_message.Message,), {
+  'DESCRIPTOR' : _ATTACHMENTS,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.Attachments)
+  })
+_sym_db.RegisterMessage(Attachments)
+
+MessageRequest = _reflection.GeneratedProtocolMessageType('MessageRequest', (_message.Message,), {
+  'DESCRIPTOR' : _MESSAGEREQUEST,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.MessageRequest)
+  })
+_sym_db.RegisterMessage(MessageRequest)
+
+RoleRequest = _reflection.GeneratedProtocolMessageType('RoleRequest', (_message.Message,), {
+  'DESCRIPTOR' : _ROLEREQUEST,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.RoleRequest)
+  })
+_sym_db.RegisterMessage(RoleRequest)
+
+UserRequest = _reflection.GeneratedProtocolMessageType('UserRequest', (_message.Message,), {
+  'DESCRIPTOR' : _USERREQUEST,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.UserRequest)
+  })
+_sym_db.RegisterMessage(UserRequest)
+
+Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), {
+  'DESCRIPTOR' : _EMPTY,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.Empty)
+  })
+_sym_db.RegisterMessage(Empty)
+
+UserList = _reflection.GeneratedProtocolMessageType('UserList', (_message.Message,), {
+  'DESCRIPTOR' : _USERLIST,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.UserList)
+  })
+_sym_db.RegisterMessage(UserList)
 
 NewPM = _reflection.GeneratedProtocolMessageType('NewPM', (_message.Message,), {
   'DESCRIPTOR' : _NEWPM,
@@ -871,13 +1356,6 @@ RespCmdList = _reflection.GeneratedProtocolMessageType('RespCmdList', (_message.
   })
 _sym_db.RegisterMessage(RespCmdList)
 
-OutgoingMessage = _reflection.GeneratedProtocolMessageType('OutgoingMessage', (_message.Message,), {
-  'DESCRIPTOR' : _OUTGOINGMESSAGE,
-  '__module__' : 'rpc.spanky_pb2'
-  # @@protoc_insertion_point(class_scope:spanky.OutgoingMessage)
-  })
-_sym_db.RegisterMessage(OutgoingMessage)
-
 EmbedField = _reflection.GeneratedProtocolMessageType('EmbedField', (_message.Message,), {
   'DESCRIPTOR' : _EMBEDFIELD,
   '__module__' : 'rpc.spanky_pb2'
@@ -885,12 +1363,40 @@ EmbedField = _reflection.GeneratedProtocolMessageType('EmbedField', (_message.Me
   })
 _sym_db.RegisterMessage(EmbedField)
 
+OutgoingThing = _reflection.GeneratedProtocolMessageType('OutgoingThing', (_message.Message,), {
+  'DESCRIPTOR' : _OUTGOINGTHING,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.OutgoingThing)
+  })
+_sym_db.RegisterMessage(OutgoingThing)
+
+OutgoingMessage = _reflection.GeneratedProtocolMessageType('OutgoingMessage', (_message.Message,), {
+  'DESCRIPTOR' : _OUTGOINGMESSAGE,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.OutgoingMessage)
+  })
+_sym_db.RegisterMessage(OutgoingMessage)
+
 OutgoingEmbed = _reflection.GeneratedProtocolMessageType('OutgoingEmbed', (_message.Message,), {
   'DESCRIPTOR' : _OUTGOINGEMBED,
   '__module__' : 'rpc.spanky_pb2'
   # @@protoc_insertion_point(class_scope:spanky.OutgoingEmbed)
   })
 _sym_db.RegisterMessage(OutgoingEmbed)
+
+OutgoingFile = _reflection.GeneratedProtocolMessageType('OutgoingFile', (_message.Message,), {
+  'DESCRIPTOR' : _OUTGOINGFILE,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.OutgoingFile)
+  })
+_sym_db.RegisterMessage(OutgoingFile)
+
+ObjectIDList = _reflection.GeneratedProtocolMessageType('ObjectIDList', (_message.Message,), {
+  'DESCRIPTOR' : _OBJECTIDLIST,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.ObjectIDList)
+  })
+_sym_db.RegisterMessage(ObjectIDList)
 
 SomeObjectID = _reflection.GeneratedProtocolMessageType('SomeObjectID', (_message.Message,), {
   'DESCRIPTOR' : _SOMEOBJECTID,
@@ -913,6 +1419,13 @@ Event = _reflection.GeneratedProtocolMessageType('Event', (_message.Message,), {
   })
 _sym_db.RegisterMessage(Event)
 
+Role = _reflection.GeneratedProtocolMessageType('Role', (_message.Message,), {
+  'DESCRIPTOR' : _ROLE,
+  '__module__' : 'rpc.spanky_pb2'
+  # @@protoc_insertion_point(class_scope:spanky.Role)
+  })
+_sym_db.RegisterMessage(Role)
+
 User = _reflection.GeneratedProtocolMessageType('User', (_message.Message,), {
   'DESCRIPTOR' : _USER,
   '__module__' : 'rpc.spanky_pb2'
@@ -933,13 +1446,6 @@ Server = _reflection.GeneratedProtocolMessageType('Server', (_message.Message,),
   # @@protoc_insertion_point(class_scope:spanky.Server)
   })
 _sym_db.RegisterMessage(Server)
-
-RespServers = _reflection.GeneratedProtocolMessageType('RespServers', (_message.Message,), {
-  'DESCRIPTOR' : _RESPSERVERS,
-  '__module__' : 'rpc.spanky_pb2'
-  # @@protoc_insertion_point(class_scope:spanky.RespServers)
-  })
-_sym_db.RegisterMessage(RespServers)
 
 Message = _reflection.GeneratedProtocolMessageType('Message', (_message.Message,), {
   'DESCRIPTOR' : _MESSAGE,
@@ -971,8 +1477,8 @@ _SPANKY = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1315,
-  serialized_end=1664,
+  serialized_start=1986,
+  serialized_end=2548,
   methods=[
   _descriptor.MethodDescriptor(
     name='NewPluginManager',
@@ -999,17 +1505,7 @@ _SPANKY = _descriptor.ServiceDescriptor(
     full_name='spanky.Spanky.SendMessage',
     index=2,
     containing_service=None,
-    input_type=_OUTGOINGMESSAGE,
-    output_type=_SOMEOBJECTID,
-    serialized_options=None,
-    create_key=_descriptor._internal_create_key,
-  ),
-  _descriptor.MethodDescriptor(
-    name='SendEmbed',
-    full_name='spanky.Spanky.SendEmbed',
-    index=3,
-    containing_service=None,
-    input_type=_OUTGOINGEMBED,
+    input_type=_OUTGOINGTHING,
     output_type=_SOMEOBJECTID,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
@@ -1017,7 +1513,7 @@ _SPANKY = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetEvent',
     full_name='spanky.Spanky.GetEvent',
-    index=4,
+    index=3,
     containing_service=None,
     input_type=_GETEVENTREQ,
     output_type=_EVENT,
@@ -1025,12 +1521,62 @@ _SPANKY = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
-    name='GetServers',
-    full_name='spanky.Spanky.GetServers',
+    name='GetServerIDs',
+    full_name='spanky.Spanky.GetServerIDs',
+    index=4,
+    containing_service=None,
+    input_type=_EMPTY,
+    output_type=_OBJECTIDLIST,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetServer',
+    full_name='spanky.Spanky.GetServer',
     index=5,
     containing_service=None,
-    input_type=_ACKPM,
-    output_type=_RESPSERVERS,
+    input_type=_SOMEOBJECTID,
+    output_type=_SERVER,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetUsers',
+    full_name='spanky.Spanky.GetUsers',
+    index=6,
+    containing_service=None,
+    input_type=_SOMEOBJECTID,
+    output_type=_USERLIST,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetUserByID',
+    full_name='spanky.Spanky.GetUserByID',
+    index=7,
+    containing_service=None,
+    input_type=_USERREQUEST,
+    output_type=_USER,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetRole',
+    full_name='spanky.Spanky.GetRole',
+    index=8,
+    containing_service=None,
+    input_type=_ROLEREQUEST,
+    output_type=_ROLE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetAttachments',
+    full_name='spanky.Spanky.GetAttachments',
+    index=9,
+    containing_service=None,
+    input_type=_MESSAGEREQUEST,
+    output_type=_ATTACHMENTS,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),

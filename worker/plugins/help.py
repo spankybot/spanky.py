@@ -1,19 +1,22 @@
 import os
 import html
 from core import hook
-from core.permissions import Permission
+from core.hook import Permission
 
 
 @hook.command
-def help(bot, text, event, send_embed):
+def help(bot, text, event, reply_embed):
     """Get help for a command or the help document"""
     if text in bot.plugin_manager.commands:
-        send_embed(
+        reply_embed(
             text, "",
             {"Usage:": bot.plugin_manager.commands[text].function.__doc__})
         return
+    else:
+        reply_embed("Unknown command", "", {})
+        return
 
-    send_embed("Bot help:", "",
+    reply_embed("Bot help:", "",
                {"Links:": "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
     return
 
@@ -76,7 +79,6 @@ def gen_documentation(bot, storage_loc, event):
         for cmd_str in cmd_dict:
             cmd = cmd_dict[cmd_str]
             file_name = cmd.plugin.name.split("/")[-1].replace(".py", "")
-            file_cmds = []
 
             if file_name not in files:
                 files[file_name] = []

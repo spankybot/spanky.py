@@ -3,6 +3,8 @@ import inspect
 import re
 import collections
 
+from common.event import EventType
+
 valid_command_re = re.compile(r"^\w+$")
 
 
@@ -161,10 +163,6 @@ class _PeriodicHook(_Hook):
 
 
 class _EventHook(_Hook):
-    """
-    :type types: set[cloudbot.event.EventType]
-    """
-
     def __init__(self, function):
         _Hook.__init__(self, function, "event")
         self.types = set()

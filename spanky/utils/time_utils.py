@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 time_tokens = ['s', 'm', 'h', 'd']
 SEC_IN_MIN = 60
@@ -72,3 +73,7 @@ def sec_to_human(sec):
         res.append(part_fmt)
 
     return ', '.join(res)
+
+
+def datetime_to_ts(dt):
+    return int((dt.replace(tzinfo=pytz.utc) - datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds())

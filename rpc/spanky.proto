@@ -10,16 +10,63 @@ service Spanky {
     rpc SetCommandList(ReqCmdList) returns (RespCmdList) {}
 
 	// Send message to specified channel
-    rpc SendMessage(OutgoingMessage) returns (SomeObjectID) {}
-
-    // Send message to specified channel
-	rpc SendEmbed(OutgoingEmbed) returns (SomeObjectID) {}
+    rpc SendMessage(OutgoingThing) returns (SomeObjectID) {}
 
     // Interface that streams events
     rpc GetEvent(GetEventReq) returns (stream Event) {}
 
     // Get server list
-    rpc GetServers(AckPM) returns (RespServers) {}
+    rpc GetServerIDs(Empty) returns (ObjectIDList) {}
+
+    // Get server data
+    rpc GetServer(SomeObjectID) returns (Server) {}
+
+    // Get users in a server
+    rpc GetUsers(SomeObjectID) returns (UserList) {}
+
+    // Get users in a server
+    rpc GetUserByID(UserRequest) returns (User) {}
+
+    // Get role
+    rpc GetRole(RoleRequest) returns (Role) {}
+
+    // Get attachments for a meesage
+    rpc GetAttachments(MessageRequest) returns (Attachments) {}
+
+    // Get channel by ID
+    //rpc GetChannelByID(ChannelRequest) returns (Channel) {}
+}
+
+message Attachments {
+    repeated string urls = 1;
+}
+
+message MessageRequest {
+    uint64 message_id = 1;
+    uint64 channel_id = 2;
+    uint64 server_id = 3;
+}
+
+message RoleRequest {
+    uint64 server_id = 1;
+    oneof info {
+        uint64 role_id = 2;
+        string role_name = 3;
+    }
+}
+
+message UserRequest {
+    uint64 user_id = 1;
+    uint64 server_id = 2;
+}
+
+message Empty {
+
+}
+
+// Server user list
+message UserList {
+    repeated User user_list = 1;
 }
 
 // New plugin manager request
@@ -43,16 +90,28 @@ message RespCmdList {
     repeated string CmdResponseList = 1;
 }
 
-// Message to send
-message OutgoingMessage {
-    string text = 1;
-    uint64 channel_id = 2;
-}
-
 // Embed field
 message EmbedField {
     string name = 1;
     string text = 2;
+}
+
+// Thing to send
+message OutgoingThing {
+    uint64 source_msg_id = 1;
+    uint64 channel_id = 2;
+    uint64 server_id = 3;
+
+    oneof payload {
+        OutgoingMessage msg = 4;
+        OutgoingEmbed embed = 5;
+        OutgoingFile file = 6;
+    }
+}
+
+// Message to send
+message OutgoingMessage {
+    string text = 1;
 }
 
 // Embed to send
@@ -63,7 +122,17 @@ message OutgoingEmbed {
     bool inline_fields = 4;
     string image_url = 5;
     string footer_txt = 6;
-    int64 channel_id = 7;
+}
+
+// File to send
+message OutgoingFile {
+    bytes data = 1;
+    string fname = 2;
+}
+
+// Anonymous object that has an ID
+message ObjectIDList {
+	repeated uint64 ids = 1;
 }
 
 // Anonymous object that has an ID
@@ -118,10 +187,21 @@ message Event {
 ///
 /// Discord objects
 ///
+message Role {
+    string name = 1;
+    uint64 id = 2;
+    uint64 server_id = 3;
+}
+
 message User {
     string name = 1;
     string display_name = 2;
     uint64 id = 3;
+    uint64 joined_at = 4;
+    string avatar_url = 5;
+    uint64 premium_since = 6;
+    repeated uint64 role_ids = 7;
+    uint64 server_id = 8;
 }
 
 message Channel {
@@ -132,18 +212,17 @@ message Channel {
 message Server {
     uint64 id = 1;
     string name = 2;
-}
-
-message RespServers {
-    repeated Server slist = 1;
+    repeated uint64 role_ids = 3;
 }
 
 message Message {
     string content = 1;
-    uint64 id = 2;
-    User author = 3;
-    uint64 channel_id = 4;
-    uint64 server_id = 5;
+    string author_name = 2;
+
+    uint64 id = 3;
+    uint64 author_id = 4;
+    uint64 channel_id = 5;
+    uint64 server_id = 6;
 }
 
 message MessageEdit {

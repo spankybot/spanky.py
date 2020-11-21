@@ -1,5 +1,5 @@
 from core import hook
-from core.permissions import Permission
+from hook.permissions import Permission
 
 from core.event import EventType
 import random

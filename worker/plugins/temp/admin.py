@@ -1,7 +1,7 @@
 import os
 
 from core import hook, permissions
-from core.permissions import Permission, PermissionMgr
+from hook.permissions import Permission, PermissionMgr
 from utils.setclearfactory import (
     SetClearFactory,
     data_type_string,

@@ -9,8 +9,7 @@ from utils import bot_utils as butils
 
 
 class PythonWorker:
-    def __init__(self, evloop):
-        self.loop = evloop
+    def __init__(self):
         # Open the bot config file
         with open("bot_config.json") as data_file:
             self.config = json.load(data_file)
@@ -22,8 +21,7 @@ class PythonWorker:
 
     async def connect(self):
         # Create the plugin manager
-        self.plugin_manager = PluginManager(
-            self.config.get("plugin_paths", ""), self)
+        self.plugin_manager = PluginManager(self.config.get("plugin_paths", ""), self)
 
         # Connect to the server
         await self.client.connect()
@@ -40,25 +38,19 @@ class PythonWorker:
         if self._is_ready:
             raise ValueError("Manager already marked as ready")
 
-        self._on_ready = True
+        self._is_ready = True
 
-        # Get the servers
-        servers = await self.client.get_servers()
+        butils.run_in_thread(
+            self.plugin_manager.launch_hooks_by_event,
+            args=(EventType.on_ready,))
 
-        # Add current servers
-        for server in servers:
-            self.plugin_manager.add_new_server(server)
-
-        await self.plugin_manager.launch_hooks_by_event(EventType.on_ready)
-
-        asyncio.run_coroutine_threadsafe(self.timer_loop(1), self.loop)
+        butils.run_async(self.timer_loop, args=(1,))
 
     async def run(self):
         while True:
             evt, payload = await self.client.get_event()
 
             # Handle the payload type
-
             if evt == EventType.message:
                 butils.run_in_thread(self.handle_message, args=(payload,))
 
@@ -87,18 +79,34 @@ class PythonWorker:
 
             # Run the command through the plugin manager
             await self.plugin_manager.launch_command(
-                hook=hook, event=message, event_text=event_text)
+                hook=hook, event=message, event_text=event_text
+            )
 
     async def timer_loop(self, interval):
         while True:
             await asyncio.sleep(interval)
 
-            await self.plugin_manager.launch_hooks_by_event(
-                EventType.timer_event)
+            # await self.plugin_manager.launch_hooks_by_event(
+            # EventType.timer_event)
+
+            butils.run_in_thread(
+                self.plugin_manager.launch_hooks_by_event, args=(EventType.timer_event,)
+            )
+
+
+async def run_forever():
+    while True:
+        print("a")
+        await asyncio.sleep(1)
 
 
 loop = asyncio.get_event_loop()
-worker = PythonWorker(loop)
+loop.set_debug(True)
 
-loop.run_until_complete(worker.connect())
-loop.run_until_complete(worker.run())
+worker = PythonWorker()
+
+future = asyncio.ensure_future(worker.connect())
+loop.run_until_complete(future)
+
+asyncio.ensure_future(worker.run())
+loop.run_forever()

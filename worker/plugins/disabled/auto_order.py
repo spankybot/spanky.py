@@ -1,5 +1,5 @@
 from core import hook, permissions
-from core.permissions import Permission
+from hook.permissions import Permission
 from utils import time_utils
 from plugins.log import get_msg_cnt_for_channel_after
 

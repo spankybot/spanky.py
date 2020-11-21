@@ -5,7 +5,7 @@ import plugins.paged_content as paged
 
 from core.event import EventType
 from core import hook
-from core.permissions import Permission
+from hook.permissions import Permission
 
 MSG_TIMEOUT = 3
 active_polls = {}

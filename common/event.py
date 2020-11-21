@@ -1,7 +1,9 @@
 # For convenience during development, this file is symlinked into each project
 from rpc import spanky_pb2
+import enum
 
-class EventType():
+
+class EventType(enum.IntEnum):
     # Chat events
     message = spanky_pb2.Event.EventType.message
     message_edit = spanky_pb2.Event.EventType.message_edit

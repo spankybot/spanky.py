@@ -2,15 +2,15 @@ import os
 import datetime
 import utils.discord_utils as dutils
 import plugins.paged_content as paged
+import types
 
-from core import hook, permissions
-from core.permissions import Permission
+from core import hook
+from core.hook import Permission
 from utils import time_utils
-from utils.volatile import set_vdata, get_vdata
 from collections import OrderedDict
-from core.permissions import Permission
 
-time_tokens = ['s', 'm', 'h', 'd']
+
+time_tokens = ["s", "m", "h", "d"]
 SEC_IN_MIN = 60
 SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
@@ -25,18 +25,16 @@ def log_action(storage, ret_val, send_embed, title):
             log_text += "**%s:** %s\n" % (k, v)
 
         # Send it as embed
-        send_embed(
-            title, "",
-            {"Details": log_text},
-            target=storage["modlog_chan"])
+        send_embed(title, "", {"Details": log_text}, target=storage["modlog_chan"])
 
 
-def register_cmd(cmd, server):
+def register_cmd(cmd, server, module):
     """
     Register a user defined command
     """
+
     def create_it(cmd_name):
-        def do_cmd(text, server, storage, event, send_embed):
+        def do_cmd(text, server, storage, event, reply_embed):
             """
             Temporary role assignment command as defined by server ops.
             """
@@ -47,16 +45,25 @@ def register_cmd(cmd, server):
                 return ret_val
 
             # Log the action
-            log_action(storage, ret_val, send_embed,
-                       "User given the `%s` role" % storage["cmds"][cmd_name]["role_name"])
+            log_action(
+                storage,
+                ret_val,
+                reply_embed,
+                "User given the `%s` role" % storage["cmds"][cmd_name]["role_name"],
+            )
 
             return "Done."
 
         do_cmd.__name__ = cmd_name
         return do_cmd
 
-    globals()[cmd["name"]] = hook.command(server_id=server.id,
-                                          permissions=Permission.admin)(create_it(cmd["name"]))
+    setattr(
+        module,
+        cmd["name"],
+        hook.command(server_id=server.id, permissions=Permission.admin)(
+            create_it(cmd["name"])
+        ),
+    )
 
 
 def reload_file(bot):
@@ -68,29 +75,31 @@ def reload_file(bot):
 
 
 @hook.on_ready()
-def init_cmds(server, storage):
+def init_cmds(bot, server, storage):
     """
     Register all commands on bot ready
     """
-    storage = bot.server_permissions[server.id].get_plugin_storage_raw(
-        "plugins_temp_role.json")
-
     if "cmds" not in storage:
         return
 
+    if len(storage["cmds"]) == 0:
+        return
+
+    # Create a module
+    module_name = "temp_role_%s" % server.id
+    server_module = types.ModuleType(module_name)
+
+    # Register each command in the module
     for cmd in storage["cmds"]:
         print("[%s] Registering %s" % (server.id, cmd))
-        register_cmd(storage["cmds"][cmd], server)
+        register_cmd(storage["cmds"][cmd], server, server_module)
 
-    # TODO: workaround - look into adding commands dinamically
-    if not get_vdata("temp_role_reload"):
-        print("temp_role_reload")
-        set_vdata("temp_role_reload", True)
-        #reload_file(bot)
+    # Load it
+    bot.plugin_manager.load_module(module_name, server_module)
 
 
 @hook.command(permissions=Permission.admin)
-def create_temp_role_cmd(text, str_to_id, server, bot, storage):
+def create_temp_role_cmd(text, server, bot, storage):
     """
     <command name, role> - create a command that assigns a temporary role by specifying `command_name role`
     """
@@ -112,9 +121,9 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
         return "Command `%s` already exists. Try using another name." % cmd
 
     # Get the given role
-    role = dutils.get_role_by_id(server, str_to_id(text[1]))
+    role = server.get_role(role_id=dutils.str_to_id(text[1]))
     if not role:
-        role = dutils.get_role_by_name(server, text[1])
+        role = server.get_role(role_name=text[1])
 
     if not role:
         return "No such role " + text[1]
@@ -159,7 +168,7 @@ def delete_temp_role_cmd(storage, text, bot):
     for cmd in storage["cmds"].values():
         if cmd["name"] == text:
             # Remove plugin entry from the bot and globals
-            #del bot.plugin_manager.commands[text]
+            # del bot.plugin_manager.commands[text]
             del globals()[cmd["name"]]
             del storage["cmds"][cmd["name"]]
 
@@ -175,6 +184,7 @@ def delete_temp_role_cmd(storage, text, bot):
 @hook.command(permissions=Permission.admin)
 async def userhistory(text, storage, async_send_message, server):
     """<user> - List confinement reasons for user"""
+
     def get_reasons(text, storage, user_id):
         if "reasons" not in storage:
             return ["No reasons set"]
@@ -194,9 +204,12 @@ async def userhistory(text, storage, async_send_message, server):
             if "Type" in reason:
                 rtype = reason["Type"]
 
-            rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % \
-                    (reason["Case ID"], rtype, reason["Date"],
-                     reason["Author"].split("/")[0])
+            rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % (
+                reason["Case ID"],
+                rtype,
+                reason["Date"],
+                reason["Author"].split("/")[0],
+            )
             rlist.append(rtext)
 
         return rlist
@@ -210,10 +223,12 @@ async def userhistory(text, storage, async_send_message, server):
 
         # Print as pages
         paged_content = paged.element(
-            usr_hist, async_send_message, "User history:", no_timeout=True)
+            usr_hist, async_send_message, "User history:", no_timeout=True
+        )
         await paged_content.get_crt_page()
     except:
         import traceback
+
         traceback.print_exc()
 
 
@@ -264,9 +279,7 @@ def show_user_case(text, storage, send_embed):
                     log_text += "**%s:** %s\n" % (k, v)
 
                 # Send it as embed
-                send_embed(
-                    "Result", "",
-                    {"Details": log_text})
+                send_embed("Result", "", {"Details": log_text})
 
 
 def give_temp_role(text, server, command_name, storage, event):
@@ -274,8 +287,12 @@ def give_temp_role(text, server, command_name, storage, event):
     text = " ".join(text.split()).split()
 
     if len(text) < 2:
-        return "Needs at least user and time (e.g. .{CMD} @plp, 5m - to give @plp {CMD} for 5 minutes OR .{CMD} @plp 5m bad user - to give @plp {CMD} for 5m and save the reason \"bad user\")".format(CMD=command_name) + \
-            "The abbrebiations are: s - seconds, m - minutes, h - hours, d - days."
+        return (
+            'Needs at least user and time (e.g. .{CMD} @plp, 5m - to give @plp {CMD} for 5 minutes OR .{CMD} @plp 5m bad user - to give @plp {CMD} for 5m and save the reason "bad user")'.format(
+                CMD=command_name
+            )
+            + "The abbrebiations are: s - seconds, m - minutes, h - hours, d - days."
+        )
 
     # Get user
     user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
@@ -291,14 +308,16 @@ def give_temp_role(text, server, command_name, storage, event):
     timeout_sec = time_utils.timeout_to_sec(text[1])
     # If timeout is 0, double check the input
     if timeout_sec == 0 and text[1] != "0s":
-        return "There may have been a problem parsing `%s`. Please check it and run the command again." % text[1]
+        return (
+            "There may have been a problem parsing `%s`. Please check it and run the command again."
+            % text[1]
+        )
 
     # When the timeout will expire
     texp = datetime.datetime.now().timestamp() + timeout_sec
 
     # Get the role
-    role = dutils.get_role_by_id(
-        server, storage["cmds"][command_name]["role_id"])
+    role = dutils.get_role_by_id(server, storage["cmds"][command_name]["role_id"])
 
     if role is None:
         return "Could not find given role"
@@ -332,10 +351,11 @@ def give_temp_role(text, server, command_name, storage, event):
             user,
             event.author,
             reason,
-            "https://discordapp.com/channels/%s/%s/%s" % (
-                server.id, event.channel.id, event.msg.id),
+            "https://discordapp.com/channels/%s/%s/%s"
+            % (server.id, event.channel.id, event.msg.id),
             texp,
-            command_name)
+            command_name,
+        )
 
         # Create command entry
         new_entry = {}
@@ -352,8 +372,15 @@ def give_temp_role(text, server, command_name, storage, event):
 
         storage.sync()
 
-        user.send_pm("You have been given the `%s` role. It will last for %s.\nReason: %s\nAuthor: %s" %
-                     (storage["cmds"][command_name]["role_name"], text[1], reason, event.author.name))
+        user.send_pm(
+            "You have been given the `%s` role. It will last for %s.\nReason: %s\nAuthor: %s"
+            % (
+                storage["cmds"][command_name]["role_name"],
+                text[1],
+                reason,
+                event.author.name,
+            )
+        )
 
         return reason_entry
 
@@ -364,7 +391,9 @@ def give_temp_role(text, server, command_name, storage, event):
             user.id,
             command_name,
             texp,
-            "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id))
+            "https://discordapp.com/channels/%s/%s/%s"
+            % (server.id, event.channel.id, event.msg.id),
+        )
 
         return "Adjusted time for user to %d" % timeout_sec
 
@@ -432,17 +461,20 @@ def warn(user_id_to_object, str_to_id, text, storage, event, send_embed, server)
         user,
         event.author,
         reason,
-        "https://discordapp.com/channels/%s/%s/%s" % (
-            server.id, event.channel.id, event.msg.id),
+        "https://discordapp.com/channels/%s/%s/%s"
+        % (server.id, event.channel.id, event.msg.id),
         None,
-        "Warning")
+        "Warning",
+    )
 
     # Log the action
     log_action(storage, user_entry, send_embed, "User warned")
 
 
 @hook.command(permissions=Permission.admin)
-def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm):
+def kick(
+    user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm
+):
     """
     <user [reason]> - Kick someone with an optional reason
     """
@@ -464,27 +496,30 @@ def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server,
         user,
         event.author,
         reason,
-        "https://discordapp.com/channels/%s/%s/%s" % (
-            server.id, event.channel.id, event.msg.id),
+        "https://discordapp.com/channels/%s/%s/%s"
+        % (server.id, event.channel.id, event.msg.id),
         None,
-        "Kick")
+        "Kick",
+    )
 
     # Log the action
-    log_action(storage, user_entry, send_embed,
-               "User kicked")
+    log_action(storage, user_entry, send_embed, "User kicked")
 
     details = "\nAuthor: %s" % event.author.name
     if reason:
         details += "\nReason: %s" % reason
-    send_pm(text="You have been kicked from %s.\n%s" %
-            (server.name, details), user=user)
+    send_pm(
+        text="You have been kicked from %s.\n%s" % (server.name, details), user=user
+    )
 
     user.kick()
     return "Okay."
 
 
 @hook.command(permissions=Permission.admin)
-def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm):
+def ban(
+    user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm
+):
     """
     <user [,time], reason> - ban someone permanently or for a given amount of time (e.g. `.ban @plp 5m` bans plp for 5 minutes).
     """
@@ -524,14 +559,14 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
         user,
         event.author,
         reason,
-        "https://discordapp.com/channels/%s/%s/%s" % (
-            server.id, event.channel.id, event.msg.id),
+        "https://discordapp.com/channels/%s/%s/%s"
+        % (server.id, event.channel.id, event.msg.id),
         texp,
-        "Ban" if permanent else "Temporary ban")
+        "Ban" if permanent else "Temporary ban",
+    )
 
     # Log the action
-    log_action(storage, user_entry, send_embed,
-               "User banned")
+    log_action(storage, user_entry, send_embed, "User banned")
 
     # Create command entry
     new_entry = {}
@@ -549,11 +584,17 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
             storage["temp_bans"] = []
 
         storage["temp_bans"].append(new_entry)
-        send_pm(text="You have temporarily banned from %s. The ban will last for %s.\n%s" %
-                (server.name, text[1], details), user=user)
+        send_pm(
+            text="You have temporarily banned from %s. The ban will last for %s.\n%s"
+            % (server.name, text[1], details),
+            user=user,
+        )
     else:
-        send_pm(text="You have been permanently banned from %s.\n%s" %
-                (server.name, details), user=user)
+        send_pm(
+            text="You have been permanently banned from %s.\n%s"
+            % (server.name, details),
+            user=user,
+        )
     storage.sync()
 
     user.ban(server)
@@ -577,7 +618,7 @@ def check_expired_roles(server, storage):
                 member = dutils.get_user_by_id(server, elem["user_id"])
 
                 new_roles = []
-                for role_id in elem['crt_roles']:
+                for role_id in elem["crt_roles"]:
                     role = dutils.get_role_by_id(server, role_id)
                     if role:
                         new_roles.append(role)
@@ -604,22 +645,20 @@ async def check_expired_bans(server, storage):
             storage.sync()
 
 
-@hook.periodic(1)
-async def check_expired_time(bot):
-    # Check timeouts for each server
-    for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage_raw(
-            "plugins_temp_role.json")
+# @hook.periodic(1)
+# async def check_expired_time(connected_servers, storage):
+#     for server in connected_servers():
+#         # Check timeouts for each server
+#         if "temp_roles" in storage:
+#             check_expired_roles(server, storage)
 
-        if "temp_roles" in storage:
-            check_expired_roles(server, storage)
+#         if "temp_bans" in storage:
+#             try:
+#                 await check_expired_bans(server, storage)
+#             except:
+#                 import traceback
 
-        if "temp_bans" in storage:
-            try:
-                await check_expired_bans(server, storage)
-            except:
-                import traceback
-                print(traceback.format_exc())
+#                 print(traceback.format_exc())
 
 
 def adjust_user_reason(rstorage, author, user_id, command_name, new_time, message_link):
@@ -639,7 +678,9 @@ def adjust_user_reason(rstorage, author, user_id, command_name, new_time, messag
     return reason
 
 
-def create_user_reason(storage, user, author, reason, message_link, expire, reason_type):
+def create_user_reason(
+    storage, user, author, reason, message_link, expire, reason_type
+):
     # Add 'reasons' key
     if "reasons" not in storage:
         storage["reasons"] = {}
@@ -661,8 +702,9 @@ def create_user_reason(storage, user, author, reason, message_link, expire, reas
     new_elem["Reason"] = reason
     new_elem["Date"] = datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")
     if expire:
-        new_elem["Expire date"] = datetime.datetime.fromtimestamp(
-            expire).strftime("%H:%M:%S %d-%m-%Y")
+        new_elem["Expire date"] = datetime.datetime.fromtimestamp(expire).strftime(
+            "%H:%M:%S %d-%m-%Y"
+        )
     new_elem["Link"] = message_link
     new_elem["Author"] = "%s / %s" % (author.name, str(author.id))
     new_elem["User"] = "%s / %s" % (user.name, str(user.id))
@@ -680,32 +722,23 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
     data = text.split(" ")
 
     if len(data) < 2:
-        return "Needs at least user and time (and reason) (e.g. .{CMD} @plp, 5m - to give @plp {CMD} for 5 minutes OR .{CMD} @plp 5m bad user - to give @plp {CMD} for 5m and save the reason \"bad user\")".format(CMD=command_name), None
+        return (
+            'Needs at least user and time (and reason) (e.g. .{CMD} @plp, 5m - to give @plp {CMD} for 5 minutes OR .{CMD} @plp 5m bad user - to give @plp {CMD} for 5m and save the reason "bad user")'.format(
+                CMD=command_name
+            ),
+            None,
+        )
 
     reason = "Not given"
     if len(data) >= 3:
         reason = " ".join(data[2:])
 
     user = str_to_id(data[0])
-    stime = data[1]
 
-    total_seconds = 0
+    # Get total timeout
+    total_seconds = tutils.timeout_to_sec(data[1])
 
-    last_start = 0
-    for pos, char in enumerate(stime):
-        if char in time_tokens:
-            value = int(stime[last_start:pos])
-            if char == 's':
-                total_seconds += value
-            elif char == 'm':
-                total_seconds += value * SEC_IN_MIN
-            elif char == 'h':
-                total_seconds += value * SEC_IN_HOUR
-            elif char == 'd':
-                total_seconds += value * SEC_IN_DAY
-
-            last_start = pos + 1
-
+    # Calculate expire time
     texp = datetime.datetime.now().timestamp() + total_seconds
 
     brole = dutils.get_role_by_name(server, role)
@@ -737,7 +770,8 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
 
     if not extra:
         reason_entry = add_reason(
-            rstorage, event, member, reason, server, texp, brole.name)
+            rstorage, event, member, reason, server, texp, brole.name
+        )
 
         new_entry = {}
         new_entry["user"] = user
@@ -749,7 +783,10 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
         member.replace_roles([brole])
 
         rstorage.sync()
-        return "Gave <@%s> %s seconds %s time" % (user, str(total_seconds), command_name), reason_entry
+        return (
+            "Gave <@%s> %s seconds %s time" % (user, str(total_seconds), command_name),
+            reason_entry,
+        )
     else:
         reason_entry = adjust_time(rstorage, event, user, command_name, texp)
         return "Adjusted time for user to %d" % total_seconds, reason_entry
@@ -768,9 +805,12 @@ def adjust_time(rstorage, event, user_id, command_name, new_time):
     for reason in rstorage["reasons"][user_id]:
         if reason["Case ID"] == reason_id:
             reason["Modified by"] = "%s / %s" % (
-                event.author.name, str(event.author.id))
+                event.author.name,
+                str(event.author.id),
+            )
             reason["Modified expire time"] = datetime.datetime.fromtimestamp(
-                new_time).strftime("%H:%M:%S %d-%m-%Y")
+                new_time
+            ).strftime("%H:%M:%S %d-%m-%Y")
 
     rstorage.sync()
     return reason
@@ -793,10 +833,14 @@ def add_reason(rstorage, event, user, reason, server, expire, rtype):
     new_elem["Case ID"] = rstorage["case_id"]
     new_elem["Reason"] = reason
     new_elem["Date"] = datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")
-    new_elem["Expire date"] = datetime.datetime.fromtimestamp(
-        expire).strftime("%H:%M:%S %d-%m-%Y")
+    new_elem["Expire date"] = datetime.datetime.fromtimestamp(expire).strftime(
+        "%H:%M:%S %d-%m-%Y"
+    )
     new_elem["Link"] = "https://discordapp.com/channels/%s/%s/%s" % (
-        server.id, event.channel.id, event.msg.id)
+        server.id,
+        event.channel.id,
+        event.msg.id,
+    )
     new_elem["Author"] = "%s / %s" % (event.author.name, str(event.author.id))
     new_elem["User"] = "%s / %s" % (user.name, user.id)
     new_elem["Case ID"] = rstorage["case_id"]
@@ -830,9 +874,12 @@ def get_reasons(text, str_to_id, storage):
         if "Type" in reason:
             rtype = reason["Type"]
 
-        rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % \
-                (reason["Case ID"], rtype, reason["Date"],
-                 reason["Author"].split("/")[0])
+        rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % (
+            reason["Case ID"],
+            rtype,
+            reason["Date"],
+            reason["Author"].split("/")[0],
+        )
         rlist.append(rtext)
 
     return rlist
@@ -846,7 +893,7 @@ def check_exp_time(rstorage, command_name, role, server):
     to_del = []
 
     for elem in rstorage[command_name]:
-        if elem['expire'] < tnow:
+        if elem["expire"] < tnow:
             to_del.append(elem)
 
     for elem in to_del:
@@ -854,7 +901,7 @@ def check_exp_time(rstorage, command_name, role, server):
         member = dutils.get_user_by_id(server, elem["user"])
 
         new_roles = []
-        for role_id in elem['crt_roles']:
+        for role_id in elem["crt_roles"]:
             role = dutils.get_role_by_id(server, role_id)
             if role:
                 new_roles.append(role)

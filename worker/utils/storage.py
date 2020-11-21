@@ -13,6 +13,8 @@ logger.addHandler(fh)
 
 DS_LOC = "storage_data/"
 
+### TODO check validity of backup before using it
+
 class dstype():
     def __init__(self, parent, name):
         parent = str(parent)
@@ -31,7 +33,7 @@ class dstype():
 
     def do_sync(self, obj, name, backup_name):
         try:
-            logger.debug("Do sync on " + name)
+            logger.debug(f"Do sync on {name}")
 
             # Check if the current file is valid
             json.load(open(name, "r"))
@@ -40,7 +42,8 @@ class dstype():
             copyfile(name, backup_name)
 
             logger.debug("Load/sync OK")
-        except:
+        except Exception as e:
+            print(e)
             print("File at %s is not valid" % (name))
             logger.debug("Sync error - file invalid")
 

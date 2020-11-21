@@ -1,6 +1,9 @@
 import threading
 import asyncio
 
+loop = asyncio.get_event_loop()
+
+
 def run_in_thread(target, args=()):
     """
     Run a function in a thread
@@ -13,3 +16,19 @@ def run_in_thread(target, args=()):
         thread.start()
 
     return thread
+
+
+async def _wrapped_async(target, args, kwargs):
+    try:
+        return await target(*args, **kwargs)
+    except:
+        import traceback
+        traceback.print_exc()
+
+def run_async(target, args=(), kwargs={}):
+    asyncio.run_coroutine_threadsafe(_wrapped_async(target, args, kwargs), loop)
+
+def run_async_wait(target, args=(), kwargs={}):
+    future = asyncio.run_coroutine_threadsafe(_wrapped_async(target, args, kwargs), loop)
+
+    return future.result()

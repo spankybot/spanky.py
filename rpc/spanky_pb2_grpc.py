@@ -26,12 +26,7 @@ class SpankyStub(object):
                 )
         self.SendMessage = channel.unary_unary(
                 '/spanky.Spanky/SendMessage',
-                request_serializer=rpc_dot_spanky__pb2.OutgoingMessage.SerializeToString,
-                response_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
-                )
-        self.SendEmbed = channel.unary_unary(
-                '/spanky.Spanky/SendEmbed',
-                request_serializer=rpc_dot_spanky__pb2.OutgoingEmbed.SerializeToString,
+                request_serializer=rpc_dot_spanky__pb2.OutgoingThing.SerializeToString,
                 response_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
                 )
         self.GetEvent = channel.unary_stream(
@@ -39,10 +34,35 @@ class SpankyStub(object):
                 request_serializer=rpc_dot_spanky__pb2.GetEventReq.SerializeToString,
                 response_deserializer=rpc_dot_spanky__pb2.Event.FromString,
                 )
-        self.GetServers = channel.unary_unary(
-                '/spanky.Spanky/GetServers',
-                request_serializer=rpc_dot_spanky__pb2.AckPM.SerializeToString,
-                response_deserializer=rpc_dot_spanky__pb2.RespServers.FromString,
+        self.GetServerIDs = channel.unary_unary(
+                '/spanky.Spanky/GetServerIDs',
+                request_serializer=rpc_dot_spanky__pb2.Empty.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.ObjectIDList.FromString,
+                )
+        self.GetServer = channel.unary_unary(
+                '/spanky.Spanky/GetServer',
+                request_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.Server.FromString,
+                )
+        self.GetUsers = channel.unary_unary(
+                '/spanky.Spanky/GetUsers',
+                request_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.UserList.FromString,
+                )
+        self.GetUserByID = channel.unary_unary(
+                '/spanky.Spanky/GetUserByID',
+                request_serializer=rpc_dot_spanky__pb2.UserRequest.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.User.FromString,
+                )
+        self.GetRole = channel.unary_unary(
+                '/spanky.Spanky/GetRole',
+                request_serializer=rpc_dot_spanky__pb2.RoleRequest.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.Role.FromString,
+                )
+        self.GetAttachments = channel.unary_unary(
+                '/spanky.Spanky/GetAttachments',
+                request_serializer=rpc_dot_spanky__pb2.MessageRequest.SerializeToString,
+                response_deserializer=rpc_dot_spanky__pb2.Attachments.FromString,
                 )
 
 
@@ -70,13 +90,6 @@ class SpankyServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def SendEmbed(self, request, context):
-        """Send message to specified channel
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def GetEvent(self, request, context):
         """Interface that streams events
         """
@@ -84,8 +97,43 @@ class SpankyServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetServers(self, request, context):
+    def GetServerIDs(self, request, context):
         """Get server list
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetServer(self, request, context):
+        """Get server data
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetUsers(self, request, context):
+        """Get users in a server
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetUserByID(self, request, context):
+        """Get users in a server
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetRole(self, request, context):
+        """Get role
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAttachments(self, request, context):
+        """Get attachments for a meesage
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -106,12 +154,7 @@ def add_SpankyServicer_to_server(servicer, server):
             ),
             'SendMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.SendMessage,
-                    request_deserializer=rpc_dot_spanky__pb2.OutgoingMessage.FromString,
-                    response_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
-            ),
-            'SendEmbed': grpc.unary_unary_rpc_method_handler(
-                    servicer.SendEmbed,
-                    request_deserializer=rpc_dot_spanky__pb2.OutgoingEmbed.FromString,
+                    request_deserializer=rpc_dot_spanky__pb2.OutgoingThing.FromString,
                     response_serializer=rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
             ),
             'GetEvent': grpc.unary_stream_rpc_method_handler(
@@ -119,10 +162,35 @@ def add_SpankyServicer_to_server(servicer, server):
                     request_deserializer=rpc_dot_spanky__pb2.GetEventReq.FromString,
                     response_serializer=rpc_dot_spanky__pb2.Event.SerializeToString,
             ),
-            'GetServers': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetServers,
-                    request_deserializer=rpc_dot_spanky__pb2.AckPM.FromString,
-                    response_serializer=rpc_dot_spanky__pb2.RespServers.SerializeToString,
+            'GetServerIDs': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetServerIDs,
+                    request_deserializer=rpc_dot_spanky__pb2.Empty.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.ObjectIDList.SerializeToString,
+            ),
+            'GetServer': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetServer,
+                    request_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.Server.SerializeToString,
+            ),
+            'GetUsers': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetUsers,
+                    request_deserializer=rpc_dot_spanky__pb2.SomeObjectID.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.UserList.SerializeToString,
+            ),
+            'GetUserByID': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetUserByID,
+                    request_deserializer=rpc_dot_spanky__pb2.UserRequest.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.User.SerializeToString,
+            ),
+            'GetRole': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRole,
+                    request_deserializer=rpc_dot_spanky__pb2.RoleRequest.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.Role.SerializeToString,
+            ),
+            'GetAttachments': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAttachments,
+                    request_deserializer=rpc_dot_spanky__pb2.MessageRequest.FromString,
+                    response_serializer=rpc_dot_spanky__pb2.Attachments.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -180,24 +248,7 @@ class Spanky(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/SendMessage',
-            rpc_dot_spanky__pb2.OutgoingMessage.SerializeToString,
-            rpc_dot_spanky__pb2.SomeObjectID.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def SendEmbed(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/SendEmbed',
-            rpc_dot_spanky__pb2.OutgoingEmbed.SerializeToString,
+            rpc_dot_spanky__pb2.OutgoingThing.SerializeToString,
             rpc_dot_spanky__pb2.SomeObjectID.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -220,7 +271,7 @@ class Spanky(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def GetServers(request,
+    def GetServerIDs(request,
             target,
             options=(),
             channel_credentials=None,
@@ -230,8 +281,93 @@ class Spanky(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetServers',
-            rpc_dot_spanky__pb2.AckPM.SerializeToString,
-            rpc_dot_spanky__pb2.RespServers.FromString,
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetServerIDs',
+            rpc_dot_spanky__pb2.Empty.SerializeToString,
+            rpc_dot_spanky__pb2.ObjectIDList.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetServer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetServer',
+            rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
+            rpc_dot_spanky__pb2.Server.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetUsers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetUsers',
+            rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
+            rpc_dot_spanky__pb2.UserList.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetUserByID(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetUserByID',
+            rpc_dot_spanky__pb2.UserRequest.SerializeToString,
+            rpc_dot_spanky__pb2.User.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetRole(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetRole',
+            rpc_dot_spanky__pb2.RoleRequest.SerializeToString,
+            rpc_dot_spanky__pb2.Role.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetAttachments(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetAttachments',
+            rpc_dot_spanky__pb2.MessageRequest.SerializeToString,
+            rpc_dot_spanky__pb2.Attachments.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

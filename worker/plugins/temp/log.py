@@ -7,7 +7,7 @@ import psycopg2
 from datetime import datetime
 from core import hook
 from core.event import EventType
-from core.permissions import Permission
+from hook.permissions import Permission
 
 base_formats = {
     EventType.message: "{msg_id}: [{hour}:{minute}:{second}] <{nick}> {content}",

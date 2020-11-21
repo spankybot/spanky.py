@@ -7,7 +7,7 @@ import linecache
 import subprocess
 from datetime import timedelta
 from utils.filesize import size as format_bytes
-from core.permissions import Permission
+from hook.permissions import Permission
 from core import hook
 from utils.discord_utils import get_user_by_id
 

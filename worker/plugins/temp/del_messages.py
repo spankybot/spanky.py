@@ -1,5 +1,5 @@
 from core import hook
-from core.permissions import Permission
+from hook.permissions import Permission
 
 
 @hook.command(permissions=Permission.admin, format="number")

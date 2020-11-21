@@ -1,7 +1,7 @@
 import re
 from core import hook
 from core.event import EventType
-from core.permissions import Permission
+from hook.permissions import Permission
 
 
 @hook.on_ready
