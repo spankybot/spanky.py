@@ -69,21 +69,27 @@ def check_permissions(bot, bot_event, storage):
     # Check if either of the categories works
     # If permissions is not empty, then we must restrict to an OR expression of all permission types
     if len(bot_event.hook.permissions) > 0:
+        # Other plugins might want custom sieves, so let's not restrict them to just Permission.admin and Permission.bot_owner
+        # It becomes their job to create custom permissions
+        exists = False
         for perm in bot_event.hook.permissions:
             # Grant bot owners that are listed in the bot config the right to run bot commands
             if perm == permissions.Permission.bot_owner:
+                exists = True
                 if "bot_owners" in bot.config and \
                     bot_event.event.author.id in bot.config["bot_owners"]:
                     return True, None
             
             if perm == permissions.Permission.admin:
+                exists = True
                 if storage["admin_roles"] == None:
                     return True, "Warning! Admin not set! Use .add_admin_role to set an administrator."
                 print(user_roles)
                 if user_roles & allowed_roles:
                         return True, None
         
-        return False, "You aren't allowed to do that."
+        if exists:
+            return False, "You aren't allowed to do that."
 
 
 

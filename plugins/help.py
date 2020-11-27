@@ -81,10 +81,10 @@ def gen_documentation(bot, storage_loc, event):
                     bot.plugin_manager.commands[cmd.name].has_server_id(server.id):
                 print(cmd.name)
                 continue
-
-            if bot.plugin_manager.commands[cmd.name].permissions == Permission.admin:
+            
+            if Permission.admin in bot.plugin_manager.commands[cmd.name].permissions:
                 admin_files[file_name].append(cmd.name)
-            elif bot.plugin_manager.commands[cmd.name].permissions == Permission.bot_owner:
+            elif Permission.bot_owner in bot.plugin_manager.commands[cmd.name].permissions:
                 continue
             else:
                 files[file_name].append(cmd.name)

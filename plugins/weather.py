@@ -168,7 +168,7 @@ def check_and_parse(nick, text, db):
     return (location_data, fio), None
 
 
-@hook.command("weather", "we", autohelp=False)
+@hook.command(autohelp=False, aliases=["we"])
 def weather(reply, db, event, text, send_embed):
     """<location> - Gets weather data for <location>."""
     res, err = check_and_parse(event.author.name, text, db)
