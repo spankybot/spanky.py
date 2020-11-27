@@ -120,7 +120,7 @@ class DiscordUtils(abc.ABC):
     async def async_set_game_status(self, game_status):
         await client.change_presence(game=discord.Game(name=game_status))
 
-    def get_channel(self, target, server):
+    def get_channel(self, target, server=None):
         """
         Returns the target channel
         target can be None, which defaults to the channel from where the message was sent
@@ -795,6 +795,10 @@ class Server():
     @property
     def banner_url(self):
         return self._raw.banner_url
+
+    @property
+    def can_have_banner(self):
+        return "BANNER" in self._raw.features
 
     async def set_banner(self, data):
         await self._raw.edit(banner=data)
