@@ -7,6 +7,7 @@ import os
 import re
 import random
 import string
+import discord
 
 LARROW=u'⬅'
 RARROW=u'➡'
@@ -105,7 +106,7 @@ async def do_page(bot, event, storage, send_message):
             send_message("Tags %d/%d: %s" % (crt_page, tot_pages, content[crt_page - 1]), event.channel.id)
 
 @hook.command()
-async def tag(text, send_file, storage, storage_loc, async_send_message, send_embed):
+async def tag(text, send_file, storage, storage_loc, async_send_message):
     """
     <tag> - Return a tag. '.tag list' lists tags, '.tag random' returns random tag
     """
@@ -133,13 +134,7 @@ async def tag(text, send_file, storage, storage_loc, async_send_message, send_em
             if storage[tag]['type'] == "text":
 
                 content = storage[tag]['content']
-                # Check for potential mentions
-                if "<" in content and ">" in content:
-                    send_embed(
-                        msg, "",
-                        {tag: content})
-                else:
-                    await async_send_message(msg + content)
+                await async_send_message(msg + content, allowed_mentions=discord.AllowedMentions.none())
             elif storage[tag]['type'] == "picture":
                 send_file(storage_loc + storage[tag]['location'])
         else:
