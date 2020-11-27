@@ -47,6 +47,9 @@ class Hook:
             self.threaded = True
 
         self.permissions = func_hook.kwargs.pop("permissions", [])
+        if type(self.permissions) is not list:
+            self.permissions = [self.permissions]
+
         self.format = func_hook.kwargs.pop("format", None)
         self.single_thread = func_hook.kwargs.pop("singlethread", False)
         self.server_id = func_hook.kwargs.pop("server_id", None)
@@ -97,7 +100,7 @@ class CommandHook(Hook):
         self.auto_help = cmd_hook.kwargs.pop("autohelp", True)
 
         self.name = cmd_hook.main_alias.lower()
-        self.aliases = [alias.lower() for alias in cmd_hook.aliases]  # turn the set into a list
+        self.aliases = cmd_hook.kwargs.pop("aliases", []) + [alias.lower() for alias in cmd_hook.aliases]
         self.aliases.remove(self.name)
         self.aliases.insert(0, self.name)  # make sure the name, or 'main alias' is in position 0
         self.doc = cmd_hook.doc
