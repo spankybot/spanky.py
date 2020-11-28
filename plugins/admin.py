@@ -84,10 +84,9 @@ def check_permissions(bot, bot_event, storage):
                 exists = True
                 if storage["admin_roles"] == None:
                     return True, "Warning! Admin not set! Use .add_admin_role to set an administrator."
-                print(user_roles)
                 if user_roles & allowed_roles:
                         return True, None
-        
+
         if exists:
             return False, "You aren't allowed to do that."
 

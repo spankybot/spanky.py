@@ -802,6 +802,20 @@ class Server():
 
     async def set_banner(self, data):
         await self._raw.edit(banner=data)
+    
+    def emojis(self):
+        for emoji in self._raw.emojis:
+            yield Emoji(emoji)
+
+    def get_emoji(self, emoji_id):
+        for emoji in self._raw.emojis:
+            if str(emoji.id) == str(emoji_id):
+                return Emoji(emoji)
+        return None
+
+    async def add_emoji(self, fp, name, reason=None):
+        return Emoji(await self._raw.create_custom_emoji(name=name, image=fp, reason=reason))
+
 
 class Role():
     hash = random.randint(0, 2 ** 31)
@@ -868,6 +882,9 @@ class Emoji():
             self.url = obj.url
 
         self._raw = obj
+    
+    async def delete(self, reason=None):
+        await self._raw.delete(reason=None)
 
 class DictQueue():
     def __init__(self, size):
