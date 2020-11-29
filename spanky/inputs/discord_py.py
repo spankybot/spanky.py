@@ -120,7 +120,7 @@ class DiscordUtils(abc.ABC):
     async def async_set_game_status(self, game_status):
         await client.change_presence(game=discord.Game(name=game_status))
 
-    def get_channel(self, target, server):
+    def get_channel(self, target, server=None):
         """
         Returns the target channel
         target can be None, which defaults to the channel from where the message was sent
@@ -796,8 +796,26 @@ class Server():
     def banner_url(self):
         return self._raw.banner_url
 
+    @property
+    def can_have_banner(self):
+        return "BANNER" in self._raw.features
+
     async def set_banner(self, data):
         await self._raw.edit(banner=data)
+    
+    def emojis(self):
+        for emoji in self._raw.emojis:
+            yield Emoji(emoji)
+
+    def get_emoji(self, emoji_id):
+        for emoji in self._raw.emojis:
+            if str(emoji.id) == str(emoji_id):
+                return Emoji(emoji)
+        return None
+
+    async def add_emoji(self, fp, name, reason=None):
+        return Emoji(await self._raw.create_custom_emoji(name=name, image=fp, reason=reason))
+
 
 class Role():
     hash = random.randint(0, 2 ** 31)
@@ -864,6 +882,9 @@ class Emoji():
             self.url = obj.url
 
         self._raw = obj
+    
+    async def delete(self, reason=None):
+        await self._raw.delete(reason=None)
 
 class DictQueue():
     def __init__(self, size):

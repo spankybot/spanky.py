@@ -91,10 +91,14 @@ def resize_to_fit(image, max_width, max_height):
     return canvas
 
 
-async def set_banner(server, pil_picture):
+async def set_banner(server, pil_picture, reply):
     """
     Set a banner from a PIL image
     """
+    if not server.can_have_banner:
+        reply("Server can't have banner")
+        return
+
 
     # Convert PIL to RAW
     raw_picture = io.BytesIO()
@@ -137,10 +141,14 @@ async def update_banner(server, storage):
     await set_banner(server, resized)
 
 @hook.command(permissions=Permission.admin)
-async def set_server_banner(event, server, storage):
+async def set_server_banner(event, server, storage, reply):
     """
     Sets the server banner to a given URL
     """
+    if not server.can_have_banner:
+        reply("Server can't have banner")
+        return
+
     for img in event.image:
         storage["banner_url"] = img.url
         storage.sync()
@@ -150,10 +158,14 @@ async def set_server_banner(event, server, storage):
 
 
 @hook.command(permissions=Permission.admin)
-async def set_banner_text(server, storage, text):
+async def set_banner_text(server, storage, text, reply):
     """
     Sets the server banner text to a given content
     """
+    if not server.can_have_banner:
+        reply("Server can't have banner")
+        return
+
     storage["banner_text"] = text
     storage.sync()
 
