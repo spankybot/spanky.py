@@ -108,7 +108,7 @@ async def set_banner(server, pil_picture, reply):
     await server.set_banner(raw_picture)
 
 
-async def update_banner(server, storage):
+async def update_banner(server, storage, reply):
     """
     Refreshes the banner content
     """
@@ -136,9 +136,18 @@ async def update_banner(server, storage):
         if text_size <= 0:
             raise ValueError("Cannot fit text")
 
-    img_draw.text((0, BANNER_H - text_height - TEXT_SPACE_H), storage["banner_text"], font=font, fill=(255,255,255,255))
+    print(BANNER_H)
+    print(text_height)
+    print(TEXT_SPACE_H)
 
-    await set_banner(server, resized)
+    img_draw.text(
+            (
+                (BANNER_W - text_width) // 2,
+                (BANNER_H - text_height - TEXT_SPACE_H) // 2
+            ),
+            storage["banner_text"], font=font, fill=(255,255,255,255))
+
+    await set_banner(server, resized, reply)
 
 @hook.command(permissions=Permission.admin)
 async def set_server_banner(event, server, storage, reply):
@@ -169,4 +178,4 @@ async def set_banner_text(server, storage, text, reply):
     storage["banner_text"] = text
     storage.sync()
 
-    await update_banner(server, storage)
+    await update_banner(server, storage, reply)
