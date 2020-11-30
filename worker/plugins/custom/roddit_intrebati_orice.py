@@ -1,6 +1,6 @@
 import praw
 import time
-from core import hook
+from SpankyWorker import hook
 from datetime import datetime
 from hook.permissions import Permission
 

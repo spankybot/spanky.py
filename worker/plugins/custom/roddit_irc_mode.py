@@ -5,7 +5,7 @@ import plugins.paged_content as paged
 import utils.discord_utils as dutils
 from utils.carousel import Selector
 
-from core import hook
+from SpankyWorker import hook
 from hook.permissions import Permission
 from core.event import EventType
 

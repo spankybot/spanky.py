@@ -1,4 +1,4 @@
-from core import hook
+from SpankyWorker import hook
 
 d2em = {
     1: ":one:",

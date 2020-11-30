@@ -1,5 +1,5 @@
 import utils.carousel as carousel
-from core import hook
+from SpankyWorker import hook
 
 ROBAC_ID = "456496203040030721"
 

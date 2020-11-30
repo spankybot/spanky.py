@@ -4,7 +4,7 @@ import time as ptime
 
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 # Define some constants
 base_url = 'https://maps.googleapis.com/maps/api/'

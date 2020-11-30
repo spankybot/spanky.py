@@ -4,7 +4,7 @@ import string
 import random
 import time
 import subprocess
-from core import hook
+from SpankyWorker import hook
 from utils.image import Image
 from wand.image import Color
 from wand.image import Image as wand_image

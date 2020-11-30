@@ -4,9 +4,9 @@ import time
 import isodate
 import requests
 
-from core import hook
-from utils import timeformat
-from utils.formatting import pluralize
+from SpankyWorker import hook
+from SpankyWorker.utils import timeformat
+from SpankyWorker.utils.formatting import pluralize
 
 youtube_re = re.compile(
     r'(?:youtube.*?(?:v=|/v/)|youtu\.be/|yooouuutuuube.*?id=)([-_a-zA-Z0-9]+)', re.I)

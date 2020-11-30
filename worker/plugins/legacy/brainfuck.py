@@ -5,7 +5,7 @@ import asyncio
 import random
 import re
 
-from core import hook
+from SpankyWorker import hook
 
 BUFFER_SIZE = 5000
 MAX_STEPS = 1000000

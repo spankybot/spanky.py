@@ -2,7 +2,7 @@ import random
 import re
 from pathlib import Path
 
-from core import hook
+from SpankyWorker import hook
 
 cheer_re = re.compile(r'\\o/', re.IGNORECASE)
 

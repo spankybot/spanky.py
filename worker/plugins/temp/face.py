@@ -9,7 +9,7 @@ import os
 
 from PIL import Image, ImageDraw
 from math import hypot, sin, cos
-from core import hook
+from SpankyWorker import hook
 
 
 def get_angle(p1, p2):

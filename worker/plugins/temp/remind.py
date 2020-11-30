@@ -2,7 +2,7 @@ import subprocess
 import utils.discord_utils as dutils
 
 from utils import time_utils
-from core import hook
+from SpankyWorker import hook
 
 
 @hook.command()

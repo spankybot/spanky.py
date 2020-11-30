@@ -2,7 +2,7 @@ import codecs
 import os
 import random
 
-from core import hook
+from SpankyWorker import hook
 
 
 @hook.on_start()

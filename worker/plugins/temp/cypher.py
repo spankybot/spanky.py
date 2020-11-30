@@ -18,7 +18,7 @@ License:
 import base64
 import binascii
 
-from core import hook
+from SpankyWorker import hook
 
 
 def encode(password, text):

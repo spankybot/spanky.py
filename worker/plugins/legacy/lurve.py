@@ -1,6 +1,6 @@
 import random
 
-from core import hook
+from SpankyWorker import hook
 
 
 @hook.command("lurve")

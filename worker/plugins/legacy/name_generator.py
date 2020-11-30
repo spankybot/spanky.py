@@ -14,7 +14,7 @@ import codecs
 import json
 import os
 
-from core import hook
+from SpankyWorker import hook
 from utils import formatting, textgen
 
 

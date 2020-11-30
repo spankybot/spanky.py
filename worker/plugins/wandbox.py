@@ -1,7 +1,7 @@
 import re
 import requests
-from core import hook
-from utils import web
+from SpankyWorker import hook
+from SpankyWorker.utils import web
 
 compilers = []
 compilers_proc = {}

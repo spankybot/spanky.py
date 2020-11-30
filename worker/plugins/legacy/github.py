@@ -1,6 +1,6 @@
 import requests
 
-from core import hook
+from SpankyWorker import hook
 from utils import web, formatting
 
 shortcuts = {

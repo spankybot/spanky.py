@@ -2,7 +2,7 @@ import datetime
 import utils.time_utils as time_utils
 import utils.discord_utils as dutils
 
-from core import hook
+from SpankyWorker import hook
 from utils import time_utils
 from core.event import EventType
 from hook.permissions import Permission

@@ -1,12 +1,9 @@
 import os
 import datetime
-import utils.discord_utils as dutils
 import plugins.paged_content as paged
 import types
 
-from core import hook
-from core.hook import Permission
-from utils import time_utils
+from SpankyWorker import hook, Permission, dutils, tutils
 from collections import OrderedDict
 
 
@@ -66,16 +63,8 @@ def register_cmd(cmd, server, module):
     )
 
 
-def reload_file(bot):
-    dirname = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
-    fname = os.path.basename(os.path.abspath(__file__))
-
-    # TODO: use unified way of identifying plugins
-    bot.plugin_manager.load_plugin(dirname + "/" + fname)
-
-
 @hook.on_ready()
-def init_cmds(bot, server, storage):
+def init_cmds(bot, server, storage, plugin_name):
     """
     Register all commands on bot ready
     """
@@ -86,8 +75,7 @@ def init_cmds(bot, server, storage):
         return
 
     # Create a module
-    module_name = "temp_role_%s" % server.id
-    server_module = types.ModuleType(module_name)
+    server_module = types.ModuleType(plugin_name)
 
     # Register each command in the module
     for cmd in storage["cmds"]:
@@ -95,7 +83,10 @@ def init_cmds(bot, server, storage):
         register_cmd(storage["cmds"][cmd], server, server_module)
 
     # Load it
-    bot.plugin_manager.load_module(module_name, server_module)
+    bot.plugin_manager.load_module(
+        register_name=f"temp_role_{server.id}",
+        parent_name=plugin_name,
+        module=server_module)
 
 
 @hook.command(permissions=Permission.admin)
@@ -141,7 +132,6 @@ def create_temp_role_cmd(text, server, bot, storage):
     storage.sync()
 
     register_cmd(new_cmd, server)
-    reload_file(bot)
 
     return "Done"
 
@@ -173,8 +163,6 @@ def delete_temp_role_cmd(storage, text, bot):
             del storage["cmds"][cmd["name"]]
 
             storage.sync()
-
-            reload_file(bot)
 
             return "Done"
 
@@ -295,7 +283,7 @@ def give_temp_role(text, server, command_name, storage, event):
         )
 
     # Get user
-    user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
+    user = server.get_user(user_id=dutils.str_to_id(text[0]))
     if not user:
         return "No such user"
 
@@ -317,7 +305,7 @@ def give_temp_role(text, server, command_name, storage, event):
     texp = datetime.datetime.now().timestamp() + timeout_sec
 
     # Get the role
-    role = dutils.get_role_by_id(server, storage["cmds"][command_name]["role_id"])
+    role = server.get_role(storage["cmds"][command_name]["role_id"])
 
     if role is None:
         return "Could not find given role"
@@ -352,7 +340,7 @@ def give_temp_role(text, server, command_name, storage, event):
             event.author,
             reason,
             "https://discordapp.com/channels/%s/%s/%s"
-            % (server.id, event.channel.id, event.msg.id),
+            % (server.id, event.channel_id, event.id),
             texp,
             command_name,
         )
@@ -392,7 +380,7 @@ def give_temp_role(text, server, command_name, storage, event):
             command_name,
             texp,
             "https://discordapp.com/channels/%s/%s/%s"
-            % (server.id, event.channel.id, event.msg.id),
+            % (server.id, event.channel_id, event.id),
         )
 
         return "Adjusted time for user to %d" % timeout_sec
@@ -615,11 +603,11 @@ def check_expired_roles(server, storage):
 
             # For each element replace the roles
             for elem in to_del:
-                member = dutils.get_user_by_id(server, elem["user_id"])
+                member = server.get_user(user_id=elem["user_id"])
 
                 new_roles = []
                 for role_id in elem["crt_roles"]:
-                    role = dutils.get_role_by_id(server, role_id)
+                    role = server.get_role(role_id=role_id)
                     if role:
                         new_roles.append(role)
 
@@ -645,20 +633,21 @@ async def check_expired_bans(server, storage):
             storage.sync()
 
 
-# @hook.periodic(1)
-# async def check_expired_time(connected_servers, storage):
-#     for server in connected_servers():
-#         # Check timeouts for each server
-#         if "temp_roles" in storage:
-#             check_expired_roles(server, storage)
+@hook.periodic(1)
+def check_expired_time(connected_servers, plugin_name):
+    for server in connected_servers():
+        storage = server.get_plugin_storage(plugin_name)
 
-#         if "temp_bans" in storage:
-#             try:
-#                 await check_expired_bans(server, storage)
-#             except:
-#                 import traceback
+        # Check timeouts for each server
+        if "temp_roles" in storage:
+            check_expired_roles(server, storage)
 
-#                 print(traceback.format_exc())
+        if "temp_bans" in storage:
+            try:
+                check_expired_bans(server, storage)
+            except:
+                import traceback
+                traceback.print_exc()
 
 
 def adjust_user_reason(rstorage, author, user_id, command_name, new_time, message_link):

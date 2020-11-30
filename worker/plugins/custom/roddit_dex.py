@@ -1,4 +1,4 @@
-from core import hook
+from SpankyWorker import hook
 import asyncio
 import sys
 import requests

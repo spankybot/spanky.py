@@ -167,7 +167,7 @@ class SetClearFactory():
             self.data.sync()
             return "Added."
         else:
-            raise ValueError("Data not added, probably because the input was not correct.")
+            raise ValueError("Data not added, probably because there is a duplicate or the input was incorrect.")
 
     def del_thing(self, text):
         """
@@ -175,6 +175,8 @@ class SetClearFactory():
         """
         try:
             return self._del_thing(text)
+        except ValueError:
+            return "Could not find given value"
         except Exception as e:
             print(str(e))
             return str(e)

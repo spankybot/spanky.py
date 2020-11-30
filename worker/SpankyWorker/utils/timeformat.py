@@ -44,7 +44,7 @@ License:
 
 import datetime
 
-from utils import formatting
+from ..utils import formatting
 
 
 def time_since(d, now=None, count=2, accuracy=6, simple=False):

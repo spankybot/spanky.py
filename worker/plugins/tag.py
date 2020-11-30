@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from core import hook
-from core.hook import Permission
-from core.hook import EventType
+from SpankyWorker import hook, Permission, EventType
+
 import requests
 import os
 import re

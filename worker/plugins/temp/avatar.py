@@ -2,7 +2,7 @@ import PIL
 import io
 
 from PIL import ImageFont, ImageDraw
-from core import hook
+from SpankyWorker import hook
 from hook.permissions import Permission
 from utils.image import Image
 

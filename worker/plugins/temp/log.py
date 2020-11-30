@@ -5,7 +5,7 @@ import time
 import psycopg2
 
 from datetime import datetime
-from core import hook
+from SpankyWorker import hook
 from core.event import EventType
 from hook.permissions import Permission
 

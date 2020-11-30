@@ -14,7 +14,7 @@ from urllib.parse import quote_plus
 
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
 

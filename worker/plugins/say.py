@@ -1,7 +1,4 @@
-import utils.discord_utils as dutils
-
-from core.hook import Permission
-from core import hook
+from SpankyWorker import hook, Permission, dutils
 
 
 @hook.command(permissions=Permission.admin)

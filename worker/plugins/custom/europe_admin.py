@@ -1,7 +1,7 @@
 import datetime
 import plugins.paged_content as paged
 from collections import deque
-from core import hook
+from SpankyWorker import hook
 from utils import time_utils
 from core.event import EventType
 from hook.permissions import Permission

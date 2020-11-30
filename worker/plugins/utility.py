@@ -24,8 +24,8 @@ import random
 import re
 import urllib.parse
 
-from core import hook
-from utils import formatting, web
+from SpankyWorker import hook
+from SpankyWorker.utils import formatting, web
 
 # helper functions
 

@@ -1,6 +1,6 @@
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 @hook.command()
 def bible(text, reply):

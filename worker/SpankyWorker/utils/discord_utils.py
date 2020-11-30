@@ -331,3 +331,6 @@ def return_message_link(server_id, channel_id, msg_id):
     """
 
     return "https://discordapp.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)
+
+def id_to_chan(chan_id):
+    return f"<#{chan_id}>"

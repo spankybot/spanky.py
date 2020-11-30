@@ -1,4 +1,4 @@
-from core import hook
+from SpankyWorker import hook
 from hook.permissions import Permission
 
 from core.event import EventType

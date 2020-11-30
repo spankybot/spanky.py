@@ -1,5 +1,5 @@
 import subprocess
-from core import hook
+from SpankyWorker import hook
 
 
 @hook.command()

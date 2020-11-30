@@ -2,8 +2,8 @@ import random
 
 import requests
 
-from core import hook
-from utils import formatting
+from SpankyWorker import hook
+from SpankyWorker.utils import formatting
 
 
 base_url = 'http://api.urbandictionary.com/v0'

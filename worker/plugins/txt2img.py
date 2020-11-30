@@ -4,12 +4,15 @@ import PIL.Image
 import PIL.ImageFont
 import PIL.ImageOps
 import PIL.ImageDraw
-from core import hook
+from SpankyWorker import hook
 
 PIXEL_ON = 0  # PIL color to use for "on"
 PIXEL_OFF = 255  # PIL color to use for "off"
 
-def text_image(string, font_path=None, font_size=30, font_color=None, font_bg=None):
+
+def text_image(
+    string, font_path=None, font_size=30, font_color=None, font_bg=None
+):
     grayscale = "RGBA"
     lines = string
     font_color = font_color or "white"

@@ -1,12 +1,8 @@
-import time
 import inspect
-import asyncio
-import sqlalchemy
 import logging
 
-import utils.time_utils as tutils
-
-from core.hook_parameters import extract_params
+from ..utils import time_utils as tutils
+from .hook_parameters import extract_params
 
 
 logger = logging.getLogger("spanky")
@@ -35,7 +31,8 @@ class Hook:
 
         # don't process args starting with "_"
         self.required_args = [
-            arg for arg in self.required_args if not arg.startswith("_")]
+            arg for arg in self.required_args if not arg.startswith("_")
+        ]
 
         # Parse hook parameters
         self.permissions = func_hook.kwargs.pop("permissions", [])
@@ -46,7 +43,10 @@ class Hook:
 
         # Mark if the plugin needs storage or storage_loc
         self.needs_storage = False
-        if "storage" in self.required_args or "storage_loc" in self.required_args:
+        if (
+            "storage" in self.required_args
+            or "storage_loc" in self.required_args
+        ):
             self.needs_storage = True
 
         # Extract processed parameter list
@@ -56,8 +56,11 @@ class Hook:
 
         if func_hook.kwargs:
             # we should have popped all the args, so warn if there are any left
-            logger.warning("Ignoring extra args {} from {}".format(
-                func_hook.kwargs, self.description))
+            logger.warning(
+                "Ignoring extra args {} from {}".format(
+                    func_hook.kwargs, self.description
+                )
+            )
 
     def has_server_id(self, sid):
         """
@@ -79,9 +82,7 @@ class Hook:
         return "{}:{}".format(self.plugin.name, self.name)
 
     def __repr__(self):
-        return "type: {}, plugin: {}".format(
-            self.type, self.plugin.name
-        )
+        return "type: {}, plugin: {}".format(self.type, self.plugin.name)
 
 
 class CommandHook(Hook):
@@ -103,7 +104,9 @@ class CommandHook(Hook):
         return "Command[name: {}, {}]".format(self.name, Hook.__repr__(self))
 
     def __str__(self):
-        return "command {} from {}".format("/".join(self.name), self.plugin.file_name)
+        return "command {} from {}".format(
+            "/".join(self.name), self.plugin.file_name
+        )
 
 
 class RegexHook(Hook):
@@ -121,8 +124,10 @@ class RegexHook(Hook):
         super().__init__("regex", plugin, regex_hook)
 
     def __repr__(self):
-        return "Regex[regexes: [{}], {}]".format(", ".join(regex.pattern for regex in self.regexes),
-                                                 Hook.__repr__(self))
+        return "Regex[regexes: [{}], {}]".format(
+            ", ".join(regex.pattern for regex in self.regexes),
+            Hook.__repr__(self),
+        )
 
     def __str__(self):
         return "regex {} from {}".format(self.name, self.plugin.file_name)
@@ -141,16 +146,21 @@ class PeriodicHook(Hook):
 
         self.interval = periodic_hook.interval
         self.initial_interval = periodic_hook.kwargs.pop(
-            "initial_interval", self.interval)
+            "initial_interval", self.interval
+        )
         self.last_time = tutils.tnow()
 
         super().__init__("periodic", plugin, periodic_hook)
 
     def __repr__(self):
-        return "Periodic[interval: [{}], {}]".format(self.interval, Hook.__repr__(self))
+        return "Periodic[interval: [{}], {}]".format(
+            self.interval, Hook.__repr__(self)
+        )
 
     def __str__(self):
-        return "periodic hook ({} seconds) {} from {}".format(self.interval, self.name, self.plugin.file_name)
+        return "periodic hook ({} seconds) {} from {}".format(
+            self.interval, self.name, self.plugin.file_name
+        )
 
 
 class RawHook(Hook):
@@ -171,10 +181,14 @@ class RawHook(Hook):
         return "*" in self.triggers
 
     def __repr__(self):
-        return "Raw[triggers: {}, {}]".format(list(self.triggers), Hook.__repr__(self))
+        return "Raw[triggers: {}, {}]".format(
+            list(self.triggers), Hook.__repr__(self)
+        )
 
     def __str__(self):
-        return "irc raw {} ({}) from {}".format(self.name, ",".join(self.triggers), self.plugin.file_name)
+        return "irc raw {} ({}) from {}".format(
+            self.name, ",".join(self.triggers), self.plugin.file_name
+        )
 
 
 class SieveHook(Hook):
@@ -210,11 +224,16 @@ class EventHook(Hook):
         self.types = event_hook.types
 
     def __repr__(self):
-        return "Event[types: {}, {}]".format(list(self.types), Hook.__repr__(self))
+        return "Event[types: {}, {}]".format(
+            list(self.types), Hook.__repr__(self)
+        )
 
     def __str__(self):
-        return "event {} ({}) from {}".format(self.name, ",".join(str(t) for t in self.types),
-                                              self.plugin.file_name)
+        return "event {} ({}) from {}".format(
+            self.name,
+            ",".join(str(t) for t in self.types),
+            self.plugin.file_name,
+        )
 
 
 class OnStartHook(Hook):
@@ -268,7 +287,8 @@ def find_hooks(parent, module):
         "event": event,
         "periodic": periodic,
         "on_start": on_start,
-        "on_ready": on_ready}
+        "on_ready": on_ready,
+    }
 
     for _, func in module.__dict__.items():
         if hasattr(func, "_bot_hook"):
@@ -277,26 +297,13 @@ def find_hooks(parent, module):
 
             for hook_type, func_hook in func_hooks.items():
                 type_lists[hook_type].append(
-                    _hook_name_to_plugin[hook_type](parent, func_hook))
+                    _hook_name_to_plugin[hook_type](parent, func_hook)
+                )
 
             # delete the hook to free memory
             del func._bot_hook
 
     return command, regex, raw, sieve, event, periodic, on_start, on_ready
-
-
-def find_tables(code):
-    """
-    :type code: object
-    :rtype: list[sqlalchemy.Table]
-    """
-    tables = []
-    for name, obj in code.__dict__.items():
-        if isinstance(obj, sqlalchemy.Table) and obj.metadata == database.metadata:
-            # if it's a Table, and it's using our metadata, append it to the list
-            tables.append(obj)
-
-    return tables
 
 
 _hook_name_to_plugin = {
@@ -307,5 +314,5 @@ _hook_name_to_plugin = {
     "event": EventHook,
     "periodic": PeriodicHook,
     "on_start": OnStartHook,
-    "on_ready": OnReadyHook
+    "on_ready": OnReadyHook,
 }

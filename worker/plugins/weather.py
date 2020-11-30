@@ -7,7 +7,7 @@ import collections
 from forecastiopy.ForecastIO import ForecastIO
 from googlemaps.exceptions import ApiError
 
-from core import hook
+from SpankyWorker import hook
 
 Api = Optional[googlemaps.Client]
 

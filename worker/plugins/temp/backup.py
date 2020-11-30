@@ -1,5 +1,5 @@
 import os
-from core import hook
+from SpankyWorker import hook
 
 
 @hook.periodic(3600*12)

@@ -3,7 +3,7 @@ import inspect
 import re
 import collections
 
-from common.event import EventType
+from SpankyCommon.event import EventType
 
 valid_command_re = re.compile(r"^\w+$")
 

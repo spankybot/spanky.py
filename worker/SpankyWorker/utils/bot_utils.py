@@ -23,12 +23,23 @@ async def _wrapped_async(target, args, kwargs):
         return await target(*args, **kwargs)
     except:
         import traceback
+
         traceback.print_exc()
 
+
 def run_async(target, args=(), kwargs={}):
+    """
+    Runs target in as a threadsafe call
+    """
     asyncio.run_coroutine_threadsafe(_wrapped_async(target, args, kwargs), loop)
 
+
 def run_async_wait(target, args=(), kwargs={}):
-    future = asyncio.run_coroutine_threadsafe(_wrapped_async(target, args, kwargs), loop)
+    """
+    Runs target in as a threadsafe call and returns result
+    """
+    future = asyncio.run_coroutine_threadsafe(
+        _wrapped_async(target, args, kwargs), loop
+    )
 
     return future.result()

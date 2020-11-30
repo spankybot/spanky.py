@@ -4,7 +4,7 @@ import random
 import asyncio
 import database
 
-from core import hook
+from SpankyWorker import hook
 from datetime import datetime
 from sqlalchemy import Table, Column, String, PrimaryKeyConstraint, DateTime
 from sqlalchemy.sql import select

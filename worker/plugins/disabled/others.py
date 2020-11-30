@@ -1,4 +1,4 @@
-from core import hook
+from SpankyWorker import hook
 
 @hook.command()
 async def do_assign(bot):

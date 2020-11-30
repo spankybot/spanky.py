@@ -1,7 +1,7 @@
 import requests
 from requests import HTTPError
 
-from core import hook
+from SpankyWorker import hook
 
 
 def statuscheck(status, item):

@@ -1,7 +1,6 @@
 import os
 import html
-from core import hook
-from core.hook import Permission
+from SpankyWorker import hook, Permission
 
 
 @hook.command

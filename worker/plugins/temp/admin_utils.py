@@ -1,5 +1,5 @@
 import datetime
-from core import hook, permissions
+from SpankyWorker import hook, permissions
 from core.event import EventType
 from hook.permissions import Permission
 from utils import time_utils

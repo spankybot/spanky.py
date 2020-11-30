@@ -1,5 +1,5 @@
 import pprint
-from core import hook
+from SpankyWorker import hook
 from collections import deque
 from googleapiclient.discovery import build
 from utils import discord_utils as dutils

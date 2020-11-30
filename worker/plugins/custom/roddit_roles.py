@@ -1,5 +1,5 @@
 import utils.carousel as carousel
-from core import hook
+from SpankyWorker import hook
 
 RODDIT_ID = "287285563118190592"
 

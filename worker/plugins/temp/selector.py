@@ -1,4 +1,4 @@
-from core import hook
+from SpankyWorker import hook
 import plugins.custom.roddit_irc_mode as roddit
 import utils.carousel as carousel
 

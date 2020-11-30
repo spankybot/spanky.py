@@ -2,7 +2,7 @@ from urllib.parse import quote_plus
 
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 BASE_URL = "http://query.yahooapis.com/v1/public/yql"
 ENV = "http://datatables.org/alltables.env"

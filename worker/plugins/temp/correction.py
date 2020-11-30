@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from core import hook
+from SpankyWorker import hook
 import re2
 
 MAX_LEN = 50

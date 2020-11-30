@@ -2,7 +2,7 @@ import random
 
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 api_url = 'http://api.giphy.com/v1/gifs'
 

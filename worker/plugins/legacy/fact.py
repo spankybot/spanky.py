@@ -1,7 +1,7 @@
 import random
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 types = ['trivia', 'math', 'date', 'year']
 

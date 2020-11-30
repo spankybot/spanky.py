@@ -1,5 +1,5 @@
 import subprocess
-from core import hook
+from SpankyWorker import hook
 from oslo_concurrency import lockutils
 from wand.image import Image as wand_img
 

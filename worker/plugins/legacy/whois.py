@@ -7,7 +7,7 @@ import sys
 import pythonwhois
 from contextlib import suppress
 
-from core import hook
+from SpankyWorker import hook
 
 @hook.command
 def whois(text, reply):

@@ -1,6 +1,6 @@
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 api_url_metar = "http://api.av-wx.com/metar/"
 api_url_taf = "http://api.av-wx.com/taf/"

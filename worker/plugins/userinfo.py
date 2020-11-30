@@ -1,7 +1,6 @@
 import plugins.paged_content as paged
-from core import hook
 from datetime import datetime, timezone
-from utils import discord_utils as dutils
+from SpankyWorker import hook, dutils
 
 
 def getUnixTimestamp(snowflake):
@@ -12,7 +11,7 @@ dateString = "%Y-%m-%d at %H:%M"
 
 
 @hook.command(format="mention")
-async def userinfo(text, reply, event):
+def userinfo(text, reply, event):
     """
     <mention> - gets various data about the mentioned user
     """

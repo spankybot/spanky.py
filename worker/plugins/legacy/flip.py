@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 
-from core import hook
+from SpankyWorker import hook
 from utils import formatting
 
 table_status = defaultdict(lambda: None)

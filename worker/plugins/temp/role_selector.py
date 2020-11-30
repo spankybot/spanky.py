@@ -3,7 +3,7 @@ import plugins.selector as selector
 import utils.carousel as carousel
 import utils.discord_utils as dutils
 
-from core import hook
+from SpankyWorker import hook
 from hook.permissions import Permission
 from utils.volatile import set_vdata, get_vdata
 

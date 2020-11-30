@@ -2,7 +2,7 @@ import re
 
 import requests
 
-from core import hook
+from SpankyWorker import hook
 
 id_re = re.compile("tt\d+")
 

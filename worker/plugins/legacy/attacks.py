@@ -4,7 +4,7 @@ import os
 import random
 import re
 
-from core import hook
+from SpankyWorker import hook
 from utils import textgen
 
 @hook.on_start

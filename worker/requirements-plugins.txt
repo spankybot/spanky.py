@@ -1,0 +1,7 @@
+isodate
+praw
+pillow
+numpy
+fb-re2
+googlemaps
+forecastiopy

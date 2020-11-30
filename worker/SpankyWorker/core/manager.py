@@ -5,19 +5,13 @@ import importlib
 
 from .reloader import PluginReloader
 from .hook_logic import find_hooks
+from SpankyCommon.event import EventType
+from SpankyCommon.utils import time_utils as tutils
+from SpankyCommon.utils import log
 
+from .client import get_server_comm
+from . import client
 # from .hook_parameters import map_params
-
-from common.event import EventType
-
-# from utils import bot_utils as butils
-
-import utils.time_utils as tutils
-
-import common.log as log
-import rpc_client
-
-from utils import bot_utils as butils
 
 logger = log.botlog("manager", console_level=log.loglevel.DEBUG)
 
@@ -51,20 +45,11 @@ class PluginManager:
         # Current server data
         self._servers = {}  # Map of server id -> ServerData
 
-    def get_server_data(self, server_id):
-        """
-        Get the server data instance for a server ID
-        """
-        if server_id not in self._servers.keys():
-            self._servers[server_id] = rpc_client.CServer.get_server(server_id)
-
-        return self._servers[server_id]
-
-    async def finalize_plugin(self, plugin):
+    def finalize_plugin(self, plugin):
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
             try:
-                await self.launch_event(on_start_hook, EventType.on_start)
+                self.launch_event(on_start_hook, EventType.on_start)
             except:
                 import traceback
 
@@ -77,9 +62,11 @@ class PluginManager:
         # run on_ready hooks if bot ready
         if self.bot._is_ready:
             # Run the on ready hooks per server
-            for server in rpc_client.CServer.connected_servers():
+            for server in client.CServer.connected_servers():
                 for on_ready_hook in plugin.run_on_ready:
-                    await self.launch_server_event(on_ready_hook, server, EventType.on_ready)
+                    self.launch_server_event(
+                        on_ready_hook, server, EventType.on_ready
+                    )
 
         for periodic_hook in plugin.periodic:
             logger.debug("Loaded {}".format(repr(periodic_hook)))
@@ -132,7 +119,7 @@ class PluginManager:
         # sort sieve hooks by priority
         self.sieves.sort(key=lambda x: x.priority)
 
-    async def launch_hooks_by_event(self, event_type):
+    def launch_hooks_by_event(self, event_type):
         """
         Launch all hooks that belong to an event type
         """
@@ -143,10 +130,10 @@ class PluginManager:
             to_run = self.run_on_ready
 
             # Get the servers - a call will also cache the servers
-            servers = butils.run_async_wait(self.bot.client.get_servers)
+            servers = client.CGeneric.get_servers()
             for hook in to_run:
                 for server in servers:
-                    await self.launch_server_event(hook, server, event_type)
+                    self.launch_server_event(hook, server, event_type)
 
         # Timer events
         elif event_type == EventType.timer_event:
@@ -161,9 +148,9 @@ class PluginManager:
                         hook.last_time = now
 
             for hook in to_run:
-                await self.launch_event(hook, event_type)
+                self.launch_event(hook, event_type)
 
-    async def execute_hook(self, hook, args):
+    def execute_hook(self, hook, args):
         """
         Runs the hook
 
@@ -173,7 +160,8 @@ class PluginManager:
         result = None
         # If async plugin, await its result
         if asyncio.iscoroutinefunction(hook.function):
-            result = await hook.function(**args)
+            raise NotImplementedError()
+            # result = await hook.function(**args)
         else:
             result = hook.function(**args)
 
@@ -188,7 +176,8 @@ class PluginManager:
         diff = required - given
         if diff:
             raise ValueError(
-                f"Args required by {hook.name} not found: {list(diff)}")
+                f"Args required by {hook.name} not found: {list(diff)}"
+            )
 
         actual_args = {}
         for arg in required:
@@ -196,7 +185,27 @@ class PluginManager:
 
         return actual_args
 
-    async def launch_command(self, hook, event, event_text):
+    def launch_sieve(self, hook, bot_event, event):
+        args = {}
+        args["bot"] = self.bot
+        args["event"] = event
+        args["bot_event"] = bot_event
+
+        # Add storage if needed
+        if hook.needs_storage:
+            # Fill in extra parameters
+            args["storage"] = event.server.get_plugin_storage(hook.plugin.name)
+            args["storage_loc"] = event.server.get_data_location(
+                hook.plugin.name
+            )
+
+        # Get proper args
+        parsed_args = self._prepare_parameters(hook, args)
+
+        # Run the plugin and return the result
+        return self.execute_hook(hook, parsed_args)
+
+    def launch_command(self, hook, event, event_text):
         if not event.server.id:
             # It's a PM
             return
@@ -205,6 +214,15 @@ class PluginManager:
         # TODO save commands per server
         if not hook.has_server_id(event.server.id):
             return
+
+        # Ask the sieves to validate the command
+        for sieve in self.sieves:
+            is_valid, msg = self.launch_sieve(sieve, hook, event)
+
+            # If it's not a valid command, return
+            if not is_valid:
+                event.reply(f"({event.author.name}) {msg}")
+                return
 
         # Prepare the args for the function call
         # TODO export this to a visible structure
@@ -215,26 +233,29 @@ class PluginManager:
         args["text"] = event_text
         args["reply"] = event.reply
         args["reply_embed"] = event.reply_embed
-        args["reply_file"] = event.reply_file ## TODO
-        args["send_message"] = event.send_message ## TODO
+        args["reply_file"] = event.reply_file
+        args["send_message"] = event.send_message
+        args["plugin_name"] = hook.plugin.name
 
         # Add storage if needed
         if hook.needs_storage:
             # Fill in extra parameters
             args["storage"] = event.server.get_plugin_storage(hook.plugin.name)
-            args["storage_loc"] = event.server.get_data_location(hook.plugin.name)
+            args["storage_loc"] = event.server.get_data_location(
+                hook.plugin.name
+            )
 
         # Get proper args
         parsed_args = self._prepare_parameters(hook, args)
 
         # Run the plugin and return the result
-        ret_value = await self.execute_hook(hook, parsed_args)
+        ret_value = self.execute_hook(hook, parsed_args)
 
         # By default, reply() with the result
         if ret_value:
             event.reply(f"({event.author.name}) {ret_value}")
 
-    async def launch_server_event(self, hook, server, event_type):
+    def launch_server_event(self, hook, server, event_type):
         """
         Launch an event triggered on a server
         """
@@ -243,7 +264,8 @@ class PluginManager:
         args = {}
         args["bot"] = self.bot
         args["server"] = server
-        args["send_message"] = self.bot.client.send_message
+        args["send_message"] = get_server_comm().send_message
+        args["plugin_name"] = hook.plugin.name
 
         # Add storage if needed
         if hook.needs_storage:
@@ -255,9 +277,9 @@ class PluginManager:
         parsed_args = self._prepare_parameters(hook, args)
 
         # Run the plugin and return the result
-        return await self.execute_hook(hook, parsed_args)
+        return self.execute_hook(hook, parsed_args)
 
-    async def launch_event(self, hook, event_type):
+    def launch_event(self, hook, event_type):
         """
         Launch a event that does not belong to a server
         """
@@ -265,14 +287,15 @@ class PluginManager:
         # TODO export this to a visible structure
         args = {}
         args["bot"] = self.bot
-        args["send_message"] = self.bot.client.send_message
-        args["connected_servers"] = rpc_client.CServer.connected_servers
+        args["send_message"] = get_server_comm().send_message
+        args["connected_servers"] = client.CServer.connected_servers
+        args["plugin_name"] = hook.plugin.name
 
         # Get proper args
         parsed_args = self._prepare_parameters(hook, args)
 
         # Run the plugin and return the result
-        return await self.execute_hook(hook, parsed_args)
+        return self.execute_hook(hook, parsed_args)
 
     def unload_plugin(self, path):
         """
@@ -339,18 +362,16 @@ class PluginManager:
 
         return True
 
-    def load_module(self, name, module):
+    def load_module(self, register_name, parent_name, module, unload=False):
         """
         Load plugin from module
         """
-
-        # Try unloading the file first
-        self.unload_plugin(name)
+        if unload:
+            self.unload_plugin(register_name)
 
         # Save it
-        self.plugins[name] = Plugin(name, module)
-        butils.run_async(self.finalize_plugin, (self.plugins[name],))
-
+        self.plugins[register_name] = Plugin(parent_name, module)
+        self.finalize_plugin(self.plugins[register_name])
 
     def load_plugin(self, fname):
         """
@@ -363,7 +384,7 @@ class PluginManager:
 
         if plugin:
             self.plugins[fname] = Plugin(fname, plugin)
-            butils.run_async(self.finalize_plugin, (self.plugins[fname],))
+            self.finalize_plugin(self.plugins[fname])
 
     def _load_plugin_from_file(self, fname):
         """

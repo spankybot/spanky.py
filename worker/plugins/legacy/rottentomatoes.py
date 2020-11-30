@@ -1,7 +1,7 @@
 import requests
 from requests import HTTPError
 
-from core import hook
+from SpankyWorker import hook
 from utils import web
 
 api_root = 'http://api.rottentomatoes.com/api/public/v1.0/'

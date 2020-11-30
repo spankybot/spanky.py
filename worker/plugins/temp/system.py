@@ -8,7 +8,7 @@ import subprocess
 from datetime import timedelta
 from utils.filesize import size as format_bytes
 from hook.permissions import Permission
-from core import hook
+from SpankyWorker import hook
 from utils.discord_utils import get_user_by_id
 
 start_trace = None

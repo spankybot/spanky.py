@@ -1,5 +1,5 @@
 import random
-from core import hook
+from SpankyWorker import hook
 
 # ported from https://github.com/zuzak/owo/blob/master/owo.js
 

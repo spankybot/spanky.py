@@ -1,7 +1,6 @@
 import praw
 import time
-from core import hook
-from core.hook import Permission
+from SpankyWorker import hook, Permission
 
 tstamps = {}
 reddit_inst = None

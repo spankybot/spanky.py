@@ -4,8 +4,8 @@ import os
 import random
 import asyncio
 
-from core import hook
-from utils import textgen
+from SpankyWorker import hook
+from SpankyWorker.utils import textgen
 
 
 def is_valid(target):
