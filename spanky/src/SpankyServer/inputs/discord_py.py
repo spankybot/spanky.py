@@ -4,23 +4,19 @@ import discord
 import logging
 import asyncio
 import traceback
-import random
-import collections
-import requests
-import json
-import abc
 import io
 
-from gc import collect
-from utils import time_utils as tutils
+from SpankyCommon.utils import time_utils as tutils
 
 # from utils import discord_utils as dutils
 
-import rpc.rpc_objects as rpcobj
+from SpankyCommon.rpc import rpc_objects as rpcobj
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
+handler = logging.FileHandler(
+    filename="discord.log", encoding="utf-8", mode="w"
+)
 handler.setFormatter(
     logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
 )
@@ -30,7 +26,9 @@ logger.addHandler(handler)
 intents = discord.Intents.default()
 intents.members = True
 
-allowedMentions = discord.AllowedMentions(everyone=False, users=True, roles=True)
+allowedMentions = discord.AllowedMentions(
+    everyone=False, users=True, roles=True
+)
 
 client = discord.Client(intents=intents, allowed_mentions=allowedMentions)
 bot = None
@@ -74,15 +72,26 @@ class Init:
 
         return users
 
-    def get_role(self, role_id, server_id):
+    def get_role(self, role_id, role_name, server_id):
         guild = self.client.get_guild(server_id)
 
-        return SRole(guild.get_role(role_id))
+        role = guild.get_role(role_id)
+        if not role:
+            for srole in guild.roles:
+                if srole.name == role_name:
+                    role = srole
 
-    def get_user(self, user_id, server_id):
+        if role:
+            return SRole(role)
+
+    def get_user(self, user_id, user_name, server_id):
         guild = self.client.get_guild(server_id)
 
-        return SUser(guild.get_member(user_id))
+        user = guild.get_member(user_id)
+        if not user:
+            user = guild.get_member_named(user_name)
+
+        return SUser(user)
 
     def prepare_embed(
         self,
@@ -119,25 +128,24 @@ class Init:
 
         return em
 
-    async def send_file(self, data, fname, channel_id, server_id):
+    async def send_file(self, data, fname, channel_id, server_id, source_msg_id):
         server = client.get_guild(server_id)
         chan = server.get_channel(channel_id)
 
         file_desc = io.BytesIO(data)
         return await chan.send(file=discord.File(file_desc, filename=fname))
 
-    async def send_message(self, text, channel_id, server_id):
+    async def send_message(self, text, channel_id, server_id, source_msg_id):
         server = client.get_guild(server_id)
         chan = server.get_channel(channel_id)
 
         return await chan.send(content=text)
 
-    async def send_embed(self, data, fname, channel_id, server_id):
+    async def send_embed(self, embed, channel_id, server_id, source_msg_id):
         server = client.get_guild(server_id)
         chan = server.get_channel(channel_id)
 
-        file_desc = io.BytesIO(data)
-        return await chan.send(file=discord.File(file_desc, filename=fname))
+        return await chan.send(embed=embed)
 
     async def get_attachments(self, message_id, channel_id, server_id):
         chan = client.get_channel(channel_id)
@@ -149,6 +157,49 @@ class Init:
 
         return att_list
 
+    async def add_roles(self, user_id, server_id, roleid_list):
+        server = client.get_guild(server_id)
+        user = server.get_member(user_id)
+
+        to_add = []
+        for role_id in roleid_list:
+            role = server.get_role(role_id)
+            if role.managed:
+                continue
+            to_add.append(role)
+
+        await user.add_roles(*to_add)
+
+    async def remove_roles(self, user_id, server_id, roleid_list):
+        server = client.get_guild(server_id)
+        user = server.get_member(user_id)
+
+        to_rem = []
+        for role_id in roleid_list:
+            role = server.get_role(role_id)
+            if role.managed or role.is_default():
+                continue
+            to_rem.append(role)
+
+        await user.remove_roles(*to_rem)
+
+    async def send_pm(self, user_id, text):
+        user = client.get_user(user_id)
+
+        return await user.send(content=text)
+
+    async def get_channel(self, channel_id, channel_name, server_id):
+        server = client.get_guild(server_id)
+
+        chan = server.get_channel(channel_id)
+        if not chan:
+            for schan in server.channels:
+                if schan.name == channel_name:
+                    chan = schan
+
+        if chan:
+            return SChannel(chan)
+
 
 class SServer(rpcobj.Server):
     def __init__(self, obj):
@@ -157,6 +208,11 @@ class SServer(rpcobj.Server):
 
 
 class SRole(rpcobj.Role):
+    def __init__(self, obj):
+        self._raw = obj
+
+
+class SChannel(rpcobj.Channel):
     def __init__(self, obj):
         self._raw = obj
 
@@ -176,6 +232,13 @@ class SUser(rpcobj.User):
 class SMessage(rpcobj.Message):
     def __init__(self, obj):
         self._raw = obj
+
+        self.content = self._raw.content
+        self.id = self._raw.id
+        self.author_name = self._raw.author.name
+        self.author_id = self._raw.author.id
+        self.server_id = self._raw.guild.id
+        self.channel_id = self._raw.channel.id
 
 
 @client.event
@@ -215,6 +278,9 @@ async def on_bulk_message_delete(messages):
 
 @client.event
 async def on_message(message):
+    # Don't call on PMs
+    if not message.guild:
+        return
     await call_func(bot.on_message, SMessage(message))
 
 
@@ -235,6 +301,7 @@ async def on_member_remove(member):
 
 @client.event
 async def on_member_update(before, after):
+    return
     await call_func(bot.on_member_update, before, after)
 
 
