@@ -1,5 +1,5 @@
 # For convenience during development, this file is symlinked into each project
-from rpc import spanky_pb2
+from .rpc import spanky_pb2
 import enum
 
 
