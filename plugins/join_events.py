@@ -5,6 +5,16 @@ from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from plugins.log import get_msg_cnt_for_user
 
+# I don't know any better way to do this, since it needs to auto increment in a join call
+class Counter:
+    def __init__(self, start=1):
+        self.x = start
+
+    def get(self):
+        self.x += 1
+        return self.x - 1
+
+
 def find_event_by_text(storage, text, str_to_id):
     events = []
     if not "on_join" in storage:
@@ -19,6 +29,40 @@ def find_event_by_text(storage, text, str_to_id):
                 events.append(item)
 
     return events
+
+def find_event_by_id(storage, e_id):
+    if not "on_join" in storage:
+        return None
+    msg_events = []
+    role_events = []
+    cnt = Counter()
+
+    # commands should also do this
+    try:
+        e_id = int(e_id)
+    except ValueError:
+        return None
+    
+    for item in storage["on_join"]:
+        if item["type"] == "message":
+            msg_events.append(item)
+        elif item["type"] == "role":
+            role_events.append(item)
+    
+    for event in msg_events:
+        val = cnt.get()
+        
+        if e_id == val:
+            return event
+
+    for event in role_events:
+        val = cnt.get()
+        
+        if e_id == val:
+            return event
+
+    return None
+        
 
 def find_event_by_text_match(storage, text, str_to_id):
     events = []
@@ -123,6 +167,7 @@ def list_join_events(storage, id_to_chan, id_to_role_name):
     msg = ""
     msgs = []
     roles = []
+    cnt = Counter()
 
     if not "on_join" in storage:
         return "No events set"
@@ -137,13 +182,20 @@ def list_join_events(storage, id_to_chan, id_to_role_name):
         return "No join events set"
 
     for m in msgs:
-        msg += "\n---\n`Message:` " + m["message"]
-        msg += "\n`Channel:` " + id_to_chan(m["chan"])
-        if m["timeout"] != 0:
-            msg += "\n`Timeout:` " + str(m["timeout"])
+        msg += f"""
+---
+`ID`: {cnt.get()}
+`Message:` {m["message"]}
+`Channel:` {id_to_chan(m["chan"])}
+`Timeout:` {time_utils.sec_to_human(str(m["timeout"]))}"""
+
+        #msg += """\n---\n`Message:` """ + m["message"]
+        #msg += "\n`Channel:` " + id_to_chan(m["chan"])
+        #if m["timeout"] != 0:
+        #    msg += "\n`Timeout:` " + str(m["timeout"])
 
     if len(roles) > 0:
-        msg += "\n---\n`Roles given on join:` " + ", ".join(id_to_role_name(i["role"]) for i in roles)
+        msg += "\n---\n`Roles given on join:` \n" + "\n".join("`ID:` %s `Name:` %s" % (str(cnt.get()), id_to_role_name(i["role"])) for i in roles)
 
     return msg
 
@@ -152,41 +204,43 @@ def get_timeout_for(storage, text, str_to_id):
     """
     Get timeout for a join event
     """
-    evt = find_event_by_text(storage, text, str_to_id)
-
-    if len(evt) > 1:
-        return "Found too many matching entries. Try restricting the search criteria"
-    elif len(evt) == 0:
+    try:
+        e_id = int(text)
+    except ValueError:
+        return "Please enter an event ID"
+    evt = find_event_by_id(storage, e_id)
+    if not evt:
         return "Entry not found"
 
-    if evt[0]["type"] == "role":
+    if evt["type"] == "role":
         return "Found a matching entry but it's a role assignation."
 
-    if evt[0]["timeout"] != 0:
-        return "Timeout set to %d" % evt[0]["timeout"]
+    if evt["timeout"] != 0:
+        return "Timeout set to %d" % evt["timeout"]
     else:
         return "No timeout set"
 
 @hook.command(permissions=Permission.admin)
 def set_timeout_for(storage, text, str_to_id):
     """
-    <join event, timeout> - Set timeout for a join event. Use '5s' for timeout to set it to 5s or 1m to set it to one minute.
+    <join event id, timeout> - Set timeout for a join event. Use '5s' for timeout to set it to 5s or 1m to set it to one minute.
     """
     text = text.rsplit(maxsplit=1)
-    evt = find_event_by_text(storage, text[0], str_to_id)
-
-    if len(evt) > 1:
-        return "Found too many matching entries. Try restricting the search criteria"
-    elif len(evt) == 0:
+    try:
+        e_id = int(text[0])
+    except ValueError:
+        return "Please enter an event ID"
+    evt = find_event_by_id(storage, text[0])
+    if not evt:
         return "Entry not found"
 
-    if evt[0]["type"] == "role":
+    if evt["type"] == "role":
         return "Found a matching entry but it's a role assignation."
 
     try:
-        evt[0]["timeout"] = time_utils.timeout_to_sec(text[1])
+        evt["timeout"] = time_utils.timeout_to_sec(text[1])
         storage.sync()
-        return "Done. Set timeout to %d seconds" % evt[0]["timeout"]
+        return "Done. Set timeout to %d seconds" % evt["timeout"]
     except:
         import traceback;traceback.print_exc()
 
@@ -195,16 +249,17 @@ def set_timeout_for(storage, text, str_to_id):
 @hook.command(permissions=Permission.admin)
 def del_join_event(storage, text, str_to_id):
     """
-    <event> - delete a join event
+    <event id> - delete a join event
     """
-    to_delete = find_event_by_text(storage, text, str_to_id)
-
-    if len(to_delete) > 1:
-        return "Found too many matching entries. Try restricting the search criteria"
-    elif len(to_delete) == 0:
+    try:
+        e_id = int(text)
+    except ValueError:
+        return "Please enter an event ID"
+    to_delete = find_event_by_id(storage, e_id)
+    if not to_delete:
         return "Entry not found"
 
-    storage["on_join"].remove(to_delete[0])
+    storage["on_join"].remove(to_delete)
     storage.sync()
 
     return "Done"
