@@ -100,8 +100,9 @@ e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 123456
 
     if text[0] == "message":
         existing = find_event_by_text_match(storage, text[2], str_to_id)
-        if len(existing) > 0:
-            return "There already is a message with that content"
+        for match in existing:
+            if match["type"] == "message" and match["chan"] == str_to_id(text[1]):
+                return "There already is a message with that content in that channel"
 
         new_entry = {}
         new_entry["chan"] = str_to_id(text[1])
@@ -115,8 +116,9 @@ e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 123456
         return "OK. Will send the given on join message to " + id_to_chan(new_entry["chan"])
     elif text[0] == "role":
         existing = find_event_by_text_match(storage, text[1], str_to_id)
-        if len(existing) > 0:
-            return "There already is a message with that content"
+        for match in existing:
+            if match["type"] == "role":
+                return "There already is a role event with that"
 
         role_name = ""
         new_entry = {}
