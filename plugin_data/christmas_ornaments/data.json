@@ -54,5 +54,25 @@
 	{
 		"filename": "vasc.png",
 		"emoji_name": "cr_vasc"
+	},
+	{
+		"filename": "cr_vadim.png",
+		"emoji_name": "cr_vadmin"
+	},
+	{
+		"filename": "cr_ciudat.png",
+		"emoji_name": "cr_ciudat"
+	},
+	{
+		"filename": "cr_perry.png",
+		"emoji_name": "cr_perry"
+	},
+	{
+		"filename": "cr_pisik.png",
+		"emoji_name": "cr_pisik"
+	},
+	{
+		"filename": "cr_yay.png",
+		"emoji_name": "cr_yay"
 	}
 ]

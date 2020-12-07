@@ -11,8 +11,8 @@ import asyncio
 
 SERVERS = [
     "287285563118190592", # Roddit
-    "648937029433950218", # CNC test server
-    "297483005763780613", # plp test server
+    "648937029433950218", # CNC's own test server
+    "297483005763780613", # plp's magic test server
 ]
 
 # For any future archeologist digging up this code, I used PERMS because I didnt want to bother people with adding command owners to the administration commands

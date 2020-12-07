@@ -153,7 +153,6 @@ def do_join(event, storage, send_message, str_to_id, server):
                 args["SEEN_CNT"] = get_msg_cnt_for_user(event.member.id)
 
             message = item["message"].format(**args)
-            print("TIMEOUT: " + str(item["timeout"]))
             send_message(target=item["chan"], text=message, timeout=item["timeout"])
 
         elif item["type"] == "role":
