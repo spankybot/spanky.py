@@ -800,9 +800,12 @@ class Server():
     def can_have_banner(self):
         return "BANNER" in self._raw.features
 
-    async def set_banner(self, data):
+    async def async_set_banner(self, data):
         await self._raw.edit(banner=data)
-    
+
+    def set_banner(self, data):
+        asyncio.run_coroutine_threadsafe(self.async_set_banner(data), bot.loop)
+
     def emojis(self):
         for emoji in self._raw.emojis:
             yield Emoji(emoji)
@@ -882,7 +885,7 @@ class Emoji():
             self.url = obj.url
 
         self._raw = obj
-    
+
     async def delete(self, reason=None):
         await self._raw.delete(reason=None)
 

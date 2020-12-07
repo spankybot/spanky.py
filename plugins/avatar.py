@@ -105,7 +105,7 @@ async def set_banner(server, pil_picture, reply):
     pil_picture.save(raw_picture, format='PNG')
     raw_picture = raw_picture.getvalue()
 
-    await server.set_banner(raw_picture)
+    await server.async_set_banner(raw_picture)
 
 
 async def update_banner(server, storage, reply):
@@ -162,7 +162,7 @@ async def set_server_banner(event, server, storage, reply):
         storage["banner_url"] = img.url
         storage.sync()
 
-        await update_banner(server, storage)
+        await update_banner(server, storage, reply)
         return
 
 
