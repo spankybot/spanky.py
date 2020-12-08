@@ -13,7 +13,7 @@ TIMEOUT = 5
 elements = deque(maxlen = 10)
 
 class element():
-    def __init__(self, text_list, send_func, description, max_lines=10, max_line_len=200, no_timeout=False):
+    def __init__(self, text_list, send_func, description="", max_lines=10, max_line_len=200, no_timeout=False, with_quotes=True):
         self.max_lines = max_lines
         self.crt_idx = 0
         self.description = description
@@ -22,6 +22,7 @@ class element():
         self.no_timeout = no_timeout
 
         self.send = send_func
+        self.with_quotes = with_quotes
 
         self.parsed_lines = []
         for line in text_list:
@@ -46,7 +47,12 @@ class element():
             with_arrows = True
             page_header += "Page %d/%d\n" % (self.crt_idx / self.max_lines + 1, math.ceil(len(self.parsed_lines) / self.max_lines))
 
-        msg = await self.send(page_header + "```" + '\n'.join(tlist) + "```")
+        output = ""
+        if self.with_quotes:
+            output = page_header + "```" + '\n'.join(tlist) + "```"
+        else:
+            output = page_header + '\n'.join(tlist)
+        msg = await self.send(output)
         self.set_msg_id(msg.id)
 
         # Add arrow emojis
