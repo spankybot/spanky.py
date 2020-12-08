@@ -54,7 +54,7 @@ def ornare(storage, event, text):
     if storage["restricted"] and not good_ornament(url, storage):
         return "Nu e ok ornamentul"
 
-    if not url.startswitch(prefix_URL):
+    if not url.startswith(prefix_URL):
         return "Nu mai încerca să exploatezi <:xciudat:782909461957967935>"
 
     end_text = "Am ornat bradul"
