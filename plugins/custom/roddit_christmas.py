@@ -29,6 +29,7 @@ MSG_TIMEOUT = 5
 star_position = (384,-10)
 star_URL = "http://www.pngall.com/wp-content/uploads/2017/05/Star-PNG-File.png"
 star_ornament = None
+prefix_URL = "https://cdn.discordapp.com/emojis/"
 
 emoji_cache = {}
 
@@ -52,6 +53,9 @@ def ornare(storage, event, text):
     # check if URL meets restricted checks
     if storage["restricted"] and not good_ornament(url, storage):
         return "Nu e ok ornamentul"
+
+    if not url.startswitch(prefix_URL):
+        return "Nu mai încerca să exploatezi <:xciudat:782909461957967935>"
 
     end_text = "Am ornat bradul"
     if not storage["unlimited"] and str(event.author.id) not in storage["unlimited_adders"] and tree.has_ornament(str(event.author.id)):
@@ -174,9 +178,11 @@ async def add_emoji(event, storage, bot, reply):
         for orn in data:
             if 'filename' in orn and not ornament_exists(orn["filename"], storage):
                 with open(emoji_path % orn["filename"], "rb") as fp:
+                    print("Adding %s / %s" % (orn["filename"], orn["emoji_name"]))
                     em = await event.server.add_emoji(fp=fp.read(), name=orn["emoji_name"])
                     storage["allowed_emoji"].append({"discord_id": em.id, "local_name": orn["filename"]})
                     storage.sync()
+                    print("Added.")
     reply("Added emoji, enjoy!")
 
 @hook.command(server_id=SERVERS, permissions=PERMS)
