@@ -3,13 +3,10 @@ import os
 import random
 
 from spanky.plugin import hook
+from spanky.plugin.permissions import Permission
 
 
-@hook.on_start()
-def load_jokes():
-    """
-    :type bot: cloudbot.bot.Cloudbot
-    """
+def load_joke_data():
     global yo_momma, do_it, pun, confucious, one_liner, wisdom, book_puns, lawyerjoke, kero_sayings
 
     with codecs.open(os.path.join("plugin_data/yo_momma.txt"), encoding="utf-8") as f:
@@ -39,6 +36,16 @@ def load_jokes():
     with codecs.open(os.path.join("plugin_data/kero.txt"), encoding="utf-8") as f:
         kero_sayings = [line.strip() for line in f.readlines() if not line.startswith("//")]
 
+
+@hook.command(permissions=Permission.bot_owner)
+def reload_jokes():
+    load_joke_data()
+    print(yo_momma)
+    return "Reloaded."
+
+@hook.on_start()
+def load_jokes():
+    load_joke_data()
 
 @hook.command()
 def yomomma(text):

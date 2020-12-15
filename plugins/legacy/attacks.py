@@ -6,8 +6,8 @@ import re
 
 from spanky.plugin import hook
 from spanky.utils import textgen
+from spanky.plugin.permissions import Permission
 
-@hook.on_start
 def load_attacks():
     global larts, flirts, kills, slaps, north_korea, insults, strax, compliments, presents
 
@@ -38,6 +38,14 @@ def load_attacks():
     with codecs.open(os.path.join("plugin_data/presents.json"), encoding="utf-8") as f:
         presents = json.load(f)
 
+@hook.on_start
+def load():
+    load_attacks()
+
+@hook.command(permissions=Permission.bot_owner)
+def reload_attacks():
+    load_attacks()
+    return "Reloaded."
 
 
 @hook.command(format="user")
