@@ -4,6 +4,7 @@ import random
 import os
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
+import spanky.utils.discord_utils as dutils
 import discord
 import io
 import json
@@ -45,7 +46,14 @@ def ornare(storage, event, text):
     tree = active_trees[str(event.server.id)]
     if tree.concluded:
         return "Evenimentul s-a încheiat, vă mulțumim pentru participare!"
+    
+    if not storage["banned"]:
+        storage["banned"] = []
+        storage.sync()
 
+    if event.author.id in storage["banned"]:
+        return "Nu mai ai voie să ornezi bradul"
+    
     url = [url for url in event.url]
     if url == []:
         return "N-ai specificat ornament"
@@ -141,6 +149,45 @@ async def get_tree(event, async_send_file, reply, storage):
     await async_send_file(dfile)
 
 @hook.command(server_id=SERVERS, permissions=PERMS)
+def ban_user_ornation(event, storage, text, str_to_id):
+    if not storage["is_active"]:
+        return "Christmas ended."
+    if "banned" not in storage:
+        storage["banned"] = []
+    
+    active_trees[event.server.id].remove_ornaments(str(str_to_id(text)))
+
+    storage["banned"].append(str(str_to_id(text)))
+    storage.sync()
+    return "Done."
+
+@hook.command(server_id=SERVERS, permissions=PERMS)
+def remove_user_ornaments(event, storage, text, str_to_id):
+    if not storage["is_active"]:
+        return "Christmas ended."
+    num = active_trees[event.server.id].remove_ornaments(str(str_to_id(text)))
+    if num == 0:
+        return "User didn't have any ornaments."
+    return "Done."
+
+
+@hook.command(server_id=SERVERS, permissions=PERMS)
+def unban_user_ornation(event, storage, text, str_to_id):
+    if not storage["is_active"]:
+        return "Christmas ended."
+    if "banned" not in storage:
+        storage["banned"] = []
+        return "User wasn't banned."
+    try:
+        storage["banned"].remove(str(str_to_id(text)))
+        storage.sync()
+    except ValueError:
+        return "User wasn't banned."
+
+    return "Done."
+
+
+@hook.command(server_id=SERVERS, permissions=PERMS)
 def restrict_ornaments(event, storage):
     """Restrânge lista de ornamente permise la cele adăugate de bot pentru eveniment."""
     storage["restricted"] = True
@@ -226,7 +273,7 @@ def remove_unlimited_adder(storage, text, str_to_id):
     return "Done."
 
 @hook.command(server_id=SERVERS, permissions=PERMS)
-def christmas_info(storage, event):
+async def christmas_info(storage, event, async_send_message):
     """Informații utile despre cum merge evenimentul. Nu utilizați într-un canal public"""
     base = f"""
 Is Active? {storage["is_active"]}
@@ -235,6 +282,7 @@ Allowed Emoji: {["<:test:%s>"%emoji["discord_id"] for emoji in storage["allowed_
 Unlimited Adding? {storage["unlimited"]}
 Unlimited Adders: {["<@%s>" % user_id for user_id in storage["unlimited_adders"]]}
 Special User: <@{storage["special_user"]}>
+Banned Users: {["<@%s>" % user_id for user_id in storage["banned"]]}
 """
     if str(event.server.id) in active_trees:
         tree = active_trees[str(event.server.id)]
@@ -245,7 +293,8 @@ Set Banner? {tree.banner}
 Number of Ornaments: {len(tree.ornaments)}
 Concluded? {tree.concluded}
 """
-    return base
+    await async_send_message(base, allowed_mentions=discord.AllowedMentions.none())
+
 
 # ChristmasTree is the main class, from which we can get everything
 class ChristmasTree:
