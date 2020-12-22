@@ -156,6 +156,7 @@ def ban_user_ornation(event, storage, text, str_to_id):
         storage["banned"] = []
     
     active_trees[event.server.id].remove_ornaments(str(str_to_id(text)))
+    active_trees[event.server.id].update()
 
     storage["banned"].append(str(str_to_id(text)))
     storage.sync()
@@ -165,9 +166,8 @@ def ban_user_ornation(event, storage, text, str_to_id):
 def remove_user_ornaments(event, storage, text, str_to_id):
     if not storage["is_active"]:
         return "Christmas ended."
-    num = active_trees[event.server.id].remove_ornaments(str(str_to_id(text)))
-    if num == 0:
-        return "User didn't have any ornaments."
+    active_trees[event.server.id].remove_ornaments(str(str_to_id(text)))
+    active_trees[event.server.id].update()
     return "Done."
 
 
