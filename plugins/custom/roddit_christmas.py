@@ -30,6 +30,7 @@ star_position = (384,-10)
 star_URL = "http://www.pngall.com/wp-content/uploads/2017/05/Star-PNG-File.png"
 star_ornament = None
 prefix_URL = "https://cdn.discordapp.com/emojis/"
+prefix1 = "https://i.imgur.com/"
 
 emoji_cache = {}
 
@@ -54,7 +55,7 @@ def ornare(storage, event, text):
     if storage["restricted"] and not good_ornament(url, storage):
         return "Nu e ok ornamentul"
 
-    if not url.startswith(prefix_URL):
+    if not url.startswith(prefix_URL) and not url.startswith(prefix1):
         return "Nu mai încerca să exploatezi <:xciudat:782909461957967935>"
 
     end_text = "Am ornat bradul"
@@ -151,7 +152,7 @@ def unrestrict_ornaments(event, storage):
     """Elimină limitarea de ornamente. Recomand să nu o utilizați"""
     storage["restricted"] = False
     storage.sync()
-    return "Restricted."
+    return "Unrestricted."
 
 @hook.command(server_id=SERVERS, permissions=PERMS)
 def toggle_update_christmas_banner(event, storage):
