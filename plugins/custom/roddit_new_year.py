@@ -127,7 +127,7 @@ async def check(bot, send_message):
             await self.server.async_set_banner(dfile)
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
-def toggle_banner():
+def toggle_banner(storage):
     if "do_banner" not in storage or not storage["do_banner"]:
         storage["do_banner"] = True
         storage.sync()
