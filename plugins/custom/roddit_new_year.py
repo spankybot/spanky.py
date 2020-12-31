@@ -76,7 +76,7 @@ def get_message(time):
     return "Să rămână așa"
     
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
-async def show_funne(async_send_file, event, async_send_message, text):
+async def show_funne(storage, async_send_file, event, async_send_message, text):
     if text == "":
         await async_send_message("Trimit tot ce consideri tu \"amuzant\"")
         for f in FUNNE_STUFF:
