@@ -113,7 +113,8 @@ async def check(bot, send_message):
             continue
         storage["current_message"] = msg
         storage.sync()
-        dfile = img_to_dfile(await get_banner(URL, msg))
+        img = await get_banner(URL, msg)
+        dfile = img_to_dfile(img)
         
         if "do_banner" not in storage or not storage["do_banner"]:
             if server.id == "287285563118190592":
@@ -124,7 +125,10 @@ async def check(bot, send_message):
                 print("Channel not found")
             await ch._raw.send(file=dfile)
         else:
-            await self.server.async_set_banner(dfile)
+            bio = io.BytesIO()
+            img.save(bio, 'PNG')
+            bio.seek(0)
+            self.server.set_banner(bio)
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
 def toggle_banner(storage):
