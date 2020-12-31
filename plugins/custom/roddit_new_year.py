@@ -84,7 +84,14 @@ async def show_funne(async_send_file, event, async_send_message, text):
         return
     try:
         nth = int(text)
-        await event.channel._raw.send(file=img_to_dfile(await get_banner(URL, FUNNE_STUFF[nth])))
+        if "do_banner" not in storage or not storage["do_banner"]:
+            await event.channel._raw.send(file=img_to_dfile(await get_banner(URL, FUNNE_STUFF[nth])))
+        else:
+            img = await get_banner(URL, f)
+            bio = io.BytesIO()
+            img.save(bio, 'PNG')
+            bio.seek(0)
+            event.server.set_banner(bio)
         return
     except Exception:
         await async_send_message("Nu-i valid input-ul")
@@ -128,7 +135,7 @@ async def check(bot, send_message):
             bio = io.BytesIO()
             img.save(bio, 'PNG')
             bio.seek(0)
-            self.server.set_banner(bio)
+            server.set_banner(bio)
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
 def toggle_banner(storage):
@@ -140,6 +147,12 @@ def toggle_banner(storage):
         storage["do_banner"] = False
         storage.sync()
         return "Am oprit actualizarea banner-ului, voi trimite prin mesaj"
+
+@hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
+def clear_current_message(storage):
+    storage["current_message"] = ""
+    storage.sync()
+    return "Done."
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
 def enable_countdown(storage):
