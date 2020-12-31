@@ -90,9 +90,9 @@ async def show_funne(storage, server, async_send_file, event, async_send_message
             img = await get_banner(URL, FUNNE_STUFF[nth])
             bio = io.BytesIO()
             img.save(bio, 'PNG')
-            bio.seek(0)
+            bio = bio.getvalue()
             server.set_banner(bio)
-            await async_send_message("I think it was sent")
+            await async_send_message("I think it was set")
         return
     except Exception as e:
         await async_send_message(str(e))
