@@ -93,8 +93,8 @@ async def show_funne(async_send_file, event, async_send_message, text):
             bio.seek(0)
             event.server.set_banner(bio)
         return
-    except Exception:
-        await async_send_message("Nu-i valid input-ul")
+    except Exception as e:
+        await async_send_message(str(e))
         return
     await async_send_message("idk")
 
