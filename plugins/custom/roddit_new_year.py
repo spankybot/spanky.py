@@ -70,8 +70,8 @@ def get_message(time):
     for t in TIMESTAMPS:
         if t["hour"] == hour and t["minute"] == minute:
             return t["message"]
-    if  hour < 18 and hour >= 9:
-        actual_time = (hour - 9) * 2 + minute // 30
+    if  hour < 18 and hour >= 12:
+        actual_time = (hour - 12) * 3 + minute // 20
         return FUNNE_STUFF[actual_time]
     return "Să rămână așa"
     
@@ -94,7 +94,7 @@ async def show_funne(async_send_file, event, async_send_message, text):
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
 async def show_hours(event):
     for f in TIMESTAMPS:
-        await event.channel._raw.send(file=img_to_dfile(await get_banner(URL, f["message"]))) 
+        await event.channel._raw.send(file=img_to_dfile(await get_banner(URL, f["message"])))
 
 @hook.periodic(PERIOD)
 async def check(bot, send_message):
