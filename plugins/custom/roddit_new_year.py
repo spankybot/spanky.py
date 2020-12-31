@@ -135,7 +135,7 @@ async def check(bot, send_message):
         else:
             bio = io.BytesIO()
             img.save(bio, 'PNG')
-            bio.seek(0)
+            bio = bio.getvalue()
             server.set_banner(bio)
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVER_IDS)
