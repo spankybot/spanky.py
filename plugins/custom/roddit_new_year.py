@@ -87,7 +87,7 @@ async def show_funne(storage, async_send_file, event, async_send_message, text):
         if "do_banner" not in storage or not storage["do_banner"]:
             await event.channel._raw.send(file=img_to_dfile(await get_banner(URL, FUNNE_STUFF[nth])))
         else:
-            img = await get_banner(URL, f)
+            img = await get_banner(URL, FUNNE_STUFF[nth])
             bio = io.BytesIO()
             img.save(bio, 'PNG')
             bio.seek(0)
