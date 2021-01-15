@@ -123,9 +123,10 @@ async def update_banner(server, storage, reply):
     # Find a good font size that fits the width
     font = None
     text_size = DEFAULT_TEXT_SIZE
+    banner_text = storage["banner_text"].replace("`", "")
     while True:
         font = ImageFont.truetype('plugin_data/fonts/OpenSansCondensed-Bold.ttf', text_size)
-        text_width, text_height = img_draw.textsize(storage["banner_text"], font=font)
+        text_width, text_height = img_draw.textsize(banner_text, font=font)
 
         # If text fits, break otherwise decrease size
         if text_width < BANNER_W and text_height < BANNER_H - TEXT_SPACE_H:
@@ -145,7 +146,7 @@ async def update_banner(server, storage, reply):
                 (BANNER_W - text_width) // 2,
                 (BANNER_H - text_height - TEXT_SPACE_H) // 2
             ),
-            storage["banner_text"], font=font, fill=(255,255,255,255))
+            banner_text, font=font, fill=(255,255,255,255))
 
     await set_banner(server, resized, reply)
 
