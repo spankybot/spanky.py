@@ -136,7 +136,7 @@ class Bot():
         evt = self.input.EventMessage(EventType.message_del, message, deleted=True)
 
         self.do_text_event(evt)
-	
+
     def on_bulk_message_delete(self, messages):
         """On message bulk delete external hook"""
         evt = self.input.EventMessage(EventType.msg_bulk_del, messages[0], deleted=True, messages=messages)
@@ -190,13 +190,19 @@ class Bot():
 
     def run_type_events(self, event):
         # Raw hooks
+
+        pmgr = None
+        # Handle PMs
+        if hasattr(event, "server"):
+            pmgr = self.get_pmgr(event.server.id)
+
         for raw_hook in self.plugin_manager.catch_all_triggers:
             self.run_in_thread(self.plugin_manager.launch, (
                 HookEvent(
                     bot=self,
                     hook=raw_hook,
                     event=event,
-                    permission_mgr=self.get_pmgr(event.server.id)),))
+                    permission_mgr=pmgr),))
 
         # Event hooks
         if event.type in self.plugin_manager.event_type_hooks:
@@ -206,7 +212,7 @@ class Bot():
                         HookEvent(bot=self,
                                   hook=event_hook,
                                   event=event,
-                                  permission_mgr=self.get_pmgr(event.server.id)),))
+                                  permission_mgr=pmgr),))
 
     def do_non_text_event(self, event):
         if not self.is_ready:
@@ -221,7 +227,7 @@ class Bot():
             return
 
         # Ignore private messages
-        if event.is_pm:
+        if event.is_pm and event.msg.text.split(maxsplit=1)[0] != ".accept_invite":
             return
 
         self.run_type_events(event)
@@ -232,7 +238,7 @@ class Bot():
 
         piped_cmds = []
         # Check if the command starts with .
-        if len(event.msg.text) > 0 and event.msg.text[0] == ".":
+        if len(event.msg.text) > 1 and event.msg.text[0] == ".":
             # Check if commands are piped
             piped_cmds = event.msg.text.split("|")
 
@@ -264,21 +270,35 @@ class Bot():
                 else:
                     event_text = ""
 
+                pmgr = None
+                # Handle PMs
+                if hasattr(event, "server"):
+                    pmgr = self.get_pmgr(event.server.id)
+
                 text_event = TextEvent(
                     hook=hook,
                     text=event_text,
                     triggered_command=command,
                     event=event,
                     bot=self,
-                    permission_mgr=self.get_pmgr(event.server.id))
+                    permission_mgr=pmgr)
 
-                # Log audit data
-                audit.info("[%s][%s][%s] / <%s> %s" % (
-                    event.server.name,
-                    event.msg.id,
-                    event.channel.name,
-                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                    event.text))
+                if event.is_pm:
+                    # Log audit data
+                    audit.info("[%s][%s][%s] / <%s> %s" % (
+                        "pm",
+                        event.msg.id,
+                        "pm",
+                        event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
+                        event.text))
+                else:
+                    # Log audit data
+                    audit.info("[%s][%s][%s] / <%s> %s" % (
+                        event.server.name,
+                        event.msg.id,
+                        event.channel.name,
+                        event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
+                        event.text))
                 self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
 
         # Regex hooks

@@ -1,3 +1,4 @@
+import secrets
 from collections import OrderedDict, deque
 from itertools import chain
 
@@ -132,6 +133,7 @@ class BotCateg():
     def chtype(self):
         return self._data["type"]
 
+
 def get_bot_categs(server, storage):
     if "bot_cats" not in storage:
         return []
@@ -170,7 +172,7 @@ class ChanSelector(Selector):
             # Get all channels
             for cat in get_bot_categs(self.server, self.storage):
                 # skip the archive
-                if cat.is_archive:
+                if cat.is_archive or cat.is_invite:
                     continue
 
                 for chan in self.server.get_chans_in_cat(cat.id):
@@ -273,6 +275,10 @@ async def toggle_chan_presence(server, storage, chname, event, force_toggle):
             check_old=False)
         return
 
+    # Check if trying to join an invite-only channel
+    if categ.is_invite and force_toggle == ToggleType.JOIN:
+        return
+
     # Check for minimum requirements
     can_access = False
     for access_role in REQUIRED_ACCESS_ROLES:
@@ -311,7 +317,7 @@ async def toggle_chan_presence(server, storage, chname, event, force_toggle):
                 check_old=False)
             return
 
-    if categ.is_private:
+    if categ.is_private or categ.is_invite:
         # Get the role associated with the channel
         channel_role = give_assoc_role(server, storage, target_chan)
 
@@ -588,7 +594,7 @@ async def add_chan_category(server, text, reply, storage):
     Privacy (only needed for managed and unmanaged types):
     - 'public' channels are joined/parted through the channel access list
     - 'private' channels are joined/parted through a channel specific role
-    - 'invite' tbd
+    - 'invite' channels are joined through invite codes
     """
     text = text.split(" ")
 
@@ -648,7 +654,7 @@ async def del_chan_category(server, text, reply, storage):
     name_or_id = dutils.str_to_id(text).lower()
 
     # Check for duplicates
-    for cat in get_bot_categs(server, storage):
+    for cat in storage["bot_cats"]:
         if cat["name"].lower() == name_or_id or cat["id"] == name_or_id:
             storage["bot_cats"].remove(cat)
             storage.sync()
@@ -709,11 +715,12 @@ async def make_chan_private(server, storage, chan, cat):
 
         await set_channel_op(chan, op)
 
-    role = give_assoc_role(server, storage, chan)
-    if not role:
-        role = await create_prv_chan_role(server, chan, "%s-member" % chan.name)
+    if not is_permission_based(chan, storage):
+        role = give_assoc_role(server, storage, chan)
+        if not role:
+            role = await create_prv_chan_role(server, chan, "%s-member" % chan.name)
 
-    storage["irc_chans"][chan.id]["associated_roleid"] = role.id
+        storage["irc_chans"][chan.id]["associated_roleid"] = role.id
 
     await save_server_cfg(server, storage)
     await bring_back_actives(server, storage, chan)
@@ -841,6 +848,7 @@ async def make_permission_based(server, storage, text, event, reply):
         await set_channel_member(event.channel, user)
         user.remove_role(chan_role)
 
+    await server.delete_role_by_name(chan_role.name)
     reply("Done")
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
@@ -857,12 +865,35 @@ async def make_role_based(server, storage, text, event, reply):
     # Get the role
     chan_role = give_assoc_role(server, storage, event.channel)
 
+    # Create it if it doesn't exist
+    if not chan_role:
+        chan_role = await create_prv_chan_role(server, event.channel, "%s-member" % chname)
+
     for user in crt_users:
         print(user.name)
         await remove_from_overwrites(event.channel, user)
         user.add_role(chan_role)
 
     reply("Done")
+
+
+def get_users_in_chan(channel, server, storage):
+    # Get the category
+    crt_cat = get_chan_cat(server, storage, channel.id)
+
+    users = []
+    # List private members
+    if crt_cat.is_private:
+        if not is_permission_based(channel, storage):
+            users = list_members_role_access(server, storage, channel)
+        else:
+            users = list_members_perm_access(channel)
+    # List invite_only members
+    elif crt_cat.is_invite:
+        users = list_members_perm_access(channel)
+
+    return users, crt_cat
+
 
 @hook.command(server_id=SRV)
 def list_members(server, storage, event):
@@ -872,21 +903,11 @@ def list_members(server, storage, event):
     if not is_irc_chan(server, storage, event.channel.name):
         return "This channel is not managed by ops"
 
-    # Get the category
-    crt_cat = get_chan_cat(server, storage, event.channel.id)
-
-    # List private members
-    if crt_cat.is_private:
-        users = []
-        if not is_permission_based(event.channel, storage):
-            users = list_members_role_access(server, storage, event.channel)
-        else:
-            users = list_members_perm_access(event.channel)
-
-        return ", ".join(
-            sorted(
-                [i.name for i in users]
-                ))
+    users, cat = get_users_in_chan(event.channel, server, storage)
+    if cat.is_public:
+        return "Channel is public"
+    else:
+        return ", ".join(user.name for user in users)
 
 @hook.command(server_id=SRV)
 def list_ops(server, storage, event):
@@ -922,6 +943,17 @@ async def add_op(text, event, server, storage, reply):
 
     if not user:
         reply("Invalid user")
+        return
+
+    # Check if user in channel
+    user_in_chan = False
+    users, _ = get_users_in_chan(event.channel, server, storage)
+    for crt_user in users:
+        if user.id == crt_user.id:
+            user_in_chan = True
+
+    if not user_in_chan:
+        reply("User not in channel")
         return
 
     await set_channel_op(event.channel, user)
@@ -979,7 +1011,7 @@ async def kick_member(text, event, server, storage, reply):
     crt_cat = get_chan_cat(server, storage, event.channel.id)
 
     # Remove private members
-    if crt_cat.is_private:
+    if crt_cat.is_private or crt_cat.is_invite:
         if not is_permission_based(event.channel, storage):
             role = give_assoc_role(server, storage, event.channel)
             user.remove_role(role)
@@ -1057,7 +1089,7 @@ async def ban_member(text, event, server, storage, reply):
     crt_cat = get_chan_cat(server, storage, event.channel.id)
 
     # Remove private members
-    if crt_cat.is_private:
+    if crt_cat.is_private or crt_cat.is_invite:
         if not is_permission_based(event.channel, storage):
             role = give_assoc_role(server, storage, event.channel)
             user.remove_role(role)
@@ -1160,7 +1192,8 @@ def irc_help():
         unban_member,
         list_bans,
         get_associated_role,
-        set_associated_role_name]
+        set_associated_role_name,
+        invite_member]
 
     ret = "```\n"
     for func in funcs:
@@ -1283,11 +1316,18 @@ async def create_channel(text, server, reply, storage):
         new_chan = await server.create_text_channel(chname, target_cat.id)
     elif target_cat.is_private:
         new_chan = await server.create_text_channel(chname, target_cat.id)
-        await create_prv_chan_role(server, new_chan, "%s-member" % chname)
+        #await create_prv_chan_role(server, new_chan, "%s-member" % chname)
+        set_permission_based(new_chan, True)
+    elif target_cat.is_invite:
+        new_chan = await server.create_text_channel(chname, target_cat.id)
+        set_permission_based(new_chan, True)
+    else:
+        raise NotImplemented("Invalid channel type")
 
     # Add the OP
     await set_channel_op(new_chan, user)
     await save_server_cfg(server, storage)
+    reply("Okay")
 
 
 # @hook.command(permissions=Permission.admin, server_id=SRV)
@@ -1397,3 +1437,248 @@ def get_orphan_chans(storage):
             orphan.append(chan["name"])
 
     return ", ".join(orphan)
+
+
+def cleanup_expired_invites(storage):
+    # Bail if no invite ids list
+    if not storage["invite_ids"]:
+        return
+
+    for invite in storage["invite_ids"]:
+        # Older than a day?
+        if tutils.tnow() - invite["create_time"] >= tutils.SEC_IN_DAY:
+            storage["invite_ids"].remove(invite)
+
+    storage.sync()
+
+
+def cleanup_invite_by_id(storage, invite_id):
+    # Bail if no invite ids list
+    if not storage["invite_ids"]:
+        return
+
+    for invite in storage["invite_ids"]:
+        # Older than a day?
+        if invite["invite_id"] == invite_id:
+            storage["invite_ids"].remove(invite)
+
+    storage.sync()
+
+
+@hook.command(server_id=SRV)
+def invite_member(event, server, storage, text):
+    """
+    <user> Invite someone to an invite-only channel
+    """
+
+    if not is_channel_op(event.channel, event.author):
+        return "You need to be an OP."
+
+    # Check if command was issued in an invite-only channel
+    in_invite_chan = False
+    for chan, _ in get_irc_chans(server, storage):
+        if chan.id == event.channel.id:
+            in_invite_chan = True
+
+    if not in_invite_chan:
+        return "Invites can only be sent from invite-only channels"
+
+    # Get targeted user
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text))
+    if not user:
+        return "Could not get user"
+
+    # Check if banned
+    if is_banned(storage, event.channel, user):
+        return "User is banned from this channel"
+
+    already_in_chan = False
+    for crt_user, perm in event.channel.get_user_overwrites():
+        if perm._raw.send_messages == True:
+            if user.id == crt_user.id:
+                already_in_chan = True
+
+    if already_in_chan:
+        return "User already in channel"
+
+    #if "invite_ids" not in storage:
+    storage["invite_ids"] = []
+
+    # Clean up old invites
+    cleanup_expired_invites(storage)
+
+    # Generate a random invite ID string
+    # Collisions highly improbable - TODO check?
+    invite_id = secrets.token_urlsafe(8)
+
+    new_invite = {}
+    new_invite["user_id"] = user.id
+    new_invite["channel_id"] = event.channel.id
+    new_invite["invite_id"] = invite_id
+    new_invite["create_time"] = tutils.tnow()
+
+    storage["invite_ids"].append(new_invite)
+    storage.sync()
+
+    user.send_pm(f"You have been invited to {event.channel.name}.\nReply with the following command to accept the invite:")
+    user.send_pm(f".accept_invite {invite_id}")
+    return "Done!"
+
+@hook.command()
+async def accept_invite(bot, text, event):
+    # Go through server IDs
+    for server in bot.backend.get_servers():
+        if server.id not in SRV:
+            continue
+
+        # Get storage
+        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_custom_roddit_irc_mode.json")
+
+        # Bail if no invite ids list
+        if not storage["invite_ids"]:
+            continue
+
+        # Clean up old invites
+        cleanup_expired_invites(storage)
+
+        # Check for a match
+        for invite in storage["invite_ids"]:
+            if invite["invite_id"] == text and invite["user_id"] == event.author.id:
+                # Add member to channel
+                chan = dutils.get_channel_by_id(server, invite["channel_id"])
+                user = dutils.get_user_by_id(server, event.author.id)
+                await set_channel_member(chan, user)
+
+                # Cleanup used invite
+                cleanup_invite_by_id(storage, invite["invite_id"])
+
+                # Reply to the user
+                event.author.send_pm("Done!")
+
+
+
+### Experimental stuff
+
+class ActionType():
+    SET = 0
+    GET = 1
+    CLEAR = 2
+
+
+def test123(storage, chan, value, action_type):
+    """
+    muie dinamo
+    """
+    pass
+
+def irc_motd(storage, chan, value, action_type):
+    """
+    Manage channel MOTD
+    """
+
+    if action_type == ActionType.SET:
+        storage["irc_chans"][chan.id]["motd"] = value
+
+        return "MOTD set"
+
+    elif action_type == ActionType.GET:
+        if not "motd" in storage["irc_chans"][chan.id]:
+            return "Not set"
+
+        return storage["irc_chans"][chan.id]["motd"]
+
+    elif action_type == ActionType.CLEAR:
+        del storage["irc_chans"][chan.id]["motd"]
+        return "MOTD cleared"
+
+
+SETGET_CMDS = {
+    "motd": irc_motd,
+    "test1": test123
+}
+
+def launch_icmd(server, storage, channel, action_type, text):
+    # Get channel
+    target_chan, _ = get_irc_chan(server, storage, channel.id)
+
+    # Split command
+    text = text.split(" ", maxsplit=1)
+    if text[0] in SETGET_CMDS.keys():
+        func = SETGET_CMDS[text[0]]
+
+        args = ""
+        if len(text) > 1:
+            args = text[1]
+
+        ret_val = func(storage, target_chan, args, action_type)
+        storage.sync()
+
+        return ret_val
+
+
+@hook.command(server_id=SRV)
+async def iset(event, server, storage, text, reply):
+    """
+    Set a channel property. Available properties:\n{SUBCMDS}
+    """
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    reply(launch_icmd(server, storage, event.channel, ActionType.SET, text))
+
+
+@hook.command(server_id=SRV)
+async def iget(event, server, storage, text, reply):
+    """
+    Get a channel property. Available properties:\n{SUBCMDS}
+    """
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    reply(launch_icmd(server, storage, event.channel, ActionType.GET, text))
+
+
+@hook.command(server_id=SRV)
+async def iclear(event, server, storage, text, reply):
+    """
+    Clear a channel property. Available properties:\n{SUBCMDS}
+    """
+
+    if not is_channel_op(event.channel, event.author):
+        reply("You need to be an OP.")
+        return
+
+    reply(launch_icmd(server, storage, event.channel, ActionType.CLEAR, text))
+
+def gen_ihelp():
+    reply = ""
+    for func_name, func in SETGET_CMDS.items():
+        reply += "-> %s - %s\n" % (func_name, func.__doc__.strip())
+
+    return reply
+
+
+iset.__doc__ = iset.__doc__.format(SUBCMDS=gen_ihelp())
+iget.__doc__ = iset.__doc__.format(SUBCMDS=gen_ihelp())
+iclear.__doc__ = iset.__doc__.format(SUBCMDS=gen_ihelp())
+
+
+
+# @hook.command(permissions=Permission.admin, server_id=SRV)
+# def list_invites(storage):
+#     """
+#     List pending invites
+#     """
+#     # Bail if no invite ids list
+#     if not storage["invite_ids"]:
+#         return "Empty"
+
+#     reply = ""
+#     for invite in storage["invite_ids"]:
+#         reply += "" + invite["invite_id"] + "\n"
+
+#     return reply

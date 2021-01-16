@@ -146,14 +146,16 @@ class PluginManager():
         """
         parameters = []
 
-        if "storage" in hook.required_args:
-            stor_name = hook.plugin.name.replace(".py", "").replace("/","_")
-            event.storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
+        # Is only none for PMs
+        if hasattr(event, "permission_mgr") and event.permission_mgr:
+            if "storage" in hook.required_args:
+                stor_name = hook.plugin.name.replace(".py", "").replace("/","_")
+                event.storage = event.permission_mgr.get_plugin_storage(stor_name + ".json")
 
-        if "storage_loc" in hook.required_args:
-            event.storage_loc = \
-                event.permission_mgr.get_data_location(
-                    hook.plugin.name.replace(".py", "").replace("/","_"))
+            if "storage_loc" in hook.required_args:
+                event.storage_loc = \
+                    event.permission_mgr.get_data_location(
+                        hook.plugin.name.replace(".py", "").replace("/","_"))
 
         if "cmd_args" in hook.required_args and hook.param_list is not None:
             event.cmd_args = map_params(event.text, hook.param_list)
@@ -233,7 +235,7 @@ class PluginManager():
 
         hook = launch_event.hook
 
-        if hook.type in ("command"):
+        if hook.type in ("command") and not launch_event.event.is_pm:
             # Run hooks on only the servers where they should run
             if launch_event.hook.server_id and not launch_event.hook.has_server_id(str(launch_event.event.server.id)):
                 return
