@@ -32,12 +32,23 @@ def get_format_args(event):
     # Setup arguments
     hour, minute, second = time.strftime("%H,%M,%S").split(',')
 
+    # Handle PMs
+    server_name = "pm"
+    server_id = "0"
+    channel_name = "pm"
+    channel_id = "0"
+    if hasattr(event, "server"):
+        server = event.server.name
+        server_id = event.server.id
+        channel_name = event.channel.name
+        channel_id = event.channel.id
+
     args = {
         "msg_id": event.msg.id,
-        "server": event.server.name,
-        "server_id": event.server.id,
-        "channel": event.channel.name,
-        "channel_id": event.channel.id,
+        "server": server_name,
+        "server_id": server_id,
+        "channel": channel_name,
+        "channel_id": channel_id,
         "nick": event.author.name + "/" + event.author.nick + "/" + str(event.author.id),
         "author": event.author.name,
         "author_id": event.author.id,
@@ -80,7 +91,15 @@ def get_log_filename(event, args):
 
 def get_log_stream(event, args):
     new_filename = get_log_filename(event, args)
-    cache_key = (event.server.id, event.channel.id)
+
+    # Handle PMs
+    channel_id = "pm"
+    server_id = "0"
+    if hasattr(event, "server"):
+        channel_id = event.channel.id
+        server_id = event.server.id
+
+    cache_key = (server_id, channel_id)
     old_filename, log_stream = stream_cache.get(cache_key, (None, None))
 
     # If the filename has changed since we opened the stream, we should re-open
@@ -305,3 +324,45 @@ async def rip_servers(bot):
             except:
                 import traceback
                 traceback.print_exc()
+
+@hook.command(permissions=Permission.bot_owner)
+def cntusr(text):
+    return get_msg_cnt_for_user(text)
+
+@hook.command(permissions=Permission.bot_owner)
+async def cl1234(bot, reply):
+    import discord
+    client = bot.backend.client
+
+    gen = client.get_all_channels()
+
+    for ch in gen:
+        if ch.guild.id != 287285563118190592:
+            continue
+
+        print(ch.name)
+        print(ch.id)
+
+        cs = db_conn.cursor()
+        try:
+            cs.execute("""select * from messages where author_id='374536373560147978' and channel_id=%s order by date asc""", (str(ch.id),))
+        except:
+            import traceback
+            traceback.print_exc()
+
+        try:
+            data = cs.fetchall()
+            #reply("https://discordapp.com/channels/287285563118190592/%s/%s" % (ch.id, data[1][0]))
+
+            for mid in data:
+                try:
+                    msg = await ch.fetch_message(mid[0])
+                    reply("%s\nhttps://discordapp.com/channels/287285563118190592/%s/%s" % (msg.content, ch.id, mid[0]))
+                    await msg.delete()
+                except:
+                    print("not found")
+        except:
+            import traceback
+            traceback.print_exc()
+
+    reply("Done <@278247547838136320>")
