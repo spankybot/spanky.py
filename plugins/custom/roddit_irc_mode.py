@@ -156,7 +156,8 @@ class ChanSelector(Selector):
         super().__init__(
             title="r/Romania channels",
             footer="Select to join/part channel.",
-            call_dict={})
+            call_dict={},
+            max_rows=16)
 
         self.server = server
         self.channel = channel
@@ -1316,42 +1317,43 @@ async def create_channel(text, server, reply, storage):
         new_chan = await server.create_text_channel(chname, target_cat.id)
     elif target_cat.is_private:
         new_chan = await server.create_text_channel(chname, target_cat.id)
-        #await create_prv_chan_role(server, new_chan, "%s-member" % chname)
-        set_permission_based(new_chan, True)
     elif target_cat.is_invite:
         new_chan = await server.create_text_channel(chname, target_cat.id)
-        set_permission_based(new_chan, True)
     else:
         raise NotImplemented("Invalid channel type")
 
     # Add the OP
     await set_channel_op(new_chan, user)
     await save_server_cfg(server, storage)
+
+    if target_cat.is_private or target_cat.is_invite:
+        set_permission_based(new_chan, storage, True)
+
     reply("Okay")
 
 
-# @hook.command(permissions=Permission.admin, server_id=SRV)
-# async def delete_channel(text, server, reply):
-#     """
-#     <channel> - delete a channel
-#     """
-#     text = text.split(" ")
-#     if len(text) != 1:
-#         reply("Please input a valid channel name")
-#         return
+@hook.command(permissions=Permission.admin, server_id=SRV)
+async def delete_channel(text, server, reply):
+    """
+    <channel> - delete a channel
+    """
+    text = text.split(" ")
+    if len(text) != 1:
+        reply("Please input a valid channel name")
+        return
 
-#     chname = text[0]
-#     # Check dups public
-#     for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
-#         if chan.name == chname:
-#             await server.delete_channel(chan)
-#             await server.delete_role_by_name("%s-op" % chname)
-#             await server.delete_role_by_name("%s-member" % chname)
+    chname = text[0]
+    # Check dups public
+    for chan in chain(server.get_chans_in_cat(PUB_CAT), server.get_chans_in_cat(PRV_CAT)):
+        if chan.name == chname:
+            await server.delete_channel(chan)
+            await server.delete_role_by_name("%s-op" % chname)
+            await server.delete_role_by_name("%s-member" % chname)
 
-#             reply("Done!")
-#             return
+            reply("Done!")
+            return
 
-#     reply("No channel named %s" % chname)
+    reply("No channel named %s" % chname)
 
 @hook.command(server_id=SRV)
 def set_topic(server, storage, reply, event, text):

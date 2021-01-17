@@ -54,17 +54,18 @@ SITEMS = [
 class Selector:
     POSTED_MESSAGES = deque(maxlen=250) # class variable holding posted selectors
 
-    def __init__(self, title, footer, call_dict):
+    def __init__(self, title, footer, call_dict, max_rows=10):
         self.shown_page = 0
         self.title = title
         self.footer = footer
         self.msg = None
+        self.max_rows = max_rows
 
         self.set_items(call_dict)
 
     def set_items(self, call_dict):
-        self.total_pages = len(call_dict) // MAX_ROWS + int(
-            len(call_dict) % MAX_ROWS != 0
+        self.total_pages = len(call_dict) // self.max_rows + int(
+            len(call_dict) % self.max_rows != 0
         )
 
         # Initialize the embeds array in case there are multiple messages
@@ -85,8 +86,8 @@ class Selector:
 
             crt_idx += 1
 
-            # If more than MAX_ROWS items have been added split it
-            if crt_idx >= MAX_ROWS:
+            # If more than self.max_rows items have been added split it
+            if crt_idx >= self.max_rows:
                 self.embeds.append(
                     (
                         dutils.prepare_embed(
