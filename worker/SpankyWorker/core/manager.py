@@ -5,12 +5,15 @@ import importlib
 
 from .reloader import PluginReloader
 from .hook_logic import find_hooks
+from .hook_parameters import map_params
 from SpankyCommon.event import EventType
 from SpankyCommon.utils import time_utils as tutils
 from SpankyCommon.utils import log
+from SpankyCommon.utils import bot_utils as butils
 
-from .client import get_server_comm
+from .client import get_server_comm, StorageSystem
 from . import client
+
 # from .hook_parameters import map_params
 
 logger = log.botlog("manager", console_level=log.loglevel.DEBUG)
@@ -160,8 +163,7 @@ class PluginManager:
         result = None
         # If async plugin, await its result
         if asyncio.iscoroutinefunction(hook.function):
-            raise NotImplementedError()
-            # result = await hook.function(**args)
+            result = butils.run_async_wait(hook.function, kwargs=args)
         else:
             result = hook.function(**args)
 
@@ -245,6 +247,19 @@ class PluginManager:
                 hook.plugin.name
             )
 
+        if hook.given_cmd_params:
+            try:
+                args["cmd_args"] = map_params(
+                    event_text, hook.param_list, hook.cmd_params_strict
+                )
+            except ValueError as e:
+                event.reply("%s\n%s" % (str(e), hook.function.__doc__))
+                return
+
+            # Add parameters as plugin parameters
+            for key, val in args["cmd_args"].items():
+                args[key] = val
+
         # Get proper args
         parsed_args = self._prepare_parameters(hook, args)
 
@@ -290,6 +305,9 @@ class PluginManager:
         args["send_message"] = get_server_comm().send_message
         args["connected_servers"] = client.CServer.connected_servers
         args["plugin_name"] = hook.plugin.name
+
+        if hook.needs_storage and hook.unique_storage:
+            args["storage"] = StorageSystem.get_unique_storage(hook.plugin.name)
 
         # Get proper args
         parsed_args = self._prepare_parameters(hook, args)

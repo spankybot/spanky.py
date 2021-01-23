@@ -38,22 +38,30 @@ class CmdPerms:
         else:
             return
 
+        # Add command owners
         if "owner" in storage["commands"][cmd].keys():
             self.owners_ids.extend(storage["commands"][cmd]["owner"])
 
+        # Add channels where this command can be used
         if "groups" in storage["commands"][cmd].keys():
             self.chgroups.extend(storage["commands"][cmd]["groups"])
 
             for chgroup in storage["commands"][cmd]["groups"]:
                 if "channels" in storage["chgroups"][chgroup].keys():
-                    self.channel_ids.extend(storage["chgroups"][chgroup]["channels"])
+                    self.channel_ids.extend(
+                        storage["chgroups"][chgroup]["channels"]
+                    )
 
+        # Add channels where this command cannot be used
         if "fgroups" in storage["commands"][cmd].keys():
             self.forbid_chgroups.extend(storage["commands"][cmd]["fgroups"])
 
             for chgroup in storage["commands"][cmd]["fgroups"]:
-                self.forbid_channel_ids.extend(storage["chgroups"][chgroup]["channels"])
+                self.forbid_channel_ids.extend(
+                    storage["chgroups"][chgroup]["channels"]
+                )
 
+        # Mark if the command is unrestricted for use
         self.unrestricted = False
         if (
             "unrestricted" in storage["commands"][cmd].keys()
@@ -96,32 +104,38 @@ set an administrator.",
             return True, None
         return False, "You're not allowed to use that."
 
-    # Check if the command has particular settings
+    # Check if the command has restrictions
     if cmd.is_customized:
         if cmd.unrestricted:
             return True, None
+
+        # Check if the command is restricted in this channel
         if (
             len(cmd.forbid_channel_ids) > 0
-            and event.channel.id in cmd.forbid_channel_ids
+            and event.channel_id in cmd.forbid_channel_ids
         ):
-            bot_event.event.msg.delete_message()
+            event.delete_message()
             return False, "Command can't be used in " + ", ".join(
                 dutils.id_to_chan(i) for i in cmd.forbid_channel_ids
             )
 
+        # Check if the command can only be used in other channels
         if len(cmd.channel_ids) > 0 and event.channel_id not in cmd.channel_ids:
             event.delete_message()
-            return (False,)
-            "Command can't be used here. Try using it in " + ", ".join(
-                dutils.id_to_chan(i) for i in cmd.channel_ids
+            return (
+                False,
+                "Command can't be used here. Try using it in "
+                + ", ".join(dutils.id_to_chan(i) for i in cmd.channel_ids),
             )
 
     elif (
-        storage["default_bot_chan"] and event.channel_id != storage["default_bot_chan"]
+        storage["default_bot_chan"]
+        and event.channel_id != storage["default_bot_chan"]
     ):
         bot_event.event.msg.delete_message()
-        return (False,)
-        "Command can only be used in " + dutils.id_to_chan(storage["default_bot_chan"])
+        return False, "Command can only be used in " + dutils.id_to_chan(
+            storage["default_bot_chan"]
+        )
 
     return True, None
 
@@ -255,7 +269,9 @@ def add_chan_to_chgroup(text, server):
 @hook.command(permissions=Permission.admin, format="cgroup")
 def list_chans_in_chgroup(text, server):
     """<channel-group> - List channels in channel-group"""
-    vals = channels_in_chgroups[server.id].list_things_for_thing(text, "channels")
+    vals = channels_in_chgroups[server.id].list_things_for_thing(
+        text, "channels"
+    )
 
     if vals:
         return ", ".join(dutils.id_to_chan(i) for i in vals)
@@ -362,7 +378,9 @@ it usable on the whole server"""
 @hook.command(permissions=Permission.admin, format="cmd")
 def is_cmd_unrestricted(text, server):
     """<command> - Check if command is channel restricted or not"""
-    val = free_to_use_cmds[server.id].list_things_for_thing(text, "unrestricted")
+    val = free_to_use_cmds[server.id].list_things_for_thing(
+        text, "unrestricted"
+    )
 
     if val:
         return "Command is unrestricted"

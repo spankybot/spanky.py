@@ -3,7 +3,7 @@ import plugins.custom.roddit_irc_mode as roddit
 import utils.carousel as carousel
 
 from core.event import EventType
-from collections import OrderedDict, deque
+from collections import deque
 from utils import discord_utils as dutils
 from hook.permissions import Permission
 
@@ -34,7 +34,9 @@ async def parse_react(bot, event):
     await found_selector.handle_emoji(event)
 
     # Remove the reaction
-    await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+    await event.msg.async_remove_reaction(
+        event.reaction.emoji.name, event.author
+    )
 
 
 @hook.command(permissions=Permission.admin)
@@ -47,14 +49,17 @@ def permanent_selector(text, storage, event):
     # Try to get the message ID
     _, _, msg_id = dutils.parse_message_link(text)
 
-    if msg_id == None:
+    if msg_id is None:
         msg_id = text
 
     # Check if it's a selector
     found_sel = None
     for selector in carousel.Selector.POSTED_MESSAGES:
         # Don't leak from other servers
-        if selector.has_msg_id(msg_id) and selector.server.id == event.server.id:
+        if (
+            selector.has_msg_id(msg_id)
+            and selector.server.id == event.server.id
+        ):
             found_sel = selector
 
     if not found_sel:
@@ -99,9 +104,16 @@ def list_permanent_selectors(text, storage):
     if "role_selectors" not in storage:
         return retval
 
-    for data in list(storage["role_selectors"]) + list(storage["chan_selectors"]) + list(storage["simple_selectors"]):
+    for data in (
+        list(storage["role_selectors"])
+        + list(storage["chan_selectors"])
+        + list(storage["simple_selectors"])
+    ):
         retval.append(
-            dutils.return_message_link(data["server_id"], data["channel_id"], data["msg_id"]))
+            dutils.return_message_link(
+                data["server_id"], data["channel_id"], data["msg_id"]
+            )
+        )
 
     if len(retval) == 0:
         return "No selectors set"
@@ -151,7 +163,9 @@ async def rebuild_selectors(server, storage):
     if "role_selectors" in storage:
         for element in storage["role_selectors"]:
             try:
-                selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
+                selector = await carousel.RoleSelectorInterval.deserialize(
+                    bot, element
+                )
 
                 # Add it to the permanent message list
                 permanent_messages.append(selector)
@@ -175,5 +189,6 @@ async def rebuild_selectors(server, storage):
                 permanent_messages.append(selector)
             except:
                 import traceback
+
                 traceback.print_exc()
                 print(element)

@@ -3,7 +3,8 @@ import math
 import random
 import time
 from collections import deque
-from SpankyWorker import hook, EventType
+from SpankyWorker import hook
+from SpankyCommon.event import EventType
 
 LARROW = u"⬅"
 RARROW = u"➡"

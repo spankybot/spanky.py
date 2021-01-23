@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from SpankyWorker import hook, Permission, EventType
+from SpankyWorker import hook, Permission
+from SpankyCommon.event import EventType
 
 import requests
 import os

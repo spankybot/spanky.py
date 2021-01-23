@@ -6,26 +6,35 @@ MAX_LEN = 50
 
 
 @hook.command()
-async def s(text, channel, reply, event, bot):
+async def s(text, reply, event, bot):
     """<word replacement> - replace 'word' with replacement"""
     text = text.split()
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
-        msg += ": " + "\n`" + "<word replacement> - replace 'word' with replacement`"
-        msg += "\n`" + "if only one word is specified, it will be replaced with a blankspace`"
+        msg += (
+            ": "
+            + "\n`"
+            + "<word replacement> - replace 'word' with replacement`"
+        )
+        msg += (
+            "\n`"
+            + "if only one word is specified, it will be replaced with a blankspace`"
+        )
         reply(msg, timeout=15)
         return
 
     if len(text) == 1:
         text.append("")
 
-    messages = await channel.async_get_latest_messages(MAX_LEN)
-
-    for msg in messages:
-        if msg.id == event.msg.id or msg.author.id == bot.get_own_id() or msg.text.startswith(".s"):
+    async for msg in event._raw._discord.channel.history(limit=MAX_LEN):
+        if (
+            msg.id == event.id
+            or msg.author.id == bot.discord_id
+            or msg.content.startswith(".s")
+        ):
             continue
-        if text[0] in msg.text:
-            text_array = msg.text.split(" ")
+        if text[0] in msg.content:
+            text_array = msg.content.split(" ")
 
             for index, word in enumerate(text_array):
                 l_arrow = word.find("<")
@@ -40,21 +49,28 @@ async def s(text, channel, reply, event, bot):
 
 
 @hook.command()
-async def ss(text, channel, reply, event, bot):
+def ss(text, channel, reply, event, bot):
     """<regex replacement> - replace regex with replacement"""
 
     text = text.split()
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
-        msg += ": " + "\n`" + "<regex replacement> - replace regex with replacement`"
-        msg += "\n`" + "if only the regex is specified, it will be replaced with a blankspace`"
+        msg += (
+            ": "
+            + "\n`"
+            + "<regex replacement> - replace regex with replacement`"
+        )
+        msg += (
+            "\n`"
+            + "if only the regex is specified, it will be replaced with a blankspace`"
+        )
         reply(msg, timeout=15)
         return
 
     if len(text) == 1:
         text.append("")
 
-    messages = await channel.async_get_latest_messages(MAX_LEN)
+    messages = channel.get_messages(MAX_LEN)
 
     try:
         regex = re2.compile(text[0])
@@ -63,7 +79,11 @@ async def ss(text, channel, reply, event, bot):
         return
 
     for msg in messages:
-        if msg.id == event.msg.id or msg.author.id == bot.get_own_id() or msg.text.startswith(".s"):
+        if (
+            msg.id == event.msg.id
+            or msg.author.id == bot.get_own_id()
+            or msg.text.startswith(".s")
+        ):
             continue
         if regex.search(msg.text) != None:
             msg = "<%s> %s" % (msg.author.name, regex.sub(text[1], msg.text))

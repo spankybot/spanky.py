@@ -1,10 +1,8 @@
-import wand
 import os
 import string
 import random
 import requests
 import time
-import PIL
 import re
 import io
 from wand.image import Image as wand_image
@@ -14,11 +12,15 @@ from wand.sequence import SingleImage
 
 from PIL import Image as pil_image
 from PIL import ImageSequence as pil_imagesequence
-from PIL import ImageDraw as pil_imagedraw
-from PIL import GifImagePlugin
+
+from SpankyCommon.utils.http import fetch_url
+
 
 MAX_IMG_SIZE = 10 * 1024 * 1024
 MAX_RES_SIZE = 1024 * 1024 * 1024
+
+limits["memory"] = MAX_RES_SIZE
+
 
 class Image():
     def __init__(self, url=None, raw_data=None):
@@ -174,31 +176,8 @@ class Image():
         """
         Fetch the class set url
         """
-        url = self.proc_imgur(self._url)
-
-        req = requests.get(url, stream=True)
-        req.raise_for_status()
-
-        size = 0
-        start = time.time()
-
-        content = bytes()
-        # Get a chunk
-        for chunk in req.iter_content(1024):
-            # If download time exceeds the given timeout, exit
-            if time.time() - start > timeout_sec:
-                print("Image %s took too long to download" % url)
-                raise TimeoutError("Timeout error downloading %s" % url)
-
-            content += chunk
-            size += len(chunk)
-
-            # If the size eceeds the given maximum size, exit
-            if size > max_size:
-                print("Image %s is too large" % url)
-                raise PermissionError("Image too large")
-
-        self.set_raw_data(content)
+        request_data = fetch_url(self.proc_imgur(self._url))
+        self.set_raw_data(request_data.content)
 
     def print_memusage(self, text):
         """
@@ -234,20 +213,6 @@ class Image():
 
         os.system("rm %s/%s" % (storage_loc, fname))
 
-    def check_size(self, frame_count):
-        """
-        Check resource limits
-        """
-
-        # If estimated size is larger than the maximum image size, then raise
-        if self.get_first_frame_sz() * frame_count > MAX_IMG_SIZE:
-            print("Abort because frame size is %d and frame count is %d" % (self.get_first_frame_sz(), frame_count))
-            raise
-
-        # If memory consumption for the wand module is too large, exit
-        if limits.resource('memory') > MAX_RES_SIZE:
-            raise
-
     def proc_each_wand_frame(self, func, send_file, send_msg, args={}):
         """
         Calls func for each wand frame
@@ -277,9 +242,6 @@ class Image():
                     result.destroy()
                 else:
                     new_img.append(result)
-
-                # Check if we're not consuming too much memory
-                new_img.check_size(idx + 1)
 
                 self.print_memusage("After append")
 
@@ -317,9 +279,6 @@ class Image():
 
                 ibytes.seek(0)
                 new_img.append(wand_image(file=ibytes))
-
-                # Check if we're not consuming too much memory
-                new_img.check_size(idx + 1)
 
             if modified_frames:
                 new_img.send_img_reply(send_file)

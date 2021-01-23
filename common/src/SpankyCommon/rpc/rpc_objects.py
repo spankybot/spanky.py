@@ -1,3 +1,4 @@
+import enum
 from SpankyCommon.rpc import spanky_pb2
 
 # Base classes that represent objects passed on over the RPC interface
@@ -6,57 +7,83 @@ from SpankyCommon.rpc import spanky_pb2
 # implements serialization according to the proto file
 
 
-class Server:
+class TransferredObj:
+    """
+    Implements basic metadata about objects that are passed
+    to the clients from the backend.
+
+    These objects can either be passed over GRPC or by reference.
+    For example, if implemented over GRPC, it will simply expose the
+    raw object received over GRPC, while a 'direct' implementation
+    will expose the native object from the framework.
+    """
+
+    @property
+    def raw(self):
+        return self._raw
+
+    @property
+    def discord(self):
+        if hasattr(self._raw, "_discord"):
+            return self._raw._discord
+        else:
+            raise NotImplementedError(
+                "Attribute not available. \
+You're probably trying to get the discord object from an over GRPC manager."
+            )
+
+
+class Server(TransferredObj):
     def serialize(self):
         return spanky_pb2.Server(
-            id=self._raw.id,
-            name=self._raw.name,
-            role_ids=[i.id for i in self._raw.roles],
+            id=self._discord.id,
+            name=self._discord.name,
+            role_ids=[i.id for i in self._discord.roles],
         )
 
 
-class Role:
+class Role(TransferredObj):
     def serialize(self):
         return spanky_pb2.Role(
-            id=self._raw.id,
-            name=self._raw.name,
-            server_id=self._raw.guild.id,
-            managed=self._raw.managed,
-            position=self._raw.position,
+            id=self._discord.id,
+            name=self._discord.name,
+            server_id=self._discord.guild.id,
+            managed=self._discord.managed,
+            position=self._discord.position,
         )
 
 
-class Channel:
+class Channel(TransferredObj):
     def serialize(self):
         return spanky_pb2.Channel(
-            id=self._raw.id,
-            name=self._raw.name,
-            server_id=self._raw.guild.id
+            id=self._discord.id,
+            name=self._discord.name,
+            server_id=self._discord.guild.id,
         )
 
 
-class User:
+class User(TransferredObj):
     def serialize(self):
         roles = []
         # Don't return default roles
-        for role in self._raw.roles:
+        for role in self._discord.roles:
             if role.is_default():
                 continue
             roles.append(role.id)
 
         return spanky_pb2.User(
-            name=self._raw.name,
-            display_name=self._raw.display_name,
-            id=self._raw.id,
+            name=self._discord.name,
+            display_name=self._discord.display_name,
+            id=self._discord.id,
             joined_at=self.joined_at,
             avatar_url=self.avatar_url,
             premium_since=self.premium_since,
             role_ids=roles,
-            server_id=self._raw.guild.id,
+            server_id=self._discord.guild.id,
         )
 
 
-class Message:
+class Message(TransferredObj):
     def serialize(self):
         return spanky_pb2.Message(
             content=self.content,

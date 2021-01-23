@@ -4,15 +4,17 @@ import asyncio
 loop = asyncio.get_event_loop()
 
 
-def run_in_thread(target, args=()):
+def run_in_thread(target, args=(), kwargs={}):
     """
     Run a function in a thread
     """
     if asyncio.iscoroutinefunction(target):
-        thread = threading.Thread(target=asyncio.run, args=(target(*args),))
+        thread = threading.Thread(
+            target=asyncio.run, args=(target(*args, **kwargs),)
+        )
         thread.start()
     else:
-        thread = threading.Thread(target=target, args=args)
+        thread = threading.Thread(target=target, args=args, kwargs=kwargs)
         thread.start()
 
     return thread
@@ -31,8 +33,7 @@ def run_async(target, args=(), kwargs={}):
     """
     Runs target in as a threadsafe call
     """
-    asyncio.run_coroutine_threadsafe(
-        _wrapped_async(target, args, kwargs), loop)
+    asyncio.run_coroutine_threadsafe(_wrapped_async(target, args, kwargs), loop)
 
 
 def run_async_wait(target, args=(), kwargs={}):

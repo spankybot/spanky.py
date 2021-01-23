@@ -183,6 +183,49 @@ class Servicer(SpankyServicer):
         )
         return chan.serialize()
 
+    @log_call
+    async def DeleteMessage(self, request, context):
+        chan = await self.handler.delete_message(
+            message_id=request.message_id,
+            channel_id=request.channel_id,
+            server_id=request.server_id,
+        )
+        return chan.serialize()
+
+    @log_call
+    async def GetBotID(self, request, context):
+        chan = await self.handler.delete_message(
+            message_id=request.message_id,
+            channel_id=request.channel_id,
+            server_id=request.server_id,
+        )
+        return chan.serialize()
+
+    @log_call
+    async def AddReaction(self, request, context):
+        bot_id = await self.handler.get_bot_id()
+        return spanky_pb2.SomeObjectID(
+            id=bot_id
+        )
+
+    @log_call
+    async def RemoveReaction(self, request, context):
+        pass
+
+    # @log_call
+    # async def GetMessagesFromChannel(self, request, context):
+    #     msg_list = await self.handler.get_messages(
+    #         count=request.count,
+    #         before_ts=request.before_ts,
+    #         after_ts=request.after_ts,
+    #         channel_id=request.channel_id,
+    #         server_id=request.server_id
+    #     )
+    #     return spanky_pb2.MessageList(
+
+    #     )
+
+
 
 async def init_grpc_server():
     server = grpc.aio.server()

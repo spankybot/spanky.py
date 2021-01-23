@@ -1,11 +1,12 @@
 import asyncio
+import threading
 import SpankyCommon.utils.time_utils as tutils
 
 from SpankyCommon.utils import log
 from SpankyCommon.event import EventType
 
 
-class PMManager():
+class PMManager:
     _crt_base_id = "%s" % tutils.tnow()
     _pm_seq = 0
 
@@ -88,6 +89,7 @@ class Handler:
         for pm in self.pmmgr.get_pm_list():
             pm.enqueue_event(EventType.message, payload)
 
+    @dont_sync
     async def send_on_ready(self):
         """
         Sends on_ready event to all plugin managers
@@ -156,7 +158,9 @@ class Handler:
         """
         Send message
         """
-        msg = await self.backend.send_message(text, channel_id, server_id, source_msg_id)
+        msg = await self.backend.send_message(
+            text, channel_id, server_id, source_msg_id
+        )
         return msg.id
 
     async def send_embed(
@@ -169,7 +173,7 @@ class Handler:
         footer_txt,
         channel_id,
         server_id,
-        source_msg_id
+        source_msg_id,
     ):
         embed = self.backend.prepare_embed(
             title=title,
@@ -180,11 +184,17 @@ class Handler:
             footer_txt=footer_txt,
         )
 
-        msg = await self.backend.send_embed(embed, channel_id, server_id)
+        msg = await self.backend.send_embed(
+            embed, channel_id, server_id, source_msg_id
+        )
         return msg.id
 
-    async def send_file(self, data, fname, channel_id, server_id, source_msg_id):
-        msg = await self.backend.send_file(data, fname, channel_id, server_id)
+    async def send_file(
+        self, data, fname, channel_id, server_id, source_msg_id
+    ):
+        msg = await self.backend.send_file(
+            data, fname, channel_id, server_id, source_msg_id
+        )
         return msg.id
 
     async def get_attachments(self, message_id, channel_id, server_id):
@@ -207,12 +217,24 @@ class Handler:
             channel_id, channel_name, server_id
         )
 
+    async def delete_message(self, *args, **kwargs):
+        return await self.backend.delete_message(*args, **kwargs)
+
+    async def get_bot_id(self, *args, **kwargs):
+        return self.backend.get_bot_id(*args, **kwargs)
+
+    async def add_reaction(self, *args, **kwargs):
+        return await self.backend.add_reaction(*args, **kwargs)
+
+    async def remove_reaction(self, *args, **kwargs):
+        return await self.backend.remove_reaction(*args, **kwargs)
+
 
 class SyncHandler(Handler):
     pass
 
-
 loop = asyncio.get_event_loop()
+
 def do_replace(fname, func):
     def call_it(*args, **kwargs):
         async def async_call_it(*args, **kwargs):
@@ -220,14 +242,19 @@ def do_replace(fname, func):
                 return await func(*args, **kwargs)
             except:
                 import traceback
+
                 traceback.print_exc()
 
         future = asyncio.run_coroutine_threadsafe(
-            async_call_it(*args, **kwargs), loop)
+            async_call_it(*args, **kwargs), loop
+        )
+        if threading.main_thread() != threading.current_thread():
+            result = future.result()
 
-        result = future.result()
-
-        return result
+            return result
+        else:
+            # If running from the main thread nothing can be returned
+            return None
 
     call_it.__name__ = fname
     setattr(SyncHandler, fname, call_it)

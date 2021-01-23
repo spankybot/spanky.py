@@ -6,18 +6,20 @@ from SpankyWorker import hook, Permission
 @hook.command
 def help(bot, text, event, reply_embed):
     """Get help for a command or the help document"""
-    if text in bot.plugin_manager.commands:
-        reply_embed(
-            text, "",
-            {"Usage:": bot.plugin_manager.commands[text].function.__doc__})
-        return
+    if text == "":
+        reply_embed("Bot help:", "",
+            {
+                "Links:":
+                "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
     else:
-        reply_embed("Unknown command", "", {})
-        return
-
-    reply_embed("Bot help:", "",
-               {"Links:": "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
-    return
+        if text in bot.plugin_manager.commands:
+            reply_embed(
+                text, "",
+                {"Usage:": bot.plugin_manager.commands[text].function.__doc__})
+            return
+        else:
+            reply_embed("Unknown command", "", {})
+            return
 
 
 def prepare_repo(storage_loc):

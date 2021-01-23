@@ -49,7 +49,29 @@ service Spanky {
 
     // Delete a message
     rpc DeleteMessage(MessageRequest) returns (Empty) {}
+
+    rpc GetBotID(Empty) returns (SomeObjectID) {}
+
+    // Reactions
+    rpc AddReaction(Reaction) returns (SomeObjectID) {}
+    rpc RemoveReaction(Reaction) returns (SomeObjectID) {}
+
+    // // Get message list from channel
+    // rpc GetMessagesFromChannel(MessageListRequest) returns (MessageList) {}
 }
+
+// message MessageList {
+//     repeated Message msg_list = 1;
+// }
+
+// message MessageListRequest {
+//     uint32 count = 1;
+//     uint64 before_ts = 2;
+//     uint64 after_ts = 3;
+
+//     uint64 channel_id = 4;
+//     uint64 server_id = 5;
+// }
 
 message Attachments {
     repeated string urls = 1;
@@ -262,11 +284,19 @@ message Message {
     uint64 author_id = 4;
     uint64 channel_id = 5;
     uint64 server_id = 6;
+    uint64 created_at = 7;
 }
 
 message MessageEdit {
     Message before = 1;
     Message after = 2;
+}
+
+message Reaction {
+    uint64 message_id = 1;
+    uint64 channel_id = 2;
+    uint64 server_id = 3;
+    string reaction = 4;
 }
 
 message EmptyEvent {

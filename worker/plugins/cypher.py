@@ -52,19 +52,13 @@ def decode(password, encoded, notice):
     return "".join(dec)
 
 
-@hook.command(format="pass str")
-def cypher(text):
-    """<pass> <string> -- cyphers <string> with <password>"""
-    split = text.split(None, 1)
-    password = split[0]
-    plaintext = split[1]
-    return " " + encode(password, plaintext)
+@hook.command(params="string:password string:to_encode", params_strict=True)
+def cypher(password, to_encode):
+    """<pass> <to_encode> -- cyphers <string> with <password>"""
+    return " " + encode(password, to_encode)
 
 
-@hook.command(format="pass str")
-def decypher(text, send_message):
-    """<pass> <string> - decyphers <string> with <password>"""
-    split = text.split(None, 1)
-    password = split[0]
-    encoded = split[1]
-    return " " + decode(password, encoded, send_message)
+@hook.command(params="string:password string:to_decode", params_strict=True)
+def decypher(reply, password, to_decode):
+    """<pass> <to_decode> - decyphers <string> with <password>"""
+    return " " + decode(password, to_decode, reply)

@@ -23,6 +23,8 @@ class PythonWorker:
         bclient.set_server_comm(given_client)
         self._is_ready = False
 
+        self.discord_id = None
+
     def connect(self):
         # Create the plugin manager
         self.plugin_manager = PluginManager(
@@ -41,6 +43,9 @@ class PythonWorker:
         """
         Runs the work to be done when on ready is received
         """
+        # Get discord bot ID
+        self.discord_id = bclient.CGeneric.get_bot_id()
+
         if self._is_ready:
             raise ValueError("Manager already marked as ready")
 
@@ -69,7 +74,7 @@ class PythonWorker:
         if not message.content:
             return
 
-        if message.content[0] != ".":
+        if message.content[0] != ";":
             return
 
         cmd_split = message.content[1:].split(maxsplit=1)
@@ -93,5 +98,8 @@ class PythonWorker:
     def timer_loop(self, interval):
         while True:
             time.sleep(interval)
-
-            self.plugin_manager.launch_hooks_by_event(EventType.timer_event)
+            try:
+                self.plugin_manager.launch_hooks_by_event(EventType.timer_event)
+            except:
+                import traceback
+                traceback.print_exc()

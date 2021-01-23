@@ -6,3 +6,5 @@ logs
 *.log
 .pyenv
 .vscode
+__pycache__
+.python-version

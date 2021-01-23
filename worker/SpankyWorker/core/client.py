@@ -8,9 +8,9 @@ import SpankyCommon.rpc.rpc_objects as rpcobj
 
 from SpankyCommon.utils import log
 from SpankyCommon.event import EventType
-
-# from ..utils import bot_utils as butils
 from SpankyCommon.utils import storage
+
+from SpankyWorker.utils import image
 
 logger = log.botlog("rpc_client", console_level=log.loglevel.DEBUG)
 
@@ -31,7 +31,8 @@ def get_server_comm():
     """
     return server_comm
 
-class CGeneric():
+
+class CGeneric:
     @staticmethod
     def connect(*args, **kwargs):
         return server_comm.connect(*args, **kwargs)
@@ -45,9 +46,9 @@ class CGeneric():
         evt_type, payload = server_comm.get_event(*args, **kwargs)
 
         if evt_type == EventType.message:
-            return (evt_type, CMessage.from_raw(payload)),
+            return ((evt_type, CMessage.from_raw(payload)),)
         elif evt_type == EventType.on_ready:
-            return (evt_type, None),
+            return ((evt_type, None),)
 
     @staticmethod
     def send_message(*args, **kwargs):
@@ -57,12 +58,41 @@ class CGeneric():
     def get_servers(*args, **kwargs):
         return server_comm.get_servers(*args, **kwargs)
 
+    @staticmethod
+    def get_bot_id(*args, **kwargs):
+        return server_comm.get_bot_id(*args, **kwargs)
+
+
+class StorageSystem:
+    stor_cache = {}
+
+    @staticmethod
+    def get_storage_from_cache(parent, stor_file):
+        """
+        Get the location of the plugin storage json file
+        """
+        # If not in cache, create it
+        if parent + stor_file not in StorageSystem.stor_cache:
+            StorageSystem.stor_cache[parent + stor_file] = storage.dsdict(
+                parent, stor_file
+            )
+
+        return StorageSystem.stor_cache[parent + stor_file]
+
+    @staticmethod
+    def get_unique_storage(plugin_fname):
+        # Replace paths
+        stor_file = plugin_fname.replace(".py", "").replace(os.sep, "_")
+
+        return StorageSystem.get_storage_from_cache(
+            "unique", f"{stor_file}.json")
+
 
 class CServer(rpcobj.Server):
     _cache = {}
 
     def __init__(self):
-        self.stor_cache = {}
+        pass
 
     @staticmethod
     def from_id(sid):
@@ -100,7 +130,7 @@ class CServer(rpcobj.Server):
 
     @property
     def id(self):
-        return str(self._id)
+        return self._id
 
     @property
     def name(self):
@@ -162,11 +192,7 @@ class CServer(rpcobj.Server):
         """
         Get the location of the plugin storage json file
         """
-        if self.id + stor_file not in self.stor_cache:
-            self.stor_cache[self.id + stor_file] = \
-                storage.dsdict(self.id, stor_file)
-
-        return self.stor_cache[self.id + stor_file]
+        return StorageSystem.get_storage_from_cache(str(self.id), stor_file)
 
     def get_plugin_storage(self, plugin_fname):
         """
@@ -179,7 +205,7 @@ class CServer(rpcobj.Server):
         return self.get_plugin_storage_raw(f"{stor_file}.json")
 
     def get_data_location(self, plugin_fname):
-        return os.path.join(storage.DS_LOC, self.id, plugin_fname, "_data/")
+        return os.path.join(storage.DS_LOC, str(self.id), plugin_fname, "_data/")
 
     def get_channel(self, channel_id=None, channel_name=None):
         if channel_name and channel_id:
@@ -225,13 +251,14 @@ class CRole(rpcobj.Role):
     def _raw(self):
         if self._raw_obj is None:
             self._raw_obj = server_comm.get_role(
-                self._role_id, None, self._server_id)
+                self._role_id, None, self._server_id
+            )
 
         return self._raw_obj
 
     @property
     def id(self):
-        return str(self._role_id)
+        return self._role_id
 
     @property
     def name(self):
@@ -276,11 +303,16 @@ class CChannel(rpcobj.Channel):
 
     @property
     def id(self):
-        return str(self._channel_id)
+        return self._channel_id
 
     @property
     def name(self):
         return self._raw.name
+
+    def get_messages(self, count, before_ts=None, after_ts=None):
+        server_comm.get_messages(
+            count, before_ts, after_ts, self._channel_id, self._server_id
+        )
 
 
 class CUser(rpcobj.User):
@@ -314,13 +346,14 @@ class CUser(rpcobj.User):
     def _raw(self):
         if self._raw_obj is None:
             self._raw_obj = server_comm.get_user(
-                self._id, self._name, self._server_id)
+                self._id, self._name, self._server_id
+            )
 
         return self._raw_obj
 
     @property
     def id(self):
-        return str(self._id)
+        return self._id
 
     @property
     def name(self):
@@ -362,9 +395,8 @@ class CUser(rpcobj.User):
 
         # Add roles
         server_comm.add_roles(
-            self._id,
-            self._server_id,
-            [int(i.id) for i in role_list])
+            self._id, self._server_id, [int(i.id) for i in role_list]
+        )
 
     def add_role(self, role):
         server_comm.add_roles(self._id, self._server_id, [int(role.id)])
@@ -376,9 +408,9 @@ class CUser(rpcobj.User):
         return server_comm.send_pm(self._id, content)
 
 
-class Resource:
+class Resource(image.Image):
     def __init__(self, url):
-        self.url = url
+        super().__init__(url=url)
 
 
 class CMessage(rpcobj.Message):
@@ -386,6 +418,7 @@ class CMessage(rpcobj.Message):
         self._id = None
         self._raw = None
         self._server_id = None
+        self._author_id = None
 
     @classmethod
     def from_id(cls, msg_id, server_id):
@@ -401,6 +434,7 @@ class CMessage(rpcobj.Message):
         new_obj._raw = obj
         new_obj._id = obj.id
         new_obj._server_id = obj.server_id
+        new_obj._author_id = obj.author_id
 
         return new_obj
 
@@ -421,6 +455,15 @@ class CMessage(rpcobj.Message):
         return CServer.from_id(self._server_id)
 
     @property
+    def author_id(self):
+        if self._author_id:
+            return self._author_id
+        else:
+            return CUser.from_id(
+                self._raw.author_id, self._raw.author_name, self.server._id
+            ).id
+
+    @property
     def author(self):
         return CUser.from_id(
             self._raw.author_id, self._raw.author_name, self.server._id
@@ -429,9 +472,8 @@ class CMessage(rpcobj.Message):
     @property
     def attachments(self):
         attachments = server_comm.get_attachments(
-            self._id,
-            self._raw.channel_id,
-            self.server._id)
+            self._id, self._raw.channel_id, self.server._id
+        )
 
         for att in attachments.urls:
             yield Resource(att)
@@ -496,10 +538,29 @@ class CMessage(rpcobj.Message):
             inline_fields=inline_fields,
             image_url=image_url,
             footer_txt=footer_txt,
-            channel_id=self.channel_id,
+            channel_id=self._raw.channel_id,
             source_msg_id=self._id,
             server_id=self._server_id,
         )
 
     def delete_message(self):
+        server_comm.delete_message(
+            message_id=self._id,
+            channel_id=self._raw.channel_id,
+            server_id=self._server_id,
+        )
+
+    def add_reaction(self, reaction):
+        server_comm.add_reaction(
+            message_id=self._id,
+            channel_id=self._raw.channel_id,
+            server_id=self._server_id,
+            reaction=reaction
+        )
+
+    def remove_reaction(self, reaction):
+        # server_comm.add_reaction(
+        #     msg_id=self._id,
+        #     reaction=reaction
+        # )
         pass

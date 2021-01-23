@@ -39,7 +39,9 @@ class Hook:
         self.format = func_hook.kwargs.pop("format", None)
         self.server_id = func_hook.kwargs.pop("server_id", None)
         self.server_id = self.server_id
-        self.given_cmd_params = func_hook.kwargs.pop("params", None)
+
+        # If storage is saved per server or it's unique
+        self.unique_storage = func_hook.kwargs.pop("unique_storage", False)
 
         # Mark if the plugin needs storage or storage_loc
         self.needs_storage = False
@@ -48,6 +50,12 @@ class Hook:
             or "storage_loc" in self.required_args
         ):
             self.needs_storage = True
+
+        # Mark if cmd_args is requested
+        self.given_cmd_params = func_hook.kwargs.pop("params", None)
+
+        # Mark if cmd_args are strict
+        self.cmd_params_strict = func_hook.kwargs.pop("params_strict", False)
 
         # Extract processed parameter list
         self.param_list = None
@@ -292,7 +300,7 @@ def find_hooks(parent, module):
 
     for _, func in module.__dict__.items():
         if hasattr(func, "_bot_hook"):
-            # if it has cloudbot hook
+            # mark that it is a bot hook
             func_hooks = func._bot_hook
 
             for hook_type, func_hook in func_hooks.items():

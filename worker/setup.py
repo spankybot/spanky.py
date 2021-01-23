@@ -21,6 +21,8 @@ setup(
     install_requires=[
         "SpankyCommon",
         "discord.py >= 1.5.1",
-        "watchdog"
+        "watchdog",
+        "wand",
+        "pillow"
     ],
 )

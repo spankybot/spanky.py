@@ -195,6 +195,7 @@ class RPCClient:
             spanky_pb2.OutgoingThing(
                 channel_id=channel_id,
                 source_msg_id=source_msg_id,
+                server_id=server_id,
                 file=spanky_pb2.OutgoingFile(
                     data=buffer,
                     fname=fname,
@@ -300,11 +301,58 @@ class RPCClient:
 
     @log_call
     def get_channel(self, channel_id, channel_name, server_id):
-        # Ask for user
         return self.server_conn.GetChannel(
             spanky_pb2.ChannelRequest(
                 channel_id=int(channel_id),
                 channel_name=channel_name,
                 server_id=server_id,
+            )
+        )
+
+    @log_call
+    def delete_message(self, message_id, channel_id, server_id):
+        return self.server_conn.DeleteMessage(
+            spanky_pb2.MessageRequest(
+                message_id=message_id,
+                channel_id=channel_id,
+                server_id=server_id,
+            )
+        )
+
+    @log_call
+    def get_bot_id(self):
+        return self.server_conn.GetBotID(
+            spanky_pb2.Empty()
+        )
+
+    @log_call
+    def get_messages(self, count, before_ts, after_ts, channel_id, server_id):
+        return self.server_conn.GetMessagesFromChannel(
+            spanky_pb2.MessageListRequest(
+                count=count,
+                before_ts=before_ts,
+                after_ts=after_ts,
+                channel_id=channel_id,
+                server_id=server_id
+            )
+        )
+
+    @log_call
+    def add_reaction(self, message_id, channel_id, server_id, reaction):
+        return self.server_conn.AddReaction(
+            spanky_pb2.Reaction(
+                message_id=message_id,
+                channel_id=channel_id,
+                server_id=server_id,
+                reaction=reaction
+            )
+        )
+
+    @log_call
+    def remove_reaction(self, message_id, channel_id, server_id, reaction):
+        return self.server_conn.RemoveReaction(
+            spanky_pb2.Reaction(
+                id=msg_id,
+                reaction=reaction
             )
         )

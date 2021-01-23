@@ -9,7 +9,6 @@ Created By:
 License:
     GPL v3
 """
-from datetime import datetime
 from urllib.parse import quote_plus
 
 import requests
@@ -45,7 +44,7 @@ def alias_wrapper(alias):
         return crypto_command(" ".join((alias.name, text)), reply)
 
     func.__doc__ = """- Returns the current {} value""".format(alias.name)
-    func.__name__ = alias.name + "_alias"
+    func.__name__ = alias.name
 
     return func
 
@@ -56,7 +55,7 @@ def init_aliases():
             continue
         _hook = alias_wrapper(alias)
         globals()[_hook.__name__] = hook.command(
-            alias.cmds, autohelp=False)(_hook)
+            alias.cmds)(_hook)
 
 
 @hook.command()
@@ -68,8 +67,8 @@ def serak():
     return msg
 
 # main command
-@hook.command("crypto")
-def crypto_command(text, reply):
+@hook.command()
+def crypto(text, reply):
     """<ticker> [currency] - Returns current value of a cryptocurrency"""
     args = text.split()
     ticker = args.pop(0)

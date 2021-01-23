@@ -1,11 +1,5 @@
-import wand
-import os
-import string
-import random
-import time
-import subprocess
 from SpankyWorker import hook
-from utils.image import Image
+from SpankyWorker.utils.image import Image
 from wand.image import Color
 from wand.image import Image as wand_image
 from oslo_concurrency import lockutils
@@ -13,7 +7,7 @@ from oslo_concurrency import lockutils
 
 @lockutils.synchronized('not_thread_safe')
 def make_magik(frame, ratio1=0.5, ratio2=1.5):
-    frame.transform(resize='800x800>')
+    frame.transform(resize='500x500>')
     scale = 0
 
     print(ratio1)
@@ -60,13 +54,33 @@ def make_gmagik(frame, ratio1=0.5, ratio2=1.5, frames=10):
 
 
 @hook.command(params="float:ratio1=0.5 float:ratio2=1.5")
-def magik(event, send_file, send_message, cmd_args):
-    for img in event.image:
-        img.proc_each_wand_frame(make_magik, send_file, send_message, cmd_args)
+def magik(event, reply_file, reply, cmd_args):
+    """
+    Runs imagemagik on image
+    """
+    for img in event.attachments:
+        img.proc_each_wand_frame(
+            func=make_magik,
+            send_file=reply_file,
+            send_msg=reply,
+            args=cmd_args)
+
+        # Only process one image
+        return
 
 
 @hook.command(params="int:frames=10 float:ratio1=0.8 float:ratio2=1.2")
-def gmagik(event, send_file, send_message, cmd_args):
-    for img in event.image:
+def gmagik(event, reply_file, reply, cmd_args):
+    """
+    Runs imagemagik on image and creates a gif
+    """
+    for img in event.attachments:
         img.proc_each_wand_frame(
-            make_gmagik, send_file, send_message, cmd_args)
+            func=make_gmagik,
+            send_file=reply_file,
+            send_msg=reply,
+            args=cmd_args)
+
+        # Only process one image
+        return
+

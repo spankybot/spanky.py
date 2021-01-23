@@ -5,3 +5,5 @@ numpy
 fb-re2
 googlemaps
 forecastiopy
+oslo_concurrency
+cleverwrap

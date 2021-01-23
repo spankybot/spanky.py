@@ -5,15 +5,18 @@ from datetime import datetime
 base = "https://corona.lmao.ninja/v2/"
 
 
-def getFormat(author, storage):
-    if author.id in storage:
-        return storage[author.id]
-    return "`Country | Cases | Recovered | Critical | Deaths | Active | Tests | Last updated at LUpdated`"
+def getFormat(author_id, storage):
+    if author_id in storage:
+        return storage[author_id]
+    return "`Country | Cases | Recovered | Critical | Deaths | Active | \
+Tests | Last updated at LUpdated`"
 
 
 @hook.command()
-def corona(text, reply, storage, author):
-    """<option> - available options: [all, <country name>]. If option is <country name>, you must specify a country from <https://worldometers.info/coronavirus#countries>. """
+def corona(text, reply, storage, event):
+    """<option> - available options: [all, <country name>]. \
+If option is <country name>, you must specify a country from \
+<https://worldometers.info/coronavirus#countries>. """
 
     args = text.split(" ")
     if len(args) == 0:
@@ -25,7 +28,8 @@ def corona(text, reply, storage, author):
     else:
         country_data = requests.get(base + "countries/" + text).json()
 
-    # if the return data has a message field, it means something occured and we should print it
+    # if the return data has a message field,
+    # it means something occured and we should print it
     if "message" in country_data:
         reply(country_data["message"])
         return
@@ -36,7 +40,7 @@ def corona(text, reply, storage, author):
     if "continent" not in country_data:
         country_data["continent"] = "Worldwide"
 
-    userFormat = getFormat(author, storage)
+    userFormat = getFormat(event.author_id, storage)
     data = {
         "Cases": f"Cases: {country_data['cases']:,} (CToday)",
         "Deaths": f"Deaths: {country_data['deaths']:,} (DToday)",
@@ -51,9 +55,9 @@ def corona(text, reply, storage, author):
         "Critical": f"Critical: {country_data['critical']:,}",
         "Country": country_data["country"],
         "Continent": country_data["continent"],
-        "LUpdated": datetime.utcfromtimestamp(country_data["updated"] // 1000).strftime(
-            "%Y-%m-%d at %H:%M:%S UTC"
-        ),
+        "LUpdated": datetime.utcfromtimestamp(
+            country_data["updated"] // 1000
+        ).strftime("%Y-%m-%d at %H:%M:%S UTC"),
     }
 
     for key, value in data.items():
@@ -63,20 +67,24 @@ def corona(text, reply, storage, author):
 
 
 @hook.command()
-def corona_format(text, reply, storage, author):
-    """<format> - formats the .corona command for you. Every keyword in ['Cases', 'Deaths', 'Tests', 'CToday', 'DToday', 'C/M', 'D/M', 'T/M', 'Recovered', 'Active', 'Critical', 'Country', 'Continent', 'LUpdated'] will be replaced with the appropriate data. Use `clear` if you want to clear your format and use the default one"""
+def corona_format(text, reply, storage, event):
+    """<format> - formats the .corona command for you. Every keyword in \
+['Cases', 'Deaths', 'Tests', 'CToday', 'DToday', 'C/M', 'D/M', 'T/M', \
+'Recovered', 'Active', 'Critical', 'Country', 'Continent', 'LUpdated'] \
+will be replaced with the appropriate data. Use `clear` if you want to clear \
+your format and use the default one"""
     if text == "help":
         reply(corona_format.__doc__)
         return
     if text == "":
-        reply(f"Your format: {getFormat(author, storage)}")
+        reply(f"Your format: {getFormat(event.author_id, storage)}")
         return
     if text == "clear":
-        if author.id in storage:
-            storage.pop(author.id, None)
+        if event.author_id in storage:
+            storage.pop(event.author_id, None)
             reply("Format cleared!")
         else:
             reply("You don't have a custom format set")
         return
-    storage[author.id] = text
+    storage[event.author_id] = text
     reply("Format set!")

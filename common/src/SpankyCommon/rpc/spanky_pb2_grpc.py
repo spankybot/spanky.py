@@ -89,6 +89,11 @@ class SpankyStub(object):
                 request_serializer=SpankyCommon_dot_rpc_dot_spanky__pb2.MessageRequest.SerializeToString,
                 response_deserializer=SpankyCommon_dot_rpc_dot_spanky__pb2.Empty.FromString,
                 )
+        self.GetBotID = channel.unary_unary(
+                '/spanky.Spanky/GetBotID',
+                request_serializer=SpankyCommon_dot_rpc_dot_spanky__pb2.Empty.SerializeToString,
+                response_deserializer=SpankyCommon_dot_rpc_dot_spanky__pb2.SomeObjectID.FromString,
+                )
 
 
 class SpankyServicer(object):
@@ -199,6 +204,12 @@ class SpankyServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetBotID(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SpankyServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -276,6 +287,11 @@ def add_SpankyServicer_to_server(servicer, server):
                     servicer.DeleteMessage,
                     request_deserializer=SpankyCommon_dot_rpc_dot_spanky__pb2.MessageRequest.FromString,
                     response_serializer=SpankyCommon_dot_rpc_dot_spanky__pb2.Empty.SerializeToString,
+            ),
+            'GetBotID': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetBotID,
+                    request_deserializer=SpankyCommon_dot_rpc_dot_spanky__pb2.Empty.FromString,
+                    response_serializer=SpankyCommon_dot_rpc_dot_spanky__pb2.SomeObjectID.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -539,5 +555,22 @@ class Spanky(object):
         return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/DeleteMessage',
             SpankyCommon_dot_rpc_dot_spanky__pb2.MessageRequest.SerializeToString,
             SpankyCommon_dot_rpc_dot_spanky__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetBotID(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/spanky.Spanky/GetBotID',
+            SpankyCommon_dot_rpc_dot_spanky__pb2.Empty.SerializeToString,
+            SpankyCommon_dot_rpc_dot_spanky__pb2.SomeObjectID.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

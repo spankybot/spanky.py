@@ -29,7 +29,8 @@ class Bot:
 
         # Import the backend
         try:
-            module = importlib.import_module("SpankyServer.inputs.%s" % input_type)
+            module = importlib.import_module(
+                "SpankyServer.inputs.%s" % input_type)
             self.input = module
         except:
             import traceback
@@ -70,6 +71,7 @@ class Bot:
     async def ready(self):
         # Send on-ready to all connected plugin managers
         await self.handler.send_on_ready()
+        await self.local_handler.send_on_ready()
 
         self.is_ready = True
 
@@ -79,25 +81,25 @@ class Bot:
     # ---------------
     # Server events
     # ---------------
-    def on_server_join(self, server):
+    async def on_server_join(self, server):
         pass
 
-    def on_server_leave(self, server):
+    async def on_server_leave(self, server):
         pass
 
     # ----------------
     # Message events
     # ----------------
 
-    def on_message_delete(self, message):
+    async def on_message_delete(self, message):
         """On message delete external hook"""
         pass
 
-    def on_bulk_message_delete(self, messages):
+    async def on_bulk_message_delete(self, messages):
         """On message bulk delete external hook"""
         pass
 
-    def on_message_edit(self, before, after):
+    async def on_message_edit(self, before, after):
         """On message edit external hook"""
         pass
 
@@ -109,26 +111,26 @@ class Bot:
     # ----------------
     # Member events
     # ----------------
-    def on_member_update(self, before, after):
+    async def on_member_update(self, before, after):
         pass
 
-    def on_member_join(self, member):
+    async def on_member_join(self, member):
         pass
 
-    def on_member_remove(self, member):
+    async def on_member_remove(self, member):
         pass
 
-    def on_member_ban(self, server, member):
+    async def on_member_ban(self, server, member):
         pass
 
-    def on_member_unban(self, server, member):
+    async def on_member_unban(self, server, member):
         pass
 
     # ----------------
     # Reaction events
     # ----------------
-    def on_reaction_add(self, reaction, user):
+    async def on_reaction_add(self, reaction, user):
         pass
 
-    def on_reaction_remove(self, reaction, user):
+    async def on_reaction_remove(self, reaction, user):
         pass

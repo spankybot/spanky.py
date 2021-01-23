@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import discord
-import logging
 import asyncio
-import traceback
+import discord
 import io
+import json
+import logging
+import traceback
 
+from SpankyServer.emojis import emoji_data
+
+from SpankyCommon.utils import http, log
 from SpankyCommon.utils import time_utils as tutils
 
 # from utils import discord_utils as dutils
 
 from SpankyCommon.rpc import rpc_objects as rpcobj
 
-logger = logging.getLogger("discord")
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(
-    filename="discord.log", encoding="utf-8", mode="w"
-)
-handler.setFormatter(
-    logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
-)
-logger.addHandler(handler)
+logger = log.botlog("discord_py", console_level=log.loglevel.DEBUG)
 
 # Enable intents god damn it discord
 intents = discord.Intents.default()
@@ -128,7 +124,9 @@ class Init:
 
         return em
 
-    async def send_file(self, data, fname, channel_id, server_id, source_msg_id):
+    async def send_file(
+        self, data, fname, channel_id, server_id, source_msg_id
+    ):
         server = client.get_guild(server_id)
         chan = server.get_channel(channel_id)
 
@@ -152,8 +150,52 @@ class Init:
         msg = await chan.fetch_message(message_id)
 
         att_list = []
+        # List attachments
         for attach in msg.attachments:
             att_list.append(attach.url)
+
+        # List embeds
+        for emb in msg.embeds:
+            att_list.append(emb.url)
+
+        # Append mentioned users
+        for umention in msg.mentions:
+            if type(umention) == discord.Member:
+                try:
+                    att_list.append(str(umention.avatar_url_as(format="gif")))
+                except discord.InvalidArgument:
+                    att_list.append(str(umention.avatar_url_as(format="png")))
+
+        # Do per word parsing
+        word = msg.content.split()[-1]
+
+        # Remove < or >
+        if word.startswith("<"):
+            word = word[1:]
+        if word.endswith(">"):
+            word = word[:-1]
+
+        # Prepare emoji_id
+        emoji_id = word.split(":")[-1]
+
+        # Check if it's an unicode emoji
+        if word.startswith("http"):
+            att_list.append(word)
+
+        elif len(word) == 1 and format(ord(word), "x") in emoji_data.keys():
+            att_list.append(emoji_data[format(ord(word), "x")])
+
+        elif http.fetch_url(
+             "https://cdn.discordapp.com/emojis/%s.gif" %
+             emoji_id, max_size=1024*1024).status_code == 200:
+            att_list.append(
+                "https://cdn.discordapp.com/emojis/%s.gif" % emoji_id)
+
+        elif http.fetch_url(
+             "https://cdn.discordapp.com/emojis/%s.png" %
+             emoji_id, max_size=1024*1024).status_code == 200:
+            att_list.append(
+                "https://cdn.discordapp.com/emojis/%s.png" % emoji_id)
 
         return att_list
 
@@ -200,26 +242,46 @@ class Init:
         if chan:
             return SChannel(chan)
 
+    async def delete_message(self, message_id, channel_id, server_id):
+        server = client.get_guild(server_id)
+        chan = server.get_channel(channel_id)
+
+        msg = await chan.fetch_message(message_id)
+        await msg.delete()
+
+    def get_bot_id(self):
+        return client.user.id
+
+    async def add_reaction(self, message_id, channel_id, server_id, reaction):
+        server = client.get_guild(server_id)
+        chan = server.get_channel(channel_id)
+        msg = await chan.fetch_message(message_id)
+
+        await msg.add_reaction(reaction)
+
+    async def remove_reaction(self, msg_id, reaction):
+        pass
+
 
 class SServer(rpcobj.Server):
     def __init__(self, obj):
-        self._raw = obj
+        self._discord = obj
         self.id = obj.id
 
 
 class SRole(rpcobj.Role):
     def __init__(self, obj):
-        self._raw = obj
+        self._discord = obj
 
 
 class SChannel(rpcobj.Channel):
     def __init__(self, obj):
-        self._raw = obj
+        self._discord = obj
 
 
 class SUser(rpcobj.User):
     def __init__(self, obj):
-        self._raw = obj
+        self._discord = obj
 
         self.joined_at = tutils.datetime_to_ts(obj.joined_at)
         self.avatar_url = str(obj.avatar_url)
@@ -231,14 +293,15 @@ class SUser(rpcobj.User):
 
 class SMessage(rpcobj.Message):
     def __init__(self, obj):
-        self._raw = obj
+        self._discord = obj
 
-        self.content = self._raw.content
-        self.id = self._raw.id
-        self.author_name = self._raw.author.name
-        self.author_id = self._raw.author.id
-        self.server_id = self._raw.guild.id
-        self.channel_id = self._raw.channel.id
+        self.content = self._discord.content
+        self.id = self._discord.id
+        self.author_name = self._discord.author.name
+        self.author_id = self._discord.author.id
+        self.server_id = self._discord.guild.id
+        self.channel_id = self._discord.channel.id
+        self.created_at = tutils.datetime_to_ts(obj.created_at)
 
 
 @client.event
@@ -268,7 +331,7 @@ async def on_message_edit(before, after):
 
 @client.event
 async def on_message_delete(message):
-    await call_func(bot.on_message_delete, message)
+    await call_func(bot.on_message_delete, SMessage(message))
 
 
 @client.event
@@ -332,7 +395,7 @@ async def on_reaction_remove(reaction, user):
 
 
 @client.event
-async def on_raw_reaction_add(reaction):
+async def ondiscord_reaction_add(reaction):
     if reaction.member.id != client.user.id:
         msg_id = str(reaction.message_id)
         if msg_id not in raw_msg_cache:
@@ -340,8 +403,8 @@ async def on_raw_reaction_add(reaction):
 
         # push in stuff into the reaction object
         # TODO: don't override things
-        reaction.message = raw_msg_cache[msg_id]._raw
-        reaction.channel = raw_msg_cache[msg_id]._raw.channel
+        reaction.message = raw_msg_cache[msg_id].discord
+        reaction.channel = raw_msg_cache[msg_id].discord.channel
 
         await call_func(bot.on_reaction_add, reaction, reaction.member)
 

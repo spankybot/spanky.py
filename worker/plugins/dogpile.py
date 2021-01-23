@@ -1,18 +1,18 @@
-import pprint
 from SpankyWorker import hook
 from collections import deque
 from googleapiclient.discovery import build
-from utils import discord_utils as dutils
-from core.event import EventType
+from SpankyCommon.event import EventType
 
-LARROW = u'\U0001F448'
-RARROW = u'\U0001F449'
+import SpankyWorker.utils.discord_utils as dutils
+
+LARROW = u"\U0001F448"
+RARROW = u"\U0001F449"
 dev_key = None
 dev_cx = None
 search_results = deque(maxlen=50)
 
 
-class CSEResult():
+class CSEResult:
     def __init__(self, data):
         self.data = data
 
@@ -43,9 +43,9 @@ class CSEResult():
         return self.data["link"]
 
 
-class SearchResult():
-    def __init__(self, res, async_send_message, search_term, event, images=False):
-        self.async_send_message = async_send_message
+class SearchResult:
+    def __init__(self, res, reply_embed, search_term, event, images=False):
+        self.reply_embed = reply_embed
         self.crt_page = 0
         self.msg = None
         self.images = images
@@ -59,39 +59,39 @@ class SearchResult():
 
         search_results.append(self)
 
-    async def send_msg(self):
+    def send_msg(self):
         if len(self.urls) == 0:
-            await self.async_send_message("No results found")
+            self.reply_embed("No results found")
             return
 
         embed = None
         if self.images:
-            embed = dutils.prepare_embed(
+            self.msg = self.reply_embed(
                 title="Image search",
-                description="Query: %s (result %d/%d)" % (self.search_term,
-                                                          self.crt_page + 1, len(self.urls)),
+                description="Query: %s (result %d/%d)" % (self.search_term, self.crt_page + 1, len(self.urls)),
                 image_url=self.urls[self.crt_page].image_url,
-                footer_txt=self.footer)
+                footer_txt=self.footer,
+            )
         else:
-            embed = dutils.prepare_embed(
+            self.msg = self.reply_embed(
                 title="Google search",
-                description="Query: %s (result %d/%d)\n%s\n%s" % (
+                description="Query: %s (result %d/%d)\n%s\n%s"
+                % (
                     self.search_term,
                     self.crt_page + 1,
                     len(self.urls),
                     self.urls[self.crt_page].snippet,
-                    self.urls[self.crt_page].link),
+                    self.urls[self.crt_page].link,
+                ),
                 thumbnail_url=self.urls[self.crt_page].image_thumb,
-                footer_txt=self.footer)
+                footer_txt=self.footer,
+            )
 
-        new_message = self.msg
-        self.msg = await self.async_send_message(embed=embed)
+        if self.msg is None:
+            self.msg.add_reaction(LARROW)
+            self.msg.add_reaction(RARROW)
 
-        if new_message is None:
-            await self.msg.async_add_reaction(LARROW)
-            await self.msg.async_add_reaction(RARROW)
-
-    async def handle_emoji(self, event):
+    def handle_emoji(self, event):
         # Check if arrow left or right
         if event.reaction.emoji.name == LARROW:
             self.crt_page -= 1
@@ -104,7 +104,7 @@ class SearchResult():
         elif self.crt_page < 0:
             self.crt_page = len(self.urls) - 1
 
-        await self.send_msg()
+        self.send_msg()
 
 
 @hook.on_start()
@@ -117,35 +117,43 @@ def load_key(bot):
 
 
 @hook.command()
-async def gis(text, async_send_message, event):
+def gis(text, reply_embed, event):
     """<query> - Search for a image."""
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(
-        q=text,
-        safe="active",
-        cx=dev_cx,
-    ).execute()
+    res = (
+        service.cse()
+        .list(
+            q=text,
+            safe="active",
+            cx=dev_cx,
+        )
+        .execute()
+    )
 
-    await SearchResult(res, async_send_message, text, event, images=True).send_msg()
+    SearchResult(res, reply_embed, text, event, images=True).send_msg()
 
 
 @hook.command()
-async def g(text, async_send_message, event):
+def g(text, reply_embed, event):
     """<query> - Search for a link."""
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(
-        q=text,
-        safe="active",
-        cx=dev_cx,
-    ).execute()
+    res = (
+        service.cse()
+        .list(
+            q=text,
+            safe="active",
+            cx=dev_cx,
+        )
+        .execute()
+    )
 
-    await SearchResult(res, async_send_message, text, event, images=False).send_msg()
+    SearchResult(res, reply_embed, text, event, images=False).send_msg()
 
 
 @hook.event(EventType.reaction_add)
-async def parse_react(bot, event):
+def parse_react(bot, event):
     # Check if the reaction was made on a message that contains a search result
     found = None
     for res in search_results:
@@ -160,7 +168,7 @@ async def parse_react(bot, event):
         return
 
     # Handle the event
-    await found.handle_emoji(event)
+    found.handle_emoji(event)
 
     # Remove the reaction
-    await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+    event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
