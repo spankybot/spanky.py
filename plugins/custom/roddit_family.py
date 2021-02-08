@@ -838,11 +838,11 @@ def offer_inbox(event, reply):
     ret = ""
     for offer in offers:
         if offer.tp == OfferType.MARRY:
-            ret += "Cerere de căsătorie către <@%s>" % offer.to
+            ret += "Cerere de căsătorie de la <@%s>" % offer.fr
         if offer.tp == OfferType.ADOPT:
-            ret += "Ofertă de adopție către <@%s>" % offer.to
+            ret += "Ofertă de adopție de la <@%s>" % offer.fr
         if offer.tp == OfferType.CHOICE:
-            ret += "Opțiune de ales părinte: <@%s>" % offer.to
+            ret += "Opțiune de ales părinte: <@%s>" % offer.fr
     reply(ret, allowed_mentions=no_mentions)
 
 @hook.command(server_id=SERVER_IDS)
@@ -854,11 +854,11 @@ def offer_outbox(event, reply):
     ret = ""
     for offer in offers:
         if offer.tp == OfferType.MARRY:
-            ret += "Cerere de căsătorie de la <@%s>" % offer.to
+            ret += "Cerere de căsătorie către <@%s>" % offer.to
         if offer.tp == OfferType.ADOPT:
-            ret += "Ofertă de adopție de la <@%s>" % offer.to
+            ret += "Ofertă de adopție către <@%s>" % offer.to
         if offer.tp == OfferType.CHOICE:
-            ret += "Opțiune de ales părinte de la <@%s>" % offer.to
+            ret += "Opțiune de ales părinte către <@%s>" % offer.to
     reply(ret, allowed_mentions=no_mentions)
 
 
@@ -928,7 +928,7 @@ def family_support(event, text):
     funcs.extend([bug_report, family_support])
 
     if event.author.bot_owner:
-         funcs.extend([gen_func("\n### Comenzi nedestinate publicului"), raw_relationships, get_person_info, get_requests, clear_requests])
+         funcs.extend([gen_func("\n### Comenzi nedestinate publicului"), raw_relationships, get_person_info, get_requests, clear_requests, clear_relationships])
          
     for func in funcs:
         if "__custom__" in dir(func):
@@ -1023,6 +1023,7 @@ def clear_requests(event):
 
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def clear_relationships(event):
+    """Golește toate relațiile. Dacă se strică prea rău arborele"""
     tree = get_server_tree(event)
     tree.people = []
     tree.sync()
