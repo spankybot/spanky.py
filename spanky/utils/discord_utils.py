@@ -21,7 +21,7 @@ def get_role_by_name(server, rname):
     return None
 
 def get_channel_by_id(server, cid):
-    return server.get_channel(cid)
+    return server.get_chan(cid)
 
 def str_to_id(string):
     return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
