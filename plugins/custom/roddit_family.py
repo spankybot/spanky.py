@@ -281,8 +281,12 @@ class Person:
                     if cross not in cross_set:
                         cross_set.add(cross)
                         s.node(cross, label="", shape="point", width="0.001", height="0.001")
-                        g.edge(person.id, cross)
-                        g.edge(cross, spouse.id)
+                        if person.id < spouse.id:
+                            g.edge(person.id, cross)
+                            g.edge(cross, spouse.id)
+                        else:
+                            g.edge(spouse.id, cross)
+                            g.edge(cross, person.id)
                         for child in person.children:
                             g.edge(cross, child.id)
         out = g.pipe(format="png")
