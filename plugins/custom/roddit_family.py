@@ -1021,6 +1021,13 @@ def clear_requests(event):
     tree.sync()
     return "Done."
 
+@hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
+def clear_relationships(event):
+    tree = get_server_tree(event)
+    tree.people = []
+    tree.sync()
+    return "Done."
+
 #############################################
 # INITIALIZING STUFF ########################
 #############################################
