@@ -554,12 +554,13 @@ def marry(event, text):
 
     req = p.marry(spouse.id)  
     
-    user.send_pm(f"Ai primit o cerere de căsătorie de la {event.author.name}\nRăspunde cu următoarea comandă pentru a accepta cererea:")
-    user.send_pm(f".accept_marry {req.id}")
-    user.send_pm(f"Dacă vrei să refuzi această cerere, răspunde cu următoarea comandă:")
-    user.send_pm(f".deny_marry {req.id}")
+    user.send_pm(f"""Ai primit o cerere de căsătorie de la {event.author.name}
+Răspunde cu următoarea comandă pentru a accepta cererea:
+.accept_marry {req.id}
+Dacă vrei să refuzi această cerere, răspunde cu următoarea comandă:
+.deny_marry {req.id}""")
 
-    return "Ai trimis cerere de căsătorie lui <@%s>." % user.id
+    return "Ai trimis cerere de căsătorie lui %s." % user.name
 
 @hook.command(can_pm=True, format="id")
 def accept_marry(bot, text, event, reply):
@@ -648,12 +649,13 @@ def adopt(event, text):
     req = p.adopt(child.id)  
     print(req)
 
-    user.send_pm(f"Ai primit o cerere de adopție de la {event.author.name}\nRăspunde cu următoarea comandă pentru a accepta cererea:")
-    user.send_pm(f".accept_adoption {req.id}")
-    user.send_pm(f"Dacă vrei să refuzi această cerere, răspunde cu următoarea comandă:")
-    user.send_pm(f".deny_adoption {req.id}")
+    user.send_pm(f"""Ai primit o cerere de adopție de la {event.author.name}
+Răspunde cu următoarea comandă pentru a accepta cererea:
+.accept_adoption {req.id}
+Dacă vrei să refuzi această cerere, răspunde cu următoarea comandă:
+.deny_adoption {req.id}""")
 
-    return "Ai trimis cerere de adopție lui <@%s>." % user.id
+    return "Ai trimis cerere de adopție lui %s." % user.name
 
 @hook.command(can_pm=True, format="id")
 def accept_adoption(bot, text, event, reply, send_message):
