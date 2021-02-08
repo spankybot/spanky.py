@@ -4,6 +4,7 @@ from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from plugins.log import get_msg_cnt_for_user
+import discord
 
 # I don't know any better way to do this, since it needs to auto increment in a join call
 class Counter:
@@ -161,7 +162,7 @@ def do_join(event, storage, send_message, str_to_id, server):
                     event.member.add_role(role)
 
 @hook.command(permissions=Permission.admin)
-def list_join_events(storage, id_to_chan, id_to_role_name):
+def list_join_events(storage, id_to_chan, id_to_role_name, reply):
     """
     List on-join events
     """
@@ -198,7 +199,7 @@ def list_join_events(storage, id_to_chan, id_to_role_name):
     if len(roles) > 0:
         msg += "\n---\n`Roles given on join:` \n" + "\n".join("`ID:` %s `Name:` %s" % (str(cnt.get()), id_to_role_name(i["role"])) for i in roles)
 
-    return msg
+    reply(msg, allowed_mentions=discord.AllowedMentions.none())
 
 @hook.command(permissions=Permission.admin)
 def get_timeout_for(storage, text, str_to_id):

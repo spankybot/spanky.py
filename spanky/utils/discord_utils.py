@@ -1,16 +1,17 @@
 import discord
+import io
 
 def get_user_by_id(server, uid):
-    for u in server.get_users():
-        if u.id == uid:
-            return u
-    return None
+    return server.get_user(uid)
 
 def get_user_by_name(server, name):
     for u in server.get_users():
         if u.name == name:
             return u
     return None
+
+def get_role_by_id(server, rid):
+    return server.get_role(rid)
 
 def get_role_by_name(server, rname):
     for r in server.get_roles():
@@ -19,19 +20,8 @@ def get_role_by_name(server, rname):
 
     return None
 
-def get_role_by_id(server, rid):
-    for r in server.get_roles():
-        if r.id == rid:
-            return r
-
-    return None
-
 def get_channel_by_id(server, cid):
-    for c in server.get_channels():
-        if c.id == cid:
-            return c
-
-    return None
+    return server.get_channel(cid)
 
 def str_to_id(string):
     return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
@@ -302,3 +292,23 @@ def return_message_link(server_id, channel_id, msg_id):
     """
 
     return "https://discordapp.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)
+
+def pil_to_dfile(image, name="unnamed.png"):
+    bio = io.BytesIO()
+    image.save(bio, 'PNG')
+    bio.seek(0)
+    return discord.File(bio, name)
+
+def pil_to_bytes(image):
+    bio = io.BytesIO()
+    image.save(bio, 'PNG')
+    return bio.getvalue()
+
+async def banner_from_pil(server, pil_picture):
+    """
+    Set a banner from a PIL image
+    """
+    if not server.can_have_banner:
+        return
+
+    await server.async_set_banner(pil_to_bytes(pil_picture))

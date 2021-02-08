@@ -93,16 +93,22 @@ class DiscordUtils(abc.ABC):
         except ValueError:
             return None
 
-        return discord.utils.find(lambda m: m.id == iid_str, self.get_server()._raw.roles).name
+        role = discord.utils.find(lambda m: m.id == iid_str, self.get_server()._raw.roles)
+        if not role:
+            return None
+        return role.name
 
     def user_id_to_name(self, uid):
         iuid = None
         try:
             iuid = int(uid)
         except ValueError:
-            return None
+            return uid 
 
-        return discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members).name
+        user = discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members)
+        if not user:
+            return uid
+        return user.name
 
     def user_id_to_object(self, uid):
         iuid = None
@@ -125,8 +131,12 @@ class DiscordUtils(abc.ABC):
         Returns the target channel
         target can be None, which defaults to the channel from where the message was sent
             a channel name starting with '#' (e.g. #my-channel) or a channel ID
+        In case server=None, target = -1 and we are in a PM, we will return the PM channel
         """
 
+        if server is None and target == -1 and self.is_pm:
+            return self.channel._raw
+        
         if server:
             target_server = server._raw
         else:
@@ -202,9 +212,9 @@ class DiscordUtils(abc.ABC):
         except:
             print(traceback.format_exc())
 
-    def send_message(self, text, target=-1, server=None, timeout=0):
+    def send_message(self, text, target=-1, server=None, timeout=0, check_old=True, allowed_mentions=allowed_mentions):
         asyncio.run_coroutine_threadsafe(
-            self.async_send_message(text=text, target=target, server=server, timeout=timeout),
+            self.async_send_message(text=text, target=target, server=server, timeout=timeout, check_old=check_old, allowed_mentions=allowed_mentions),
             bot.loop)
 
     async def async_send_pm(self, text, user):
@@ -220,8 +230,8 @@ class DiscordUtils(abc.ABC):
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(embed=em, target=target), bot.loop)
 
-    def reply(self, text, target=-1, timeout=0):
-        self.send_message("(%s) %s" % (self.author.name, text), target, timeout=timeout)
+    def reply(self, text, target=-1, timeout=0, allowed_mentions=allowed_mentions):
+        self.send_message("(%s) %s" % (self.author.name, text), target, timeout=timeout, allowed_mentions=allowed_mentions)
 
     def send_file(self, file_path, target=-1, server=None):
         dfile = discord.File(file_path)
@@ -346,6 +356,8 @@ class EventMessage(DiscordUtils):
         self._message = message
 
     def get_server(self):
+        if self.is_pm: # Shitty workaround
+            return self.channel 
         return self.server
 
     def get_msg(self):
@@ -353,6 +365,9 @@ class EventMessage(DiscordUtils):
 
     def get_msgs(self):
         return self.msgs
+
+    def typing(self):
+        return self.channel.typing()
 
     @property
     def attachments(self):
@@ -487,6 +502,11 @@ class User():
                 if role.name == '@everyone':
                     continue
                 self.roles.append(Role(role))
+
+        self.bot_owner = False
+        global bot
+        if "bot_owners" in bot.config and self.id in bot.config["bot_owners"]:
+            self.bot_owner = True
 
         self._raw = obj
 
@@ -667,6 +687,9 @@ class Channel():
         await self._raw.set_permissions(
             user._raw, overwrite=None)
 
+    def typing(self):
+        return self._raw.typing()
+
 class PermOverwrite():
     def __init__(self, obj):
         self._raw = obj
@@ -701,6 +724,17 @@ class Server():
 
         return roles
 
+    def get_role(self, role_id):
+        try:
+            role_id = int(role_id)
+        except:
+            return None
+        role = self._raw.get_role(int(role_id))
+        
+        if role:
+            return Role(role)
+        return None
+
     def get_role_ids(self):
         ids = []
         for role in self._raw.roles:
@@ -716,13 +750,33 @@ class Server():
 
         return users
 
-    def get_channels(self):
+    def get_user(self, user_id):
+        try:
+            user_id = int(user_id)
+        except:
+            return None
+        user = self._raw.get_member(int(user_id))
+        if user:
+            return User(user)
+        return None
+
+    def get_chans(self):
         chans = []
 
         for chan in self._raw.channels:
             chans.append(Channel(chan))
 
         return chans
+
+    def get_chan(self, chan_id):
+        try:
+            chan_id = int(chan_id)
+        except:
+            return None
+        chan = self._raw.get_channel(int(chan_id))
+        if chan:
+            return Channel(chan)
+        return None
 
     async def get_bans(self):
         bans = await self._raw.bans()

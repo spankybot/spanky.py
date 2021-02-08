@@ -256,10 +256,9 @@ async def close_poll(text, storage, async_send_message, server):
     await async_send_message("Could not find the given poll")
 
 @hook.on_connection_ready()
-async def rebuild_selectors(bot):
+async def rebuild_poll_selectors(bot):
     for server in bot.backend.get_servers():
         storage = bot.server_permissions[server.id].get_plugin_storage("plugins_poll.json")
-
         if "polls" not in storage:
             continue
 

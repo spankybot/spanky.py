@@ -1,5 +1,6 @@
 import enum
 import logging
+import discord
 
 logger = logging.getLogger("spanky")
 
@@ -62,8 +63,8 @@ class BaseEvent():
             self.db.close()
             self.db = None
 
-    def reply(self, text):
-        self.event.reply(text)
+    def reply(self, text, allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=True)):
+        self.event.reply(text, allowed_mentions=allowed_mentions)
 
 class TextEvent(BaseEvent):
     def __init__(self, hook, text, triggered_command, event, bot, permission_mgr):

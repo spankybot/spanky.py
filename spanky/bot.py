@@ -226,9 +226,10 @@ class Bot():
         if not self.is_ready:
             return
 
+        # Let's not
         # Ignore private messages
-        if event.is_pm and event.msg.text.split(maxsplit=1)[0] != ".accept_invite":
-            return
+        #if event.is_pm and event.msg.text.split(maxsplit=1)[0] != ".accept_invite":
+        #    return
 
         self.run_type_events(event)
 
@@ -236,70 +237,63 @@ class Bot():
         if event.author.bot or not event.do_trigger:
             return
 
-        piped_cmds = []
+        cmd_text = event.msg.text.lstrip()
+        
         # Check if the command starts with .
-        if len(event.msg.text) > 1 and event.msg.text[0] == ".":
-            # Check if commands are piped
-            piped_cmds = event.msg.text.split("|")
-
-            # Check that each piped split is a command
-            for pos, piped_cmd in enumerate(piped_cmds):
-                if len(piped_cmd) == 0 or piped_cmd.lstrip()[0] != ".":
-                    piped_cmds = [event.msg.text]
-                    is_piped = False
-                    break
-
-                # Clean up the text if it starts with spaces
-                piped_cmds[pos] = piped_cmd.lstrip()
-        else:
+        if not (len(cmd_text) > 1 and cmd_text[0] == "."):
             return
+        
+        # Get the actual command
+        cmd_split = cmd_text[1:].split(maxsplit=1)
 
-        for cmd_text in piped_cmds:
-            # Get the actual command
-            cmd_split = cmd_text[1:].split(maxsplit=1)
+        command = cmd_split[0]
+        logger.debug("Got command %s" % str(command))
 
-            command = cmd_split[0]
-            logger.debug("Got command %s" % str(command))
+        # Check if it's in the command list
+        if command in self.plugin_manager.commands.keys():
+            hook = self.plugin_manager.commands[command]
+            
+            # Test if we can actually send a PM with the command
+            if event.is_pm and not hook.can_pm:
+                return
+            if not event.is_pm and hook.pm_only:
+                return
 
-            # Check if it's in the command list
-            if command in self.plugin_manager.commands.keys():
-                hook = self.plugin_manager.commands[command]
+            if len(cmd_split) > 1:
+                event_text = cmd_split[1]
+            else:
+                event_text = ""
 
-                if len(cmd_split) > 1:
-                    event_text = cmd_split[1]
-                else:
-                    event_text = ""
+            pmgr = None
+            # Handle PMs
+            if hasattr(event, "server"):
+                pmgr = self.get_pmgr(event.server.id)
 
-                pmgr = None
-                # Handle PMs
-                if hasattr(event, "server"):
-                    pmgr = self.get_pmgr(event.server.id)
+            text_event = TextEvent(
+                hook=hook,
+                text=event_text,
+                triggered_command=command,
+                event=event,
+                bot=self,
+                permission_mgr=pmgr)
 
-                text_event = TextEvent(
-                    hook=hook,
-                    text=event_text,
-                    triggered_command=command,
-                    event=event,
-                    bot=self,
-                    permission_mgr=pmgr)
-
-                if event.is_pm:
-                    # Log audit data
-                    audit.info("[%s][%s][%s] / <%s> %s" % (
-                        "pm",
-                        event.msg.id,
-                        "pm",
-                        event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                        event.text))
-                else:
-                    # Log audit data
-                    audit.info("[%s][%s][%s] / <%s> %s" % (
-                        event.server.name,
-                        event.msg.id,
-                        event.channel.name,
-                        event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                        event.text))
-                self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
+            if event.is_pm:
+                # Log audit data
+                audit.info("[%s][%s][%s] / <%s> %s" % (
+                    "pm",
+                    event.msg.id,
+                    "pm",
+                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
+                    event.text))
+            else:
+                # Log audit data
+                audit.info("[%s][%s][%s] / <%s> %s" % (
+                    event.server.name,
+                    event.msg.id,
+                    event.channel.name,
+                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
+                    event.text))
+            self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
 
         # Regex hooks
         for regex, regex_hook in self.plugin_manager.regex_hooks:

@@ -5,10 +5,12 @@ from PIL import ImageFont, ImageDraw
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 from spanky.utils.image import Image
+from spanky.utils import discord_utils as dutils
 
 BANNER_W = 960
 BANNER_H = 540
 DEFAULT_TEXT_SIZE = 80
+TEXT_SPACE_W = BANNER_W // 10
 TEXT_SPACE_H = 20
 
 @hook.command(format="user")
@@ -91,24 +93,7 @@ def resize_to_fit(image, max_width, max_height):
     return canvas
 
 
-async def set_banner(server, pil_picture, reply):
-    """
-    Set a banner from a PIL image
-    """
-    if not server.can_have_banner:
-        reply("Server can't have banner")
-        return
-
-
-    # Convert PIL to RAW
-    raw_picture = io.BytesIO()
-    pil_picture.save(raw_picture, format='PNG')
-    raw_picture = raw_picture.getvalue()
-
-    await server.async_set_banner(raw_picture)
-
-
-async def update_banner(server, storage, reply):
+async def update_banner(server, storage):
     """
     Refreshes the banner content
     """
@@ -125,11 +110,12 @@ async def update_banner(server, storage, reply):
     text_size = DEFAULT_TEXT_SIZE
     banner_text = storage["banner_text"].replace("`", "")
     while True:
-        font = ImageFont.truetype('plugin_data/fonts/OpenSansCondensed-Bold.ttf', text_size)
-        text_width, text_height = img_draw.textsize(banner_text, font=font)
+        font = ImageFont.truetype('plugin_data/fonts/plp.ttf', text_size)
+        bbox = img_draw.textbbox((0,0), banner_text, font=font, align="center", direction="ltr")
+        text_width, text_height = bbox[2], bbox[3]
 
         # If text fits, break otherwise decrease size
-        if text_width < BANNER_W and text_height < BANNER_H - TEXT_SPACE_H:
+        if text_width < BANNER_W - TEXT_SPACE_W and text_height < BANNER_H - TEXT_SPACE_H:
             break
         else:
             text_size -= 2
@@ -141,14 +127,14 @@ async def update_banner(server, storage, reply):
     print(text_height)
     print(TEXT_SPACE_H)
 
-    img_draw.text(
-            (
-                (BANNER_W - text_width) // 2,
-                (BANNER_H - text_height - TEXT_SPACE_H) // 2
-            ),
-            banner_text, font=font, fill=(255,255,255,255))
+    img_draw.text((BANNER_W // 2, BANNER_H // 2), 
+                    storage["banner_text"], 
+                    font=font, 
+                    fill=(255,255,255,255), 
+                    anchor="mm", 
+                    align="center")
 
-    await set_banner(server, resized, reply)
+    await dutils.banner_from_pil(server, resized)
 
 @hook.command(permissions=Permission.admin)
 async def set_server_banner(event, server, storage, reply):
@@ -163,7 +149,7 @@ async def set_server_banner(event, server, storage, reply):
         storage["banner_url"] = img.url
         storage.sync()
 
-        await update_banner(server, storage, reply)
+        await update_banner(server, storage)
         return
 
 
@@ -179,4 +165,4 @@ async def set_banner_text(server, storage, text, reply):
     storage["banner_text"] = text
     storage.sync()
 
-    await update_banner(server, storage, reply)
+    await update_banner(server, storage)

@@ -176,6 +176,9 @@ def assign_old(bot):
             server = srv
             break
 
+    if not server:
+        return
+    
     import datetime
     now = datetime.datetime.now()
 

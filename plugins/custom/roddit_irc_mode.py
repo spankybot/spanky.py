@@ -1526,7 +1526,7 @@ def invite_member(event, server, storage, text):
     user.send_pm(f".accept_invite {invite_id}")
     return "Done!"
 
-@hook.command()
+@hook.command(can_pm=True)
 async def accept_invite(bot, text, event):
     # Go through server IDs
     for server in bot.backend.get_servers():

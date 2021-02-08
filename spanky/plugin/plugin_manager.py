@@ -5,6 +5,7 @@ import os
 import importlib
 import asyncio
 
+from discord import File
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
 from spanky.plugin.event import EventType, OnStartEvent, OnReadyEvent, OnConnReadyEvent
@@ -205,11 +206,19 @@ class PluginManager():
         """
 
         out = self._execute_hook(hook, event)
-
+        
         if out is not None:
             if isinstance(out, (list, tuple)):
                 # if there are multiple items in the response, return them on multiple lines
                 event.reply(*out)
+            elif isinstance(out, File):
+                # shitty workaround
+                async def call_func():
+                    try:
+                        await event.event.async_send_file(out)
+                    except:
+                        import traceback; traceback.print_exc()
+                asyncio.run_coroutine_threadsafe(call_func(), self.bot.loop)
             else:
                 event.reply(str(out))
 
@@ -268,6 +277,8 @@ class PluginManager():
                 return
 
         elif hook.type == "event" and launch_event.event.type == EventType.message:
+            if launch_event.event.is_pm:
+                return
             if launch_event.hook.server_id and not launch_event.hook.has_server_id(launch_event.event.server.id):
                 return
 
@@ -403,6 +414,7 @@ class PluginManager():
 class Plugin():
     def __init__(self, name, module):
         self.name = name
+        self.file_name = name # Compat with spanky/plugin/hook_logic code
 
         self.commands, \
             self.regexes, \

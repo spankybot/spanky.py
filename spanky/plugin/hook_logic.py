@@ -99,6 +99,11 @@ class CommandHook(Hook):
         """
         self.auto_help = cmd_hook.kwargs.pop("autohelp", True)
 
+        self.can_pm = cmd_hook.kwargs.pop("can_pm", False)
+        self.pm_only = cmd_hook.kwargs.pop("pm_only", False)
+        if self.pm_only:
+            self.can_pm = True
+
         self.name = cmd_hook.main_alias.lower()
         self.aliases = cmd_hook.kwargs.pop("aliases", []) + [alias.lower() for alias in cmd_hook.aliases]
         self.aliases.remove(self.name)
@@ -213,7 +218,7 @@ class EventHook(Hook):
         :type event_hook: cloudbot.util.hook._EventHook
         """
         super().__init__("event", plugin, event_hook)
-
+        
         self.types = event_hook.types
 
     def __repr__(self):
