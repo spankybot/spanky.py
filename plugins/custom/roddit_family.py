@@ -586,6 +586,10 @@ def accept_marry(bot, text, event, reply):
             return "Asta nu-i cerere de căsătorie!"
         p1 = tree.get_person(event.author.id)
         p2 = tree.get_person(offer.fr)
+        # check if person is relative, again
+        if p1.is_relative(offer.fr):
+            tree.remove_offer(offer)
+            return "Din păcate, ați devenit rude, deci nu mai puteți face nimic"
         p1.complete_marriage(p2)
         p2.complete_marriage(p1)
         tree.remove_offer(offer)
@@ -676,12 +680,17 @@ def accept_adoption(bot, text, event, reply, send_message):
             return "Cererea nu îți este destinată ție!"
         if offer.tp != OfferType.ADOPT:
             return "Asta nu-i cerere de adopție!"
+        
         p1 = tree.get_person(offer.to)
         p2 = tree.get_person(offer.fr)
+        # check if person is relative, again
+        if p1.is_relative(offer.fr):
+            tree.remove_offer(offer)
+            return "Din păcate, ați devenit rude, deci nu mai puteți face nimic"
         p2.complete_adoption(p1, "child")
         p1.complete_adoption(p2, "parent")
-        tree.remove_offer(offer)
         tree.clear_with_event_type(event.author.id, OfferType.CHOICE)
+        tree.remove_offer(offer)
 
         user = server.get_user(offer.fr)
         user.send_pm(f"{event.author.name} ți-a acceptat cererea de adopție. Nu pot oferi scutecele.") 
