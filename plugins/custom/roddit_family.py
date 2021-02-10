@@ -1026,7 +1026,7 @@ def get_requests(event, reply):
 def clear_requests(event):
     """Golește toate cererile. Nu este indicat să rulezi comanda în niciun caz"""
     tree = get_server_tree(event)
-    tree.pending_offers = []
+    tree.pending_offers = [] 
     tree.sync()
     return "Done."
 
@@ -1035,7 +1035,7 @@ def clear_relationships(event):
     """Golește toate relațiile. Dacă se strică prea rău arborele"""
     try:
         tree = get_server_tree(event)
-        tree.people = []
+        tree.people = {}
         tree.sync()
     except:
         import traceback
