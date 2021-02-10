@@ -965,7 +965,13 @@ def family_tree(event, text):
         return "Persoană invalidă"
     if user.alone:
         return "Nu-i nicio familie de arătat. :("
-    return dutils.pil_to_dfile(user.family_tree()) 
+    try:
+        return dutils.pil_to_dfile(user.family_tree()) 
+    except:
+        import traceback
+        bio = io.StringIO()
+        traceback.print_exc(file=bio)
+        return "```"+bio.getvalue()+"```"
 
 ###########################################################
 # MAINTAINING STUFF #######################################
@@ -1027,9 +1033,15 @@ def clear_requests(event):
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def clear_relationships(event):
     """Golește toate relațiile. Dacă se strică prea rău arborele"""
-    tree = get_server_tree(event)
-    tree.people = []
-    tree.sync()
+    try:
+        tree = get_server_tree(event)
+        tree.people = []
+        tree.sync()
+    except:
+        import traceback
+        bio = io.StringIO()
+        traceback.print_exc(file=bio)
+        return "```"+bio.getvalue()+"```"
     return "Done."
 
 #############################################
