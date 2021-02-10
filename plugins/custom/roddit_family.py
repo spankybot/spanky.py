@@ -151,6 +151,9 @@ class Person:
         self.spouse = spouse
         # merge existing children
         self.children = list(set(self.children + self.spouse.children))
+        # Very infuriating bug
+        for child in self.children:
+            child.parents = [self, spouse]
         self.spouse.children = self.children.copy()
         self.sync()
     
