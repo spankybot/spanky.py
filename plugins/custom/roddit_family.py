@@ -622,7 +622,7 @@ def deny_marry(bot, text, event):
             return "Asta nu-i cerere de căsătorie!"
         
         user = server.get_user(offer.fr)
-        user.send_pm("{event.author.name} ți-a refuzat cererea de căsătorie. Mai mult noroc data viitoare!") 
+        user.send_pm(f"{event.author.name} ți-a refuzat cererea de căsătorie. Mai mult noroc data viitoare!") 
         return "I-am transmis veștile."
     
     return "ID invalid"
