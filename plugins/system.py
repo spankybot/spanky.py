@@ -42,7 +42,7 @@ def restart():
 
 @hook.command(permissions=Permission.bot_owner)
 def gitpull():
-    return subprocess.check_output("git pull", shell=True).decode("utf-8")
+    return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
 
 @hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
