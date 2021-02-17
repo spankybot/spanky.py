@@ -2,7 +2,7 @@ watchdog
 Unidecode
 sqlalchemy
 praw
-discord.py==1.5.1
+discord.py==1.6
 markovify
 cleverwrap
 bs4
@@ -14,7 +14,7 @@ oslo.concurrency
 psycopg2-binary
 googlemaps
 forecastiopy
-idna==2.6
+idna==2.9
 pillow
 numpy
 pythonwhois

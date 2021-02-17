@@ -116,17 +116,25 @@ class Person:
     def load_info(self, tree):
         self.tree = tree
         if self.raw_spouse != "":
-            self.spouse = tree.get_person(self.raw_spouse)
+            try:
+                self.spouse = tree.get_person(self.raw_spouse)
+            except:
+                pass
         for child in self.raw_children:
-            p = tree.get_person(child)
-            if p:
-                self.children.append(p)
-        
-        for parent in self.raw_parents:
-            p = tree.get_person(parent)
-            if p:
-                self.parents.append(p)
+            try:
+                p = tree.get_person(child)
+                if p:
+                    self.children.append(p)
+            except:
+                pass
 
+        for parent in self.raw_parents:
+            try:
+                p = tree.get_person(parent)
+                if p:
+                    self.parents.append(p)
+            except:
+                pass
 
     # For someone to marry another user
     def marry(self, user_id):
@@ -389,6 +397,7 @@ class ServerTree:
     def fully_load_people(self):
         for id in self.people.keys():
             self.people[id].load_info(self)
+        self.sync()
     
     ##### Offer stuff
 
@@ -517,14 +526,14 @@ class ServerTree:
         
         for offer in raw_offers:
             offer["type"] = OfferType(offer["type"])
-            offers.append(PendingOffer.deserialize(offer))
+            off = PendingOffer.deserialize(offer)
+            if off.to not in people or off.fr not in people:
+                continue
+            offers.append(off)
 
         tree = ServerTree(storage, server, people, offers)
         server_trees[str(server.id)] = tree        
         return tree
-
-    def get_user_tree(self, userid: str):
-        pass
 
 def get_server_tree(event) -> ServerTree:
     return server_trees[str(event.server.id)]
