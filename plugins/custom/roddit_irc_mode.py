@@ -582,6 +582,11 @@ def list_members_perm_access(channel):
 
     return users
 
+def list_members_not_ignoring(channel):
+    """
+    Get users that do not ignore a channel
+    """
+    return channel.members_accessing_chan()
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
 async def add_chan_category(server, text, reply, storage):
@@ -892,6 +897,8 @@ def get_users_in_chan(channel, server, storage):
     # List invite_only members
     elif crt_cat.is_invite:
         users = list_members_perm_access(channel)
+    elif crt_cat.is_public:
+        users = list_members_not_ignoring(channel)
 
     return users, crt_cat
 
