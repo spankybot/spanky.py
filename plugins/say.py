@@ -4,6 +4,7 @@ from discord import AllowedMentions
 from spanky.plugin.permissions import Permission
 from spanky.plugin import hook, permissions
 
+
 @hook.command(permissions=Permission.admin)
 async def say(text, server, event, async_send_message):
     """

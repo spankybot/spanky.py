@@ -44,13 +44,15 @@ def make_resize(frame, width, height):
     frame.resize(width, height)
     return frame
 
+
 @hook.command(params="int:width int:height")
 def resize(event, send_file, send_message, cmd_args):
     """
     Resize image
     """
     for img in event.image:
-        img.proc_each_wand_frame(make_resize, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(
+            make_resize, send_file, send_message, cmd_args)
 
 
 @lockutils.synchronized('not_thread_safe')
@@ -81,7 +83,8 @@ def implode(event, send_file, send_message, cmd_args):
     Implode image
     """
     for img in event.image:
-        img.proc_each_wand_frame(make_implode, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(
+            make_implode, send_file, send_message, cmd_args)
 
 
 def make_negate(frame):
@@ -102,12 +105,13 @@ def make_imgtext(frame, text):
     frame.transform(resize='400x400>')
 
     proc = subprocess.Popen(["gif", "text", text], stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE)
+                            stdout=subprocess.PIPE)
 
     out = proc.communicate(wand_img(frame).make_blob("png"))[0]
 
     result = wand_img(blob=out)
     return result
+
 
 @hook.command(params="string:text")
 def img_text(event, send_file, send_message, cmd_args):
@@ -115,13 +119,15 @@ def img_text(event, send_file, send_message, cmd_args):
     Add text to image
     """
     for img in event.image:
-        img.proc_each_wand_frame(make_imgtext, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(
+            make_imgtext, send_file, send_message, cmd_args)
+
 
 def make_gif_app_caller(frame, effect):
     frame.transform(resize='400x400>')
 
     proc = subprocess.Popen(["gif", effect], stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE)
+                            stdout=subprocess.PIPE)
 
     out = proc.communicate(wand_img(frame).make_blob("png"))[0]
 
@@ -137,22 +143,22 @@ def make_gif_app_caller(frame, effect):
 
 
 gif_effects = [
-        "wobble",
-        "roll",
-        "pulse",
-        "zoom",
-        "shake",
-        "woke",
-        "fried",
-        "hue",
-        "tint",
-        "crowd",
-        "npc",
-        "rain",
-        "scan",
-        "noise",
-        "cat"
-        ]
+    "wobble",
+    "roll",
+    "pulse",
+    "zoom",
+    "shake",
+    "woke",
+    "fried",
+    "hue",
+    "tint",
+    "crowd",
+    "npc",
+    "rain",
+    "scan",
+    "noise",
+    "cat"
+]
 
 
 def init_funcs():
@@ -161,7 +167,7 @@ def init_funcs():
             for img in event.image:
                 args = {"effect": effect}
                 img.proc_each_wand_frame(make_gif_app_caller, send_file,
-                    send_message, args)
+                                         send_message, args)
         f.__name__ = effect
 
         return f

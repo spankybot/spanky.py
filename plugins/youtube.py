@@ -8,7 +8,8 @@ from spanky.plugin import hook
 from spanky.utils import timeformat
 from spanky.utils.formatting import pluralize
 
-youtube_re = re.compile(r'(?:youtube.*?(?:v=|/v/)|youtu\.be/|yooouuutuuube.*?id=)([-_a-zA-Z0-9]+)', re.I)
+youtube_re = re.compile(
+    r'(?:youtube.*?(?:v=|/v/)|youtu\.be/|yooouuutuuube.*?id=)([-_a-zA-Z0-9]+)', re.I)
 
 base_url = 'https://www.googleapis.com/youtube/v3/'
 api_url = base_url + 'videos?part=contentDetails%2C+snippet%2C+statistics&id={}&key={}'
@@ -16,6 +17,7 @@ search_api_url = base_url + 'search?part=id&maxResults=1'
 playlist_api_url = base_url + 'playlists?part=snippet%2CcontentDetails%2Cstatus'
 video_url = "http://youtu.be/%s"
 err_no_api = "The YouTube API is off in the Google Developers Console."
+
 
 def get_video_description(video_id):
     request = requests.get(api_url.format(video_id, dev_key))
@@ -38,9 +40,11 @@ def get_video_description(video_id):
         return out
 
     length = isodate.parse_duration(content_details['duration'])
-    out += ' - length {}'.format(timeformat.format_time(int(length.total_seconds()), simple=True))
+    out += ' - length {}'.format(timeformat.format_time(
+        int(length.total_seconds()), simple=True))
     try:
-        total_votes = float(statistics['likeCount']) + float(statistics['dislikeCount'])
+        total_votes = float(statistics['likeCount']) + \
+            float(statistics['dislikeCount'])
     except (LookupError, ValueError):
         total_votes = 0
 
@@ -51,7 +55,7 @@ def get_video_description(video_id):
 
         percent = 100 * float(statistics['likeCount']) / total_votes
         out += ' - {}, {} (*{:.1f}*%)'.format(likes,
-                                                    dislikes, percent)
+                                              dislikes, percent)
 
     if 'viewCount' in statistics:
         views = int(statistics['viewCount'])
@@ -59,8 +63,10 @@ def get_video_description(video_id):
 
     uploader = snippet['channelTitle']
 
-    upload_time = time.strptime(snippet['publishedAt'][:-1], "%Y-%m-%dT%H:%M:%S")
-    out += ' - {} on {}'.format(uploader, time.strftime("%Y.%m.%d", upload_time))
+    upload_time = time.strptime(
+        snippet['publishedAt'][:-1], "%Y-%m-%dT%H:%M:%S")
+    out += ' - {} on {}'.format(uploader,
+                                time.strftime("%Y.%m.%d", upload_time))
 
     return out
 
@@ -78,13 +84,15 @@ def youtube(text, reply, send_embed):
         return "This command requires a Google Developers Console API key."
 
     try:
-        request = requests.get(search_api_url, params={"q": text, "key": dev_key, "type": "video"})
+        request = requests.get(search_api_url, params={
+                               "q": text, "key": dev_key, "type": "video"})
         request.raise_for_status()
     except Exception:
         reply("Error performing search.")
         raise
 
-    json = requests.get(search_api_url, params={"q": text, "key": dev_key, "type": "video"}).json()
+    json = requests.get(search_api_url, params={
+                        "q": text, "key": dev_key, "type": "video"}).json()
 
     if json.get('error'):
         if json['error']['code'] == 403:

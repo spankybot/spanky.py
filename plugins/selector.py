@@ -8,7 +8,8 @@ from spanky.utils import discord_utils as dutils
 from spanky.plugin.permissions import Permission
 
 
-permanent_messages = [] # What permanent messages are held
+permanent_messages = []  # What permanent messages are held
+
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event):
@@ -90,6 +91,7 @@ def permanent_selector(text, storage, event):
 
     return "Bot will permanently watch for reactions on this message. You can pin it now."
 
+
 @hook.command(permissions=Permission.admin)
 def list_permanent_selectors(text, storage):
     retval = []
@@ -105,6 +107,7 @@ def list_permanent_selectors(text, storage):
         return "No selectors set"
 
     return "\n".join(retval)
+
 
 @hook.command(permissions=Permission.admin)
 def del_permanent_selector(text, storage):
@@ -129,7 +132,6 @@ def del_permanent_selector(text, storage):
             storage.sync()
             break
 
-
     for data in storage["simple_selectors"]:
         if data["msg_id"] == msg_id:
             storage["simple_selectors"].remove(data)
@@ -147,7 +149,8 @@ def del_permanent_selector(text, storage):
 @hook.on_connection_ready()
 async def rebuild_selectors(bot):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_selector.json")
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_selector.json")
 
         if "role_selectors" in storage:
             for element in storage["role_selectors"]:

@@ -1,6 +1,7 @@
 import os
 from spanky.plugin import hook
 
+
 @hook.periodic(3600*12)
 def backup_data():
     os.system("cd storage_data && \

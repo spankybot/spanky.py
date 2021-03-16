@@ -22,12 +22,14 @@ def debugme(bot, send_pm):
             if "bulau" not in bot.plugin_manager.commands.keys():
                 send_pm("temp plugins missing", plp)
 
+
 @hook.command()
 def about():
     """
     Get about.
     """
     return "Bot source code can be found at https://github.com/gc-plp/spanky.py or ask the owner: plp#9999"
+
 
 @hook.command()
 def invite_me():
@@ -36,13 +38,16 @@ def invite_me():
     """
     return "Use the invite link here <https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0> and join the bot support channel at https://discord.gg/qS2JZ62 #spanky"
 
+
 @hook.command(permissions=Permission.bot_owner)
 def restart():
     os.system('kill %d' % os.getpid())
 
+
 @hook.command(permissions=Permission.bot_owner)
 def gitpull():
     return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+
 
 @hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
@@ -51,14 +56,16 @@ def start_tracemalloc():
     tracemalloc.start(100)
     start_trace = tracemalloc.take_snapshot()
 
+
 @hook.command(permissions=Permission.bot_owner)
 def stop_tracemalloc():
     tracemalloc.stop()
 
+
 @hook.command(permissions=Permission.bot_owner)
 def mem_snapshot():
-    key_type='lineno'
-    limit=10
+    key_type = 'lineno'
+    limit = 10
 
     rval = '#\n'
     snapshot = tracemalloc.take_snapshot()
@@ -74,7 +81,8 @@ def mem_snapshot():
         frame = stat.traceback[0]
         # replace "/path/to/module/file.py" with "module/file.py"
         filename = os.sep.join(frame.filename.split(os.sep)[-2:])
-        rval += "#%s: %s:%s: %.1f KiB\n" % (index, filename, frame.lineno, stat.size / 1024)
+        rval += "#%s: %s:%s: %.1f KiB\n" % (index,
+                                            filename, frame.lineno, stat.size / 1024)
 
         line = linecache.getline(frame.filename, frame.lineno).strip()
         if line:
@@ -88,6 +96,7 @@ def mem_snapshot():
     rval += "Total allocated size: %.1f KiB\n" % (total / 1024)
 
     return rval
+
 
 @hook.command()
 def system(send_message):

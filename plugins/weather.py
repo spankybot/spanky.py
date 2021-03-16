@@ -87,11 +87,13 @@ def add_location(nick, location, db):
     test = dict(location_cache)
     location = str(location)
     if nick.lower() in test:
-        db.execute(table.update().values(loc=location.lower()).where(table.c.nick == nick.lower()))
+        db.execute(table.update().values(loc=location.lower()
+                                         ).where(table.c.nick == nick.lower()))
         db.commit()
         load_cache(db)
     else:
-        db.execute(table.insert().values(nick=nick.lower(), loc=location.lower()))
+        db.execute(table.insert().values(
+            nick=nick.lower(), loc=location.lower()))
         db.commit()
         load_cache(db)
 
@@ -183,12 +185,12 @@ def weather(reply, db, event, text, send_embed):
 
     reply = collections.OrderedDict()
     reply["Current"] = "{summary}, {temp:.0f}C; Humidity: {humidity:.0%}; Wind: {wind_speed:.0f}KPH {wind_direction}".format(
-            summary=current["summary"],
-            temp=convert_f2c(current["temperature"]),
-            humidity=current["humidity"],
-            wind_speed=mph_to_kph(current["windSpeed"]),
-            wind_direction=bearing_to_card(current['windBearing']),
-            )
+        summary=current["summary"],
+        temp=convert_f2c(current["temperature"]),
+        humidity=current["humidity"],
+        wind_speed=mph_to_kph(current["windSpeed"]),
+        wind_direction=bearing_to_card(current['windBearing']),
+    )
 
     today["name"] = "Today"
     tomorrow["name"] = "Tomorrow"

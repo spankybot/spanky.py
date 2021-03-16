@@ -13,6 +13,7 @@ DEFAULT_TEXT_SIZE = 80
 TEXT_SPACE_W = BANNER_W // 10
 TEXT_SPACE_H = 20
 
+
 @hook.command(format="user")
 def avatar(event, text, str_to_id):
     """<user or user-id> - Get someones avatar"""
@@ -26,6 +27,7 @@ def avatar(event, text, str_to_id):
             return user.avatar_url
 
     return "Not found"
+
 
 @hook.command(permissions=Permission.bot_owner)
 async def set_avatar(event, async_set_avatar):
@@ -41,14 +43,17 @@ async def set_avatar(event, async_set_avatar):
         import traceback
         traceback.print_exc()
 
+
 @hook.command(permissions=Permission.bot_owner)
 async def set_status(async_set_game_status, text):
     await async_set_game_status(text)
+
 
 @hook.command()
 def e(event):
     """Expand an emoji"""
     return " ".join(event.url)
+
 
 @hook.command()
 def get_server_banner(server):
@@ -57,6 +62,7 @@ def get_server_banner(server):
     """
 
     return server.banner_url
+
 
 def resize_to_fit(image, max_width, max_height):
     """
@@ -77,18 +83,18 @@ def resize_to_fit(image, max_width, max_height):
 
     # Resize it
     image = image.resize(
-                (
-                    int(image.width / ratio),
-                    int(image.height / ratio)
-                ),
-            resample=PIL.Image.ANTIALIAS)
+        (
+            int(image.width / ratio),
+            int(image.height / ratio)
+        ),
+        resample=PIL.Image.ANTIALIAS)
 
     # Paste the resized image in the center
     canvas.paste(image,
-        (
-            max_width // 2 - image.width // 2,
-            max_height // 2 - image.height // 2)
-        )
+                 (
+                     max_width // 2 - image.width // 2,
+                     max_height // 2 - image.height // 2)
+                 )
 
     return canvas
 
@@ -111,7 +117,8 @@ async def update_banner(server, storage):
     banner_text = storage["banner_text"].replace("`", "")
     while True:
         font = ImageFont.truetype('plugin_data/fonts/plp.ttf', text_size)
-        bbox = img_draw.textbbox((0,0), banner_text, font=font, align="center", direction="ltr")
+        bbox = img_draw.textbbox(
+            (0, 0), banner_text, font=font, align="center", direction="ltr")
         text_width, text_height = bbox[2], bbox[3]
 
         # If text fits, break otherwise decrease size
@@ -127,14 +134,15 @@ async def update_banner(server, storage):
     print(text_height)
     print(TEXT_SPACE_H)
 
-    img_draw.text((BANNER_W // 2, BANNER_H // 2), 
-                    storage["banner_text"], 
-                    font=font, 
-                    fill=(255,255,255,255), 
-                    anchor="mm", 
-                    align="center")
+    img_draw.text((BANNER_W // 2, BANNER_H // 2),
+                  storage["banner_text"],
+                  font=font,
+                  fill=(255, 255, 255, 255),
+                  anchor="mm",
+                  align="center")
 
     await dutils.banner_from_pil(server, resized)
+
 
 @hook.command(permissions=Permission.admin)
 async def set_server_banner(event, server, storage, reply):

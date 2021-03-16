@@ -11,6 +11,7 @@ base_url = 'http://api.urbandictionary.com/v0'
 define_url = base_url + "/define"
 random_url = base_url + "/random"
 
+
 @hook.command("urban")
 async def urban(text, reply, async_send_message):
     """urban <phrase> [id] -- Looks up <phrase> on urbandictionary.com."""
@@ -44,18 +45,17 @@ async def urban(text, reply, async_send_message):
         page = request.json()
 
     definitions = page['list']
-    
+
     defs = []
     for definition in definitions:
         def_text = " ".join(definition["definition"].split())
         def_text = formatting.truncate(def_text, 400)
 
-
         name = definition["word"]
         url = definition["permalink"]
         output = "%s: %s - <%s>" % (name, def_text, url)
         defs.append(output)
-    
+
     if len(defs) == 0:
         reply("No definition found")
 

@@ -59,13 +59,16 @@ def time_command(text, reply):
             utcoffset.append('0')
         if len(utcoffset) == 2:
             try:
-                offset = datetime.timedelta(hours=int(utcoffset[0]), minutes=int(utcoffset[1]))
+                offset = datetime.timedelta(
+                    hours=int(utcoffset[0]), minutes=int(utcoffset[1]))
             except Exception:
-                reply("Sorry I could not parse the UTC format you entered. Example UTC7 or UTC-4")
+                reply(
+                    "Sorry I could not parse the UTC format you entered. Example UTC7 or UTC-4")
                 raise
             curtime = datetime.datetime.utcnow()
             tztime = curtime + offset
-            formatted_time = datetime.datetime.strftime(tztime, '%I:%M %p, %A, %B %d, %Y')
+            formatted_time = datetime.datetime.strftime(
+                tztime, '%I:%M %p, %A, %B %d, %Y')
             return "{} ({})".format(formatted_time, timezone)
 
     # Use the Geocoding API to get co-ordinates from the input
@@ -89,7 +92,8 @@ def time_command(text, reply):
 
     epoch = time.time()
 
-    params = {"location": formatted_location, "timestamp": epoch, "key": dev_key}
+    params = {"location": formatted_location,
+              "timestamp": epoch, "key": dev_key}
     json = requests.get(timezone_api, params=params).json()
 
     error = check_status(json['status'], "timezone")

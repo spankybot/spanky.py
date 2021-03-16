@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 from spanky.plugin.event import EventType
@@ -9,16 +9,18 @@ import random
 import string
 import discord
 
-LARROW=u'⬅'
-RARROW=u'➡'
+LARROW = u'⬅'
+RARROW = u'➡'
 MAX_LEN = 500
+
 
 def save_picture(url, tag_name, message, storage, storage_loc):
     if tag_name in storage.keys():
         message("%s already exists!" % tag_name)
         return
 
-    name = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(10))
+    name = ''.join(random.choice(string.ascii_letters + string.digits)
+                   for i in range(10))
     ext = url.split(".")[-1]
 
     try:
@@ -39,6 +41,7 @@ def save_picture(url, tag_name, message, storage, storage_loc):
         del storage[tag_name]
         import traceback
         traceback.print_exc()
+
 
 def save_text(text, tag_name, message, storage):
     if tag_name in storage.keys():
@@ -61,6 +64,7 @@ def save_text(text, tag_name, message, storage):
         import traceback
         traceback.print_exc()
 
+
 def get_page_for(content, page_len):
     pages = [""]
     crt_page = 0
@@ -81,29 +85,32 @@ def get_page_for(content, page_len):
     except Exception as e:
         print(str(e))
 
+
 @hook.event(EventType.reaction_add)
 async def do_page(bot, event, storage, send_message):
     if event.msg.author.id != bot.get_own_id():
         return
 
-    if (event.reaction.emoji.name == LARROW or \
-        event.reaction.emoji.name == RARROW) and \
-        event.msg.text.startswith("Tags"):
-            crt_page = int(re.search(r'Tags (.*?)/', event.msg.text).group(1))
-            tot_pages = int(re.search(r'/(.*?):', event.msg.text).group(1))
+    if (event.reaction.emoji.name == LARROW or
+            event.reaction.emoji.name == RARROW) and \
+            event.msg.text.startswith("Tags"):
+        crt_page = int(re.search(r'Tags (.*?)/', event.msg.text).group(1))
+        tot_pages = int(re.search(r'/(.*?):', event.msg.text).group(1))
 
-            if event.reaction.emoji.name == RARROW and crt_page + 1 <= tot_pages:
-                crt_page += 1
-            elif event.reaction.emoji.name == LARROW and crt_page > 1:
-                crt_page -= 1
-            else:
-                await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
-                return
-
+        if event.reaction.emoji.name == RARROW and crt_page + 1 <= tot_pages:
+            crt_page += 1
+        elif event.reaction.emoji.name == LARROW and crt_page > 1:
+            crt_page -= 1
+        else:
             await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+            return
 
-            content = get_page_for(sorted(list(storage)), MAX_LEN)
-            send_message("Tags %d/%d: %s" % (crt_page, tot_pages, content[crt_page - 1]), event.channel.id)
+        await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
+        content = get_page_for(sorted(list(storage)), MAX_LEN)
+        send_message("Tags %d/%d: %s" % (crt_page, tot_pages,
+                                         content[crt_page - 1]), event.channel.id)
+
 
 @hook.command()
 async def tag(text, send_file, storage, storage_loc, async_send_message):
@@ -127,8 +134,8 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
     else:
         msg = ""
         if tag == "random":
-           tag = random.choice(list(storage.keys()))
-           msg = "(%s)\n" % tag
+            tag = random.choice(list(storage.keys()))
+            msg = "(%s)\n" % tag
 
         if tag in storage:
             if storage[tag]['type'] == "text":
@@ -139,6 +146,7 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
                 send_file(storage_loc + storage[tag]['location'])
         else:
             await async_send_message("Syntax is: `.tag list` or `.tag <name>`")
+
 
 @hook.command()
 def tag_add(text, event, reply, storage, storage_loc):
@@ -158,6 +166,7 @@ def tag_add(text, event, reply, storage, storage_loc):
 
         save_text(text[1], text[0], reply, storage)
 
+
 @hook.command(permissions=Permission.admin, format="cmd")
 def tag_del(text, storage, storage_loc):
     """
@@ -172,4 +181,3 @@ def tag_del(text, storage, storage_loc):
     del storage[text]
     storage.sync()
     return "Done!"
-

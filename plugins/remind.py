@@ -36,6 +36,7 @@ def remind(event, text, storage):
 
     return "Okay!"
 
+
 def remind_check_server(server, storage, send_pm):
     if "remind" not in storage:
         return
@@ -54,11 +55,14 @@ def remind_check_server(server, storage, send_pm):
                 print("invalid user")
                 continue
 
-            send_pm("You set a reminder with the message:\n%s" % elem["message"], target_user)
+            send_pm("You set a reminder with the message:\n%s" %
+                    elem["message"], target_user)
+
 
 @hook.periodic(1)
 def remind_check(bot, send_pm):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_remind.json")
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_remind.json")
 
         remind_check_server(server, storage, send_pm)

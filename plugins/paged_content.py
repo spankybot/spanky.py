@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import math
 import random
 import time
@@ -6,11 +6,12 @@ from collections import deque
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 
-LARROW=u'⬅'
-RARROW=u'➡'
-RANDOM=u'🔢'
+LARROW = u'⬅'
+RARROW = u'➡'
+RANDOM = u'🔢'
 TIMEOUT = 5
-elements = deque(maxlen = 10)
+elements = deque(maxlen=10)
+
 
 class element():
     def __init__(self, text_list, send_func, description="", max_lines=10, max_line_len=200, no_timeout=False, with_quotes=True):
@@ -45,7 +46,8 @@ class element():
         page_header = self.description + "\n"
         if len(self.parsed_lines) > self.max_lines:
             with_arrows = True
-            page_header += "Page %d/%d\n" % (self.crt_idx / self.max_lines + 1, math.ceil(len(self.parsed_lines) / self.max_lines))
+            page_header += "Page %d/%d\n" % (self.crt_idx / self.max_lines + 1, math.ceil(
+                len(self.parsed_lines) / self.max_lines))
 
         output = ""
         if self.with_quotes:
@@ -73,22 +75,25 @@ class element():
         if self.crt_idx - self.max_lines >= 0:
             self.crt_idx -= self.max_lines
         else:
-            self.crt_idx = len(self.parsed_lines) - len(self.parsed_lines) % self.max_lines - 1
+            self.crt_idx = len(self.parsed_lines) - \
+                len(self.parsed_lines) % self.max_lines - 1
 
         await self.get_crt_page()
 
     async def get_random_page(self):
-        self.crt_idx = random.randint(0, len(self.parsed_lines) // self.max_lines) * self.max_lines
+        self.crt_idx = random.randint(
+            0, len(self.parsed_lines) // self.max_lines) * self.max_lines
         await self.get_crt_page()
+
 
 @hook.event(EventType.reaction_add)
 async def do_page(bot, event):
     if event.msg.author.id != bot.get_own_id():
         return
 
-    if (event.reaction.emoji.name == LARROW or \
-        event.reaction.emoji.name == RARROW or \
-        event.reaction.emoji.name == RANDOM):
+    if (event.reaction.emoji.name == LARROW or
+        event.reaction.emoji.name == RARROW or
+            event.reaction.emoji.name == RANDOM):
 
         content = None
         for msg in elements:

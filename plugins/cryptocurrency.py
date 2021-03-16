@@ -18,6 +18,7 @@ from spanky.plugin import hook
 
 API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
 
+
 class Alias:
     def __init__(self, name, cmd, nocmd=True):
         self.name = name
@@ -54,7 +55,8 @@ def init_aliases():
         if alias.nocmd:
             continue
         _hook = alias_wrapper(alias)
-        globals()[_hook.__name__] = hook.command(alias.cmds, autohelp=False)(_hook)
+        globals()[_hook.__name__] = hook.command(
+            alias.cmds, autohelp=False)(_hook)
 
 
 @hook.command()

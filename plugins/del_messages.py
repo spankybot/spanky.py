@@ -1,6 +1,7 @@
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
+
 @hook.command(permissions=Permission.admin, format="number")
 def delete(event, send_message, text):
     """

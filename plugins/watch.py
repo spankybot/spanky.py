@@ -10,6 +10,7 @@ g_db = None
 storages = {}
 servers = {}
 
+
 def set_crt_timestamps():
     global tstamps
 
@@ -23,10 +24,13 @@ def set_crt_timestamps():
             storage["subs"][sub]["timestamp"] = epoch
         storage.sync()
 
+
 @hook.on_start()
 def init():
     global reddit_inst
-    reddit_inst = praw.Reddit("irc_bot", user_agent='Subreddit watcher by /u/programatorulupeste')
+    reddit_inst = praw.Reddit(
+        "irc_bot", user_agent='Subreddit watcher by /u/programatorulupeste')
+
 
 @hook.on_ready()
 def ready(server, storage):
@@ -35,6 +39,7 @@ def ready(server, storage):
 
     # Set the current time for each subreddit
     set_crt_timestamps()
+
 
 def do_it(thread):
     sub = thread.subreddit.display_name
@@ -47,6 +52,7 @@ def do_it(thread):
     )
 
     return prefix + " " + message
+
 
 @hook.periodic(30)
 def checker(send_message):
@@ -68,11 +74,13 @@ def checker(send_message):
                             newest = subtime
                             storage["subs"][sub]["timestamp"] = newest
                             storage.sync
-                        send_message(target=storage["channel"], text=do_it(submission), server=servers[server_id])
+                        send_message(target=storage["channel"], text=do_it(
+                            submission), server=servers[server_id])
 
             except BaseException as e:
                 print(str(e))
                 print("Exception generated for sub: " + sub)
+
 
 @hook.command
 def subwatch_list(event):
@@ -83,6 +91,7 @@ def subwatch_list(event):
         return 'Watching: ' + ", ".join(i for i in storages[event.server.id]["subs"])
     else:
         return "Empty."
+
 
 @hook.command(permissions=Permission.admin, format="sub")
 def subwatch_add(text, event):
@@ -97,6 +106,7 @@ def subwatch_add(text, event):
     storages[event.server.id].sync()
     return "Done"
 
+
 @hook.command(permissions=Permission.admin)
 def subwatch_del(text, event):
     """
@@ -109,6 +119,7 @@ def subwatch_del(text, event):
         storages[event.server.id].sync()
         return "OK."
 
+
 @hook.command(permissions=Permission.admin)
 def startwatch(event):
     """
@@ -118,6 +129,7 @@ def startwatch(event):
     set_crt_timestamps()
     return "Started watching"
 
+
 @hook.command(permissions=Permission.admin)
 def stopwatch(event):
     """
@@ -125,6 +137,7 @@ def stopwatch(event):
     """
     storages[event.server.id]["watching"] = False
     return "Stopped watching"
+
 
 @hook.command(permissions=Permission.admin, format="chan")
 def set_rupdates_channel(text, str_to_id, event):
@@ -134,6 +147,7 @@ def set_rupdates_channel(text, str_to_id, event):
     storages[event.server.id]['channel'] = str_to_id(text)
     return "Done."
 
+
 @hook.command(permissions=Permission.admin)
 def clear_rupdates_channel(event):
     """
@@ -141,6 +155,7 @@ def clear_rupdates_channel(event):
     """
     storages[event.server.id]['channel'] = None
     return "Done."
+
 
 @hook.command(permissions=Permission.admin)
 def get_rupdates_channel(id_to_chan, event):

@@ -200,7 +200,8 @@ def hash_command(text):
 @hook.command
 def leet(text):
     """<text> -- Makes <text> more 1337h4x0rz."""
-    output = ''.join(random.choice(leet[ch]) if ch.isalpha() else ch for ch in text.lower())
+    output = ''.join(random.choice(
+        leet[ch]) if ch.isalpha() else ch for ch in text.lower())
     return output
 
 
@@ -212,7 +213,8 @@ def derpify(text):
     pick_the = random.choice(["TEH", "DA"])
     pick_e = random.choice(["E", "3", "A"])
     pick_qt = random.choice(["?!?!??", "???!!!!??", "?!??!?", "?!?!?!???"])
-    pick_ex = random.choice(["1111!11", "1!11", "!!1!", "1!!!!111", "!1!111!1", "!11!111"])
+    pick_ex = random.choice(
+        ["1111!11", "1!11", "!!1!", "1!!!!111", "!1!111!1", "!11!111"])
     pick_end = random.choice(["", "OMG", "LOL", "WTF", "WTF LOL", "OMG LOL"])
     rules = {"YOU'RE": "UR", "YOUR": "UR", "YOU": "U", "WHAT THE HECK": "WTH", "WHAT THE HELL": "WTH",
              "WHAT THE FUCK": "WTF",

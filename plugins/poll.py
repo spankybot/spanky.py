@@ -10,6 +10,7 @@ from spanky.plugin.permissions import Permission
 MSG_TIMEOUT = 3
 active_polls = {}
 
+
 class Poll(carousel.Selector):
     def __init__(self, server, channel, title, items, storage):
         self.server = server
@@ -18,8 +19,8 @@ class Poll(carousel.Selector):
         self.items = items
         self.title = title
         self.is_active = True
-        self.voted = [] # who voted
-        self.score = {} # score per item
+        self.voted = []  # who voted
+        self.score = {}  # score per item
         self.storage = storage
         for item in items:
             self.score[item] = 0
@@ -181,6 +182,7 @@ def sync_polls(storage):
             storage["polls"][poll.get_link()] = elem
             storage.sync()
 
+
 @hook.command(permissions=Permission.admin)
 async def create_poll(text, event, storage, async_send_message):
     """
@@ -255,10 +257,12 @@ async def close_poll(text, storage, async_send_message, server):
 
     await async_send_message("Could not find the given poll")
 
+
 @hook.on_connection_ready()
 async def rebuild_poll_selectors(bot):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_poll.json")
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_poll.json")
         if "polls" not in storage:
             continue
 

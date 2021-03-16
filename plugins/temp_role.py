@@ -15,6 +15,7 @@ SEC_IN_MIN = 60
 SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
 
+
 def log_action(storage, ret_val, send_embed, title):
     # If the command is set to log the action onto a channel
     if "modlog_chan" in storage:
@@ -28,6 +29,7 @@ def log_action(storage, ret_val, send_embed, title):
             title, "",
             {"Details": log_text},
             target=storage["modlog_chan"])
+
 
 def register_cmd(cmd, server):
     """
@@ -46,14 +48,16 @@ def register_cmd(cmd, server):
 
             # Log the action
             log_action(storage, ret_val, send_embed,
-                "User given the `%s` role" % storage["cmds"][cmd_name]["role_name"])
+                       "User given the `%s` role" % storage["cmds"][cmd_name]["role_name"])
 
             return "Done."
 
         do_cmd.__name__ = cmd_name
         return do_cmd
 
-    globals()[cmd["name"]] = hook.command(server_id=server.id, permissions=Permission.admin)(create_it(cmd["name"]))
+    globals()[cmd["name"]] = hook.command(server_id=server.id,
+                                          permissions=Permission.admin)(create_it(cmd["name"]))
+
 
 def reload_file(bot):
     dirname = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +66,7 @@ def reload_file(bot):
     # TODO: use unified way of identifying plugins
     bot.plugin_manager.load_plugin(dirname + "/" + fname)
 
+
 @hook.on_connection_ready()
 def init_cmds(bot):
     """
@@ -69,7 +74,8 @@ def init_cmds(bot):
     """
 
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_temp_role.json")
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_temp_role.json")
 
         if "cmds" not in storage:
             continue
@@ -83,6 +89,7 @@ def init_cmds(bot):
         print("temp_role_reload")
         set_vdata("temp_role_reload", True)
         reload_file(bot)
+
 
 @hook.command(permissions=Permission.admin)
 def create_temp_role_cmd(text, str_to_id, server, bot, storage):
@@ -131,6 +138,7 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
 
     return "Done"
 
+
 @hook.command(permissions=Permission.admin)
 def list_temp_role_cmds(storage):
     """
@@ -140,6 +148,7 @@ def list_temp_role_cmds(storage):
         return "No commands created"
     else:
         return ", ".join("`%s`" % cmd["name"] for cmd in storage["cmds"].values())
+
 
 @hook.command(permissions=Permission.admin)
 def delete_temp_role_cmd(storage, text, bot):
@@ -164,6 +173,7 @@ def delete_temp_role_cmd(storage, text, bot):
 
     return "Command not registered"
 
+
 @hook.command(permissions=Permission.admin)
 async def userhistory(text, storage, async_send_message, server):
     """<user> - List confinement reasons for user"""
@@ -187,7 +197,8 @@ async def userhistory(text, storage, async_send_message, server):
                 rtype = reason["Type"]
 
             rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % \
-                    (reason["Case ID"], rtype, reason["Date"], reason["Author"].split("/")[0])
+                    (reason["Case ID"], rtype, reason["Date"],
+                     reason["Author"].split("/")[0])
             rlist.append(rtext)
 
         return rlist
@@ -200,11 +211,13 @@ async def userhistory(text, storage, async_send_message, server):
         usr_hist = get_reasons(text, storage, user_id)
 
         # Print as pages
-        paged_content = paged.element(usr_hist, async_send_message, "User history:", no_timeout=True)
+        paged_content = paged.element(
+            usr_hist, async_send_message, "User history:", no_timeout=True)
         await paged_content.get_crt_page()
     except:
         import traceback
         traceback.print_exc()
+
 
 @hook.command(permissions=Permission.admin)
 def close_user_case(text, storage):
@@ -229,6 +242,7 @@ def close_user_case(text, storage):
                 return "Done"
 
     return "Case ID %d not found" % case_id
+
 
 @hook.command(permissions=Permission.admin)
 def show_user_case(text, storage, send_embed):
@@ -256,13 +270,14 @@ def show_user_case(text, storage, send_embed):
                     "Result", "",
                     {"Details": log_text})
 
+
 def give_temp_role(text, server, command_name, storage, event):
     # Remove extra whitespace and split
     text = " ".join(text.split()).split()
 
     if len(text) < 2:
         return "Needs at least user and time (e.g. .{CMD} @plp, 5m - to give @plp {CMD} for 5 minutes OR .{CMD} @plp 5m bad user - to give @plp {CMD} for 5m and save the reason \"bad user\")".format(CMD=command_name) + \
-        "The abbrebiations are: s - seconds, m - minutes, h - hours, d - days."
+            "The abbrebiations are: s - seconds, m - minutes, h - hours, d - days."
 
     # Get user
     user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
@@ -284,7 +299,8 @@ def give_temp_role(text, server, command_name, storage, event):
     texp = datetime.datetime.now().timestamp() + timeout_sec
 
     # Get the role
-    role = dutils.get_role_by_id(server, storage["cmds"][command_name]["role_id"])
+    role = dutils.get_role_by_id(
+        server, storage["cmds"][command_name]["role_id"])
 
     if role is None:
         return "Could not find given role"
@@ -318,7 +334,8 @@ def give_temp_role(text, server, command_name, storage, event):
             user,
             event.author,
             reason,
-            "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id),
+            "https://discordapp.com/channels/%s/%s/%s" % (
+                server.id, event.channel.id, event.msg.id),
             texp,
             command_name)
 
@@ -338,7 +355,7 @@ def give_temp_role(text, server, command_name, storage, event):
         storage.sync()
 
         user.send_pm("You have been given the `%s` role. It will last for %s.\nReason: %s\nAuthor: %s" %
-            (storage["cmds"][command_name]["role_name"], text[1], reason, event.author.name))
+                     (storage["cmds"][command_name]["role_name"], text[1], reason, event.author.name))
 
         return reason_entry
 
@@ -355,6 +372,7 @@ def give_temp_role(text, server, command_name, storage, event):
 
     return "Nothing happened"
 
+
 @hook.command(permissions=Permission.admin)
 def set_mod_log_chan(server, storage, text):
     """
@@ -370,6 +388,7 @@ def set_mod_log_chan(server, storage, text):
 
     return "Done."
 
+
 @hook.command(permissions=Permission.admin)
 def get_mod_log_chan(storage):
     """
@@ -379,6 +398,7 @@ def get_mod_log_chan(storage):
         return "<#%s>" % storage["modlog_chan"]
     else:
         return "Channel not set"
+
 
 @hook.command(permissions=Permission.admin)
 def clear_mod_log_chan(storage):
@@ -391,6 +411,7 @@ def clear_mod_log_chan(storage):
         return "Done."
     else:
         return "Channel not set"
+
 
 @hook.command(permissions=Permission.admin)
 def warn(user_id_to_object, str_to_id, text, storage, event, send_embed, server):
@@ -409,16 +430,18 @@ def warn(user_id_to_object, str_to_id, text, storage, event, send_embed, server)
         return "User not found."
 
     user_entry = create_user_reason(
-            storage,
-            user,
-            event.author,
-            reason,
-            "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id),
-            None,
-            "Warning")
+        storage,
+        user,
+        event.author,
+        reason,
+        "https://discordapp.com/channels/%s/%s/%s" % (
+            server.id, event.channel.id, event.msg.id),
+        None,
+        "Warning")
 
     # Log the action
     log_action(storage, user_entry, send_embed, "User warned")
+
 
 @hook.command(permissions=Permission.admin)
 def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm):
@@ -439,25 +462,28 @@ def kick(user_id_to_object, str_to_id, text, storage, event, send_embed, server,
         return "User not found."
 
     user_entry = create_user_reason(
-            storage,
-            user,
-            event.author,
-            reason,
-            "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id),
-            None,
-            "Kick")
+        storage,
+        user,
+        event.author,
+        reason,
+        "https://discordapp.com/channels/%s/%s/%s" % (
+            server.id, event.channel.id, event.msg.id),
+        None,
+        "Kick")
 
     # Log the action
     log_action(storage, user_entry, send_embed,
-        "User kicked")
+               "User kicked")
 
     details = "\nAuthor: %s" % event.author.name
     if reason:
         details += "\nReason: %s" % reason
-    send_pm(text="You have been kicked from %s.\n%s" % (server.name, details), user=user)
+    send_pm(text="You have been kicked from %s.\n%s" %
+            (server.name, details), user=user)
 
     user.kick()
     return "Okay."
+
 
 @hook.command(permissions=Permission.admin)
 def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, send_pm):
@@ -496,17 +522,18 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
         texp = timeout_sec + datetime.datetime.now().timestamp()
 
     user_entry = create_user_reason(
-            storage,
-            user,
-            event.author,
-            reason,
-            "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id),
-            texp,
-            "Ban" if permanent else "Temporary ban")
+        storage,
+        user,
+        event.author,
+        reason,
+        "https://discordapp.com/channels/%s/%s/%s" % (
+            server.id, event.channel.id, event.msg.id),
+        texp,
+        "Ban" if permanent else "Temporary ban")
 
     # Log the action
     log_action(storage, user_entry, send_embed,
-        "User banned")
+               "User banned")
 
     # Create command entry
     new_entry = {}
@@ -525,13 +552,15 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
 
         storage["temp_bans"].append(new_entry)
         send_pm(text="You have temporarily banned from %s. The ban will last for %s.\n%s" %
-            (server.name, text[1], details), user=user)
+                (server.name, text[1], details), user=user)
     else:
-        send_pm(text="You have been permanently banned from %s.\n%s" % (server.name, details), user=user)
+        send_pm(text="You have been permanently banned from %s.\n%s" %
+                (server.name, details), user=user)
     storage.sync()
 
     user.ban(server)
     return "User banned permanently." if permanent else "User banned temporarily."
+
 
 def check_expired_roles(server, storage):
     tnow = datetime.datetime.now().timestamp()
@@ -561,6 +590,7 @@ def check_expired_roles(server, storage):
                 storage["temp_roles"][cmd_name].remove(elem)
                 storage.sync()
 
+
 async def check_expired_bans(server, storage):
     tnow = datetime.datetime.now().timestamp()
     for elem in storage["temp_bans"]:
@@ -575,11 +605,13 @@ async def check_expired_bans(server, storage):
             storage["temp_bans"].remove(elem)
             storage.sync()
 
+
 @hook.periodic(1)
 async def check_expired_time(bot):
     # Check timeouts for each server
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_temp_role.json")
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_temp_role.json")
 
         if "temp_roles" in storage:
             check_expired_roles(server, storage)
@@ -590,6 +622,7 @@ async def check_expired_time(bot):
             except:
                 import traceback
                 print(traceback.format_exc())
+
 
 def adjust_user_reason(rstorage, author, user_id, command_name, new_time, message_link):
     reason_id = None
@@ -630,7 +663,8 @@ def create_user_reason(storage, user, author, reason, message_link, expire, reas
     new_elem["Reason"] = reason
     new_elem["Date"] = datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")
     if expire:
-        new_elem["Expire date"] = datetime.datetime.fromtimestamp(expire).strftime("%H:%M:%S %d-%m-%Y")
+        new_elem["Expire date"] = datetime.datetime.fromtimestamp(
+            expire).strftime("%H:%M:%S %d-%m-%Y")
     new_elem["Link"] = message_link
     new_elem["Author"] = "%s / %s" % (author.name, str(author.id))
     new_elem["User"] = "%s / %s" % (user.name, str(user.id))
@@ -690,9 +724,9 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
         extra = True
 
     for role in member.roles:
-#        if brole.id == role.id:
-#            extra = True
-#            break
+        #        if brole.id == role.id:
+        #            extra = True
+        #            break
         crt_roles.append(role.id)
 
     if command_name not in rstorage:
@@ -704,7 +738,8 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
             break
 
     if not extra:
-        reason_entry = add_reason(rstorage, event, member, reason, server, texp, brole.name)
+        reason_entry = add_reason(
+            rstorage, event, member, reason, server, texp, brole.name)
 
         new_entry = {}
         new_entry["user"] = user
@@ -723,6 +758,7 @@ def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id,
 
     return "wat"
 
+
 def adjust_time(rstorage, event, user_id, command_name, new_time):
     reason_id = None
     reason = None
@@ -733,8 +769,10 @@ def adjust_time(rstorage, event, user_id, command_name, new_time):
 
     for reason in rstorage["reasons"][user_id]:
         if reason["Case ID"] == reason_id:
-            reason["Modified by"] = "%s / %s" % (event.author.name, str(event.author.id))
-            reason["Modified expire time"] = datetime.datetime.fromtimestamp(new_time).strftime("%H:%M:%S %d-%m-%Y")
+            reason["Modified by"] = "%s / %s" % (
+                event.author.name, str(event.author.id))
+            reason["Modified expire time"] = datetime.datetime.fromtimestamp(
+                new_time).strftime("%H:%M:%S %d-%m-%Y")
 
     rstorage.sync()
     return reason
@@ -757,8 +795,10 @@ def add_reason(rstorage, event, user, reason, server, expire, rtype):
     new_elem["Case ID"] = rstorage["case_id"]
     new_elem["Reason"] = reason
     new_elem["Date"] = datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")
-    new_elem["Expire date"] = datetime.datetime.fromtimestamp(expire).strftime("%H:%M:%S %d-%m-%Y")
-    new_elem["Link"] = "https://discordapp.com/channels/%s/%s/%s" % (server.id, event.channel.id, event.msg.id)
+    new_elem["Expire date"] = datetime.datetime.fromtimestamp(
+        expire).strftime("%H:%M:%S %d-%m-%Y")
+    new_elem["Link"] = "https://discordapp.com/channels/%s/%s/%s" % (
+        server.id, event.channel.id, event.msg.id)
     new_elem["Author"] = "%s / %s" % (event.author.name, str(event.author.id))
     new_elem["User"] = "%s / %s" % (user.name, user.id)
     new_elem["Case ID"] = rstorage["case_id"]
@@ -769,6 +809,7 @@ def add_reason(rstorage, event, user, reason, server, expire, rtype):
     rstorage.sync()
 
     return new_elem
+
 
 def get_reasons(text, str_to_id, storage):
     if "reasons" not in storage:
@@ -792,10 +833,12 @@ def get_reasons(text, str_to_id, storage):
             rtype = reason["Type"]
 
         rtext = "Case: %s | Type: %s | Date: %s | Author: %s" % \
-                (reason["Case ID"], rtype, reason["Date"], reason["Author"].split("/")[0])
+                (reason["Case ID"], rtype, reason["Date"],
+                 reason["Author"].split("/")[0])
         rlist.append(rtext)
 
     return rlist
+
 
 def check_exp_time(rstorage, command_name, role, server):
     if command_name not in rstorage:

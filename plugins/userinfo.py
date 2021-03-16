@@ -2,10 +2,13 @@ import plugins.paged_content as paged
 from spanky.plugin import hook
 from datetime import datetime, timezone
 
+
 def getUnixTimestamp(snowflake):
     return ((int(snowflake) / 4194304) + 1420070400000) // 1000
 
+
 dateString = "%Y-%m-%d at %H:%M"
+
 
 @hook.command(format="mention")
 def userinfo(text, str_to_id, reply, server):
@@ -20,9 +23,9 @@ def userinfo(text, str_to_id, reply, server):
             reply("Please mention a user")
             return
 
-
         # account creation timestamp
-        createTimestamp = datetime.fromtimestamp(getUnixTimestamp(id), tz=timezone.utc)
+        createTimestamp = datetime.fromtimestamp(
+            getUnixTimestamp(id), tz=timezone.utc)
         output += f"Creation date: {createTimestamp.strftime(dateString)}\n"
 
         # join timestamp
@@ -45,6 +48,7 @@ def userinfo(text, str_to_id, reply, server):
         reply(output + "```")
     except Exception as e:
         print(e)
+
 
 @hook.command()
 async def inrole(text, server, async_send_message):

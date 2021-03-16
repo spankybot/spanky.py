@@ -7,6 +7,7 @@ import asyncio
 from spanky.plugin import hook
 from spanky.utils import textgen
 
+
 def is_valid(target):
     """ Checks if a string is a valid IRC nick. """
     if nick_re.match(target):
@@ -28,6 +29,7 @@ def load_spanks(bot):
     with codecs.open(os.path.join("plugin_data/bdsm.json"), encoding="utf-8") as f:
         bdsm_data = json.load(f)
 
+
 @hook.command
 def spank(text, send_message):
     """<user> - Spanks a  <user>"""
@@ -38,9 +40,11 @@ def spank(text, send_message):
     # act out the message
     send_message(generator.generate_string())
 
+
 @hook.command("bdsm")
 def bdsm(text, send_message):
     """Just a little bit of kinky fun."""
     user = text.strip()
-    generator = textgen.TextGenerator(bdsm_data["templates"], bdsm_data["parts"], variables={"user": user})
+    generator = textgen.TextGenerator(
+        bdsm_data["templates"], bdsm_data["parts"], variables={"user": user})
     send_message(generator.generate_string())

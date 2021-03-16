@@ -25,7 +25,8 @@ SERVERS = [
 ]
 
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
-domains = ['imgur.com', 'gfycat.com', 'redditmedia.com', 'i.redd.it', 'flic.kr', '500px.com', 'redgifs.com']
+domains = ['imgur.com', 'gfycat.com', 'redditmedia.com',
+           'i.redd.it', 'flic.kr', '500px.com', 'redgifs.com']
 
 dont_cache = ['random', 'randnsfw']
 
@@ -46,6 +47,7 @@ subs = Table(
     Column('cachetime', DateTime)
 )
 
+
 def get_links_from_sub(r, sub):
     subreddit = r.subreddit(sub)
 
@@ -59,23 +61,26 @@ def get_links_from_sub(r, sub):
 
     return new_links
 
+
 def refresh_cache(r, el):
     #print("Refreshing cache for " + el)
     delete = links.delete(links.c.subreddit == el)
     g_db.execute(delete)
     g_db.commit()
 
-    new_links =  get_links_from_sub(r, el)
+    new_links = get_links_from_sub(r, el)
     #print("Adding %d links" % len(new_links))
 
     last_fetch = datetime.utcnow()
 
     # Update db
     for nlink in new_links:
-        g_db.execute(links.insert().values(subreddit=el, link=nlink[0], source=nlink[1]))
+        g_db.execute(links.insert().values(
+            subreddit=el, link=nlink[0], source=nlink[1]))
 
     # Update db timestamp
-    g_db.execute(subs.update().where(subs.c.subreddit == el).values(cachetime=last_fetch))
+    g_db.execute(subs.update().where(
+        subs.c.subreddit == el).values(cachetime=last_fetch))
 
     g_db.commit()
 
@@ -85,6 +90,7 @@ def del_sub(sub):
     g_db.execute(subs.delete().where(subs.c.subreddit == sub))
     g_db.commit()
 
+
 def get_links_from_subs(sub):
     try:
         return _get_links_from_subs(sub)
@@ -92,6 +98,7 @@ def get_links_from_subs(sub):
         import traceback
         traceback.print_exc()
         return("My owner is too dumb to fix me. Please try again")
+
 
 def _get_links_from_subs(sub):
     data = []
@@ -111,7 +118,8 @@ def _get_links_from_subs(sub):
             continue
 
         if el not in sub_list:
-            g_db.execute(subs.insert().values(subreddit=el, cachetime=datetime.min))
+            g_db.execute(subs.insert().values(
+                subreddit=el, cachetime=datetime.min))
             sub_list[el] = datetime.min
             g_db.commit()
 
@@ -127,7 +135,8 @@ def _get_links_from_subs(sub):
             pass
             #print("Cache for %s is %i" %(el, (now - sub_list[el]).total_seconds()))
 
-        db_links = g_db.execute(select([links.c.link, links.c.source]).where(links.c.subreddit == el))
+        db_links = g_db.execute(
+            select([links.c.link, links.c.source]).where(links.c.subreddit == el))
 
         for row in db_links:
             data.append((row))
@@ -138,6 +147,7 @@ def _get_links_from_subs(sub):
                 del_sub(el)
     return data
 
+
 @hook.on_start
 def init(db):
     global g_db
@@ -146,9 +156,9 @@ def init(db):
         data = f.read()
 
     data = data.replace(" ", "")
-    data = data.replace("\n","")
-    data = data.replace("\'","")
-    data = data.replace("\"","")
+    data = data.replace("\n", "")
+    data = data.replace("\'", "")
+    data = data.replace("\"", "")
 
     start = "get_links_from_subs" + "(["
     end = "])"
@@ -167,16 +177,18 @@ def init(db):
 
         startpos += len(start)
 
+
 @hook.periodic(300, single_threaded=True)
 def refresh_porn(db):
     global g_db
     g_db = db
 
-    #print("Refreshing...")
+    # print("Refreshing...")
     db_subs = g_db.execute(select([subs.c.subreddit]))
     for el in db_subs:
         fake_list = [el['subreddit']]
         get_links_from_subs(fake_list)
+
 
 @hook.command(server_id=SERVERS)
 def force_refresh_porn():
@@ -189,6 +201,7 @@ def force_refresh_porn():
             print(e)
             pass
 
+
 def format_output_message(data):
     link, source = random.choice(data)
 
@@ -198,11 +211,13 @@ def format_output_message(data):
 
     return "%s / source: <https://redd.it/%s>" % (link, source)
 
+
 @hook.command(server_id=SERVERS)
 def skinny():
     data = get_links_from_subs(['skinnytail'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def roscate():
@@ -210,11 +225,13 @@ def roscate():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def tatuate():
     data = get_links_from_subs(['altgonewild'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def nsfwfunny():
@@ -222,17 +239,21 @@ def nsfwfunny():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def craci():
     data = get_links_from_subs(['thighhighs', 'stockings'])
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def buci():
-    data = get_links_from_subs(['ass', 'asstastic', 'assinthong', 'pawg', 'SuperDuperAss'])
+    data = get_links_from_subs(
+        ['ass', 'asstastic', 'assinthong', 'pawg', 'SuperDuperAss'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def tzatze():
@@ -240,17 +261,21 @@ def tzatze():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def fetish():
     data = get_links_from_subs(['kinky', 'bdsm', 'bondage', 'collared'])
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def teen():
-    data = get_links_from_subs(['LegalTeens', 'Just18', 'youngporn', 'barelylegal'])
+    data = get_links_from_subs(
+        ['LegalTeens', 'Just18', 'youngporn', 'barelylegal'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def sloboz():
@@ -258,11 +283,13 @@ def sloboz():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def anal():
     data = get_links_from_subs(['anal', 'painal'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def milf():
@@ -270,11 +297,13 @@ def milf():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def amateur():
     data = get_links_from_subs(['RealGirls', 'Amateur', 'GoneWild'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def traps():
@@ -282,11 +311,13 @@ def traps():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def aww():
     data = get_links_from_subs(['aww'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def pisi():
@@ -294,11 +325,13 @@ def pisi():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def cutu():
     data = get_links_from_subs(['dogpictures', 'TuckedInPuppies'])
 
     return format_output_message(data) + " HAM, HAM!"
+
 
 @hook.command(server_id=SERVERS)
 def blep():
@@ -306,11 +339,13 @@ def blep():
 
     return format_output_message(data) + " :P"
 
+
 @hook.command(server_id=SERVERS)
 def capre():
     data = get_links_from_subs(['doggy'])
 
     return format_output_message(data) + " NSFW!"
+
 
 @hook.command(server_id=SERVERS)
 def lesbiene():
@@ -318,11 +353,13 @@ def lesbiene():
 
     return format_output_message(data) + " NSFW!"
 
+
 @hook.command(server_id=SERVERS)
 def thicc():
     data = get_links_from_subs(['pawg', 'thick'])
 
     return format_output_message(data) + " NSFW!"
+
 
 @hook.command(server_id=SERVERS)
 def asians():
@@ -330,11 +367,13 @@ def asians():
 
     return format_output_message(data) + " NSFW!"
 
+
 @hook.command(server_id=SERVERS)
 def raton():
     data = get_links_from_subs(['TrashPandas'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def fetch_image(text):
@@ -346,6 +385,7 @@ def fetch_image(text):
     else:
         return "Please specify a sub or a list of subs (e.g.: .fetch_image RomaniaPorn or .fetch_image RomaniaPorn RoGoneWild)"
 
+
 @hook.command(server_id=SERVERS)
 def plsporn():
     """pls gib porn"""
@@ -353,19 +393,24 @@ def plsporn():
 
     return format_output_message(data)
 
+
 @hook.command(server_id=SERVERS)
 def plsgayporn():
     """pls gib porn"""
-    data = get_links_from_subs(['AmateurGayPorn', 'DickPics4Freedom', 'foreskin', 'GaybrosGoneWild', 'gayporn', 'MassiveCock', 'penis', 'ratemycock', 'selfservice', 'totallystraight'])
+    data = get_links_from_subs(['AmateurGayPorn', 'DickPics4Freedom', 'foreskin', 'GaybrosGoneWild',
+                                'gayporn', 'MassiveCock', 'penis', 'ratemycock', 'selfservice', 'totallystraight'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def blonde():
     """blonde"""
-    data = get_links_from_subs(['Blonde', 'blondegirlsfucking', 'nsfwblondeporn', 'GoneWildBlondes', 'blondehairblueeyes'])
+    data = get_links_from_subs(['Blonde', 'blondegirlsfucking',
+                                'nsfwblondeporn', 'GoneWildBlondes', 'blondehairblueeyes'])
 
     return format_output_message(data)
+
 
 @hook.command(server_id=SERVERS)
 def femboy():

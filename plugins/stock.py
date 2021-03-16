@@ -5,9 +5,11 @@ filter_fields = [
     "name", "symbol", "exchangeCode", "close", "change", "pPrice", "pChange", "open", "low", "high"
 ]
 
+
 @hook.command()
 def stock(text):
     return quote(text)
+
 
 @hook.command()
 def quote(text):
@@ -25,6 +27,7 @@ def quote(text):
         high=data["dayHigh"],
         low=data["dayLow"]
     )
+
 
 @hook.command()
 def dquote(text, send_embed):

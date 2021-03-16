@@ -10,10 +10,12 @@ compilers_proc = {}
 MAX_LEN = 500
 MAX_LINES = 10
 
+
 def quote_it(data):
     import re
 
     return '```\n' + data + '\n```'
+
 
 def extract_code(msg):
     msg = msg.strip()
@@ -36,11 +38,9 @@ def extract_code(msg):
 
         return lang, code
 
-
     # firs line should not have more than one word, which should be the language
     if len(parts[0].split()) > 1:
         return None, None
-
 
     # remove ``` from the end if we've got them
     code = parts[1]
@@ -57,6 +57,7 @@ def extract_code(msg):
         _, code = code.split('\n', 1)
 
     return lang, code
+
 
 @hook.command()
 def wb(text, send_message):
@@ -76,9 +77,10 @@ def wb(text, send_message):
     lang, code = extract_code(text)
 
     if lang not in compilers and lang not in compilers_proc:
-        msg =  "Compilers: `" + ", ".join(i for i in sorted(compilers)) + "`\n"
+        msg = "Compilers: `" + ", ".join(i for i in sorted(compilers)) + "`\n"
         msg += "OR\n"
-        msg += "Languages: `" + ", ".join(i for i in sorted(compilers_proc)) + "`\n"
+        msg += "Languages: `" + \
+            ", ".join(i for i in sorted(compilers_proc)) + "`\n"
         msg += "Run with: `.wb <compiler/language> <code>`"
         send_message(msg)
         return
@@ -109,7 +111,7 @@ def wb(text, send_message):
             if len(to_print) > MAX_LEN and len(to_print.split("\n")) > MAX_LINES:
                 url = web.paste(data=str(to_print))
                 resp_lines = to_print.split("\n")
-                return '```' + "\n".join(resp_lines[:MAX_LINES]) + '```'+ " [...] see output at " + url
+                return '```' + "\n".join(resp_lines[:MAX_LINES]) + '```' + " [...] see output at " + url
 
             if len(to_print) > MAX_LEN:
                 url = web.paste(data=str(to_print))
@@ -120,7 +122,7 @@ def wb(text, send_message):
 
                 resp_lines = to_print.split("\n")
 
-                return '```' + "\n".join(resp_lines[:MAX_LINES]) + '```'+ " [...] see output at " + url
+                return '```' + "\n".join(resp_lines[:MAX_LINES]) + '```' + " [...] see output at " + url
             else:
                 return(quote_it(to_print))
     except Exception as e:

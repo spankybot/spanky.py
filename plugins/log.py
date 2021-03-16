@@ -15,6 +15,7 @@ base_formats = {
 
 db_conn = None
 
+
 @hook.on_start()
 def init_db(bot):
     global db_conn
@@ -24,9 +25,12 @@ def init_db(bot):
 
     try:
         if db_name != None and db_user != None:
-            db_conn = psycopg2.connect("dbname=%s user=%s" % (db_name, db_user))
+            db_conn = psycopg2.connect(
+                "dbname=%s user=%s" % (db_name, db_user))
     except:
-        import traceback; traceback.print_exc()
+        import traceback
+        traceback.print_exc()
+
 
 def get_format_args(event):
     # Setup arguments
@@ -65,6 +69,7 @@ def get_format_args(event):
 
     return args
 
+
 def format_event(event, args):
     return base_formats[event.type].format(**args)
 
@@ -72,11 +77,13 @@ def format_event(event, args):
 # | File logging |
 # +--------------+
 
+
 file_format = "{channel}_%Y%m%d.log"
 folder_format = "logs/{server_id}/%Y/"
 
 # Stream cache, (server, chan) -> (file_name, stream)
 stream_cache = {}
+
 
 def get_log_filename(event, args):
     current_time = time.localtime()
@@ -115,10 +122,12 @@ def get_log_stream(event, args):
         # a dumb hack to bypass the fact windows does not allow * in file names
         new_filename = new_filename.replace("*", "server")
 
-        log_stream = codecs.open(new_filename, mode="a", encoding="utf-8", buffering=1)
+        log_stream = codecs.open(
+            new_filename, mode="a", encoding="utf-8", buffering=1)
         stream_cache[cache_key] = (new_filename, log_stream)
 
     return log_stream
+
 
 @hook.event(EventType.message)
 def log(bot, event):
@@ -133,6 +142,7 @@ def log(bot, event):
         print(e)
         init_db(bot)
 
+
 def file_log(event, args):
     text = format_event(event, args)
 
@@ -141,11 +151,13 @@ def file_log(event, args):
         stream.write(text + os.linesep)
         stream.flush()
 
+
 def console_log(bot, event, args):
     text = format_event(event, args)
 
     if text is not None:
         bot.logger.info(text)
+
 
 def db_log(event, args):
     if not db_conn:
@@ -154,16 +166,17 @@ def db_log(event, args):
     cs = db_conn.cursor()
     cs.execute("""insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
             values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (
-            args["msg_id"],
-            args["timestamp"],
-            args["author"],
-            args["author_id"],
-            args["content"],
-            args["channel"],
-            args["channel_id"],
-            args["server"],
-            args["server_id"]))
+        args["msg_id"],
+        args["timestamp"],
+        args["author"],
+        args["author_id"],
+        args["content"],
+        args["channel"],
+        args["channel_id"],
+        args["server"],
+        args["server_id"]))
     db_conn.commit()
+
 
 def log_msg(msg):
     args = {}
@@ -194,6 +207,7 @@ def log_msg(msg):
             args["server_id"]))
         db_conn.commit()
 
+
 @hook.command()
 def seen_user(text, str_to_id):
     """
@@ -204,11 +218,11 @@ def seen_user(text, str_to_id):
     cs = db_conn.cursor()
 
     try:
-        cs.execute("""select * from messages where author_id=%s order by date desc limit 1""", (str(uid),))
+        cs.execute(
+            """select * from messages where author_id=%s order by date desc limit 1""", (str(uid),))
     except:
         db_conn.rollback()
         return "Invalid input"
-
 
     data = cs.fetchall()
     _, seen, _, _, _, _, _, _, _ = data[0]
@@ -222,17 +236,20 @@ def get_msg_cnt_for_user(uid):
 
     return cs.fetchall()[0][0]
 
+
 def get_msg_cnt_for_channel(cid):
     cs = db_conn.cursor()
-    cs.execute("""select count(*) from messages where channel_id=%s""", (str(cid),))
+    cs.execute(
+        """select count(*) from messages where channel_id=%s""", (str(cid),))
 
     return cs.fetchall()[0][0]
+
 
 def get_msg_cnt_for_channel_after(cid, lower):
     cs = db_conn.cursor()
 
     cs.execute("""select count(*) from messages where channel_id=%s and date>%s""",
-        (str(cid), str(datetime.fromtimestamp(lower)),))
+               (str(cid), str(datetime.fromtimestamp(lower)),))
 
     return cs.fetchall()[0][0]
 
@@ -325,44 +342,13 @@ async def rip_servers(bot):
                 import traceback
                 traceback.print_exc()
 
+
 @hook.command(permissions=Permission.bot_owner)
 def cntusr(text):
     return get_msg_cnt_for_user(text)
 
-@hook.command(permissions=Permission.bot_owner)
-async def cl1234(bot, reply):
-    import discord
-    client = bot.backend.client
 
-    gen = client.get_all_channels()
-
-    for ch in gen:
-        if ch.guild.id != 287285563118190592:
-            continue
-
-        print(ch.name)
-        print(ch.id)
-
-        cs = db_conn.cursor()
-        try:
-            cs.execute("""select * from messages where author_id='374536373560147978' and channel_id=%s order by date asc""", (str(ch.id),))
-        except:
-            import traceback
-            traceback.print_exc()
-
-        try:
-            data = cs.fetchall()
-            #reply("https://discordapp.com/channels/287285563118190592/%s/%s" % (ch.id, data[1][0]))
-
-            for mid in data:
-                try:
-                    msg = await ch.fetch_message(mid[0])
-                    reply("%s\nhttps://discordapp.com/channels/287285563118190592/%s/%s" % (msg.content, ch.id, mid[0]))
-                    await msg.delete()
-                except:
-                    print("not found")
-        except:
-            import traceback
-            traceback.print_exc()
-
-    reply("Done <@278247547838136320>")
+@hook.command()
+def asdasdasda(server):
+    for user in server.get_users():
+        print(user.name)

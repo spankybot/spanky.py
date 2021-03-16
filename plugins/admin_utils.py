@@ -7,6 +7,8 @@ from plugins.log import get_msg_cnt_for_user
 import discord
 
 # I don't know any better way to do this, since it needs to auto increment in a join call
+
+
 class Counter:
     def __init__(self, start=1):
         self.x = start
@@ -31,6 +33,7 @@ def find_event_by_text(storage, text, str_to_id):
 
     return events
 
+
 def find_event_by_id(storage, e_id):
     if not "on_join" in storage:
         return None
@@ -43,27 +46,27 @@ def find_event_by_id(storage, e_id):
         e_id = int(e_id)
     except ValueError:
         return None
-    
+
     for item in storage["on_join"]:
         if item["type"] == "message":
             msg_events.append(item)
         elif item["type"] == "role":
             role_events.append(item)
-    
+
     for event in msg_events:
         val = cnt.get()
-        
+
         if e_id == val:
             return event
 
     for event in role_events:
         val = cnt.get()
-        
+
         if e_id == val:
             return event
 
     return None
-        
+
 
 def find_event_by_text_match(storage, text, str_to_id):
     events = []
@@ -79,6 +82,7 @@ def find_event_by_text_match(storage, text, str_to_id):
                 events.append(item)
 
     return events
+
 
 @hook.command(permissions=Permission.admin)
 def add_join_event(storage, text, str_to_id, id_to_chan, id_to_role_name):
@@ -137,6 +141,7 @@ e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 123456
     else:
         return "Invalid type."
 
+
 @hook.event(EventType.join)
 def do_join(event, storage, send_message, str_to_id, server):
     if storage["on_join"] == None:
@@ -144,7 +149,8 @@ def do_join(event, storage, send_message, str_to_id, server):
 
     for item in storage["on_join"]:
         if item["type"] == "message":
-            creation_date = datetime.datetime.utcfromtimestamp(int((int(event.member.id) >> 22) + 1420070400000) / 1000)
+            creation_date = datetime.datetime.utcfromtimestamp(
+                int((int(event.member.id) >> 22) + 1420070400000) / 1000)
             args = {
                 "AGE":  time_utils.sec_to_human((datetime.datetime.now() - creation_date).total_seconds()),
                 "USER": event.member.name,
@@ -154,12 +160,14 @@ def do_join(event, storage, send_message, str_to_id, server):
                 args["SEEN_CNT"] = get_msg_cnt_for_user(event.member.id)
 
             message = item["message"].format(**args)
-            send_message(target=item["chan"], text=message, timeout=item["timeout"])
+            send_message(target=item["chan"],
+                         text=message, timeout=item["timeout"])
 
         elif item["type"] == "role":
             for role in server.get_roles():
                 if role.id == item["role"]:
                     event.member.add_role(role)
+
 
 @hook.command(permissions=Permission.admin)
 def list_join_events(storage, id_to_chan, id_to_role_name, reply):
@@ -193,13 +201,16 @@ def list_join_events(storage, id_to_chan, id_to_role_name, reply):
 
         #msg += """\n---\n`Message:` """ + m["message"]
         #msg += "\n`Channel:` " + id_to_chan(m["chan"])
-        #if m["timeout"] != 0:
+        # if m["timeout"] != 0:
         #    msg += "\n`Timeout:` " + str(m["timeout"])
 
     if len(roles) > 0:
-        msg += "\n---\n`Roles given on join:` \n" + "\n".join("`ID:` %s `Name:` %s" % (str(cnt.get()), id_to_role_name(i["role"])) for i in roles)
+        msg += "\n---\n`Roles given on join:` \n" + \
+            "\n".join("`ID:` %s `Name:` %s" % (str(cnt.get()),
+                                               id_to_role_name(i["role"])) for i in roles)
 
     reply(msg, allowed_mentions=discord.AllowedMentions.none())
+
 
 @hook.command(permissions=Permission.admin)
 def get_timeout_for(storage, text, str_to_id):
@@ -221,6 +232,7 @@ def get_timeout_for(storage, text, str_to_id):
         return "Timeout set to %d" % evt["timeout"]
     else:
         return "No timeout set"
+
 
 @hook.command(permissions=Permission.admin)
 def set_timeout_for(storage, text, str_to_id):
@@ -244,9 +256,11 @@ def set_timeout_for(storage, text, str_to_id):
         storage.sync()
         return "Done. Set timeout to %d seconds" % evt["timeout"]
     except:
-        import traceback;traceback.print_exc()
+        import traceback
+        traceback.print_exc()
 
     storage.sync()
+
 
 @hook.command(permissions=Permission.admin)
 def del_join_event(storage, text, str_to_id):

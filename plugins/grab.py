@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import re
 import random
 import plugins.paged_content as paged
@@ -6,6 +6,7 @@ import spanky.utils.discord_utils as dutils
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
+
 
 @hook.command(format="user")
 async def grab(text, channel, storage, reply, event):
@@ -61,6 +62,7 @@ async def grab(text, channel, storage, reply, event):
 
     reply("Done.")
 
+
 def get_data(func, storage):
     content = []
 
@@ -69,6 +71,7 @@ def get_data(func, storage):
             content.append("<%s> %s" % (msg["author_name"], msg["text"]))
 
     return content
+
 
 def get_all_data(func, storage):
     content = []
@@ -79,6 +82,7 @@ def get_all_data(func, storage):
 
     return content
 
+
 @hook.command()
 def grabr(storage):
     """
@@ -87,6 +91,7 @@ def grabr(storage):
     item = random.choice(storage["grabs"])
 
     return "<%s> %s" % (item["author_name"], item["text"])
+
 
 @hook.command(format="word")
 def grabu(text, storage, str_to_id):
@@ -104,6 +109,7 @@ def grabu(text, storage, str_to_id):
         return "Nothing here."
 
     return random.choice(content)
+
 
 @hook.command
 async def grabl(event, storage, async_send_message, str_to_id, user_id_to_name, text):
@@ -125,6 +131,7 @@ async def grabl(event, storage, async_send_message, str_to_id, user_id_to_name, 
         paged_content = paged.element(content, async_send_message, description)
         await paged_content.get_crt_page()
 
+
 @hook.command(format="word")
 async def grabs(event, storage, async_send_message):
     """
@@ -140,8 +147,10 @@ async def grabs(event, storage, async_send_message):
         await async_send_message("Nothing found.")
         return
     else:
-        paged_content = paged.element(content, async_send_message, "Grabs containing %s" % text)
+        paged_content = paged.element(
+            content, async_send_message, "Grabs containing %s" % text)
         await paged_content.get_crt_page()
+
 
 @hook.command(permissions=Permission.admin)
 def del_grab(text, storage):
@@ -152,7 +161,8 @@ def del_grab(text, storage):
     to_delete = get_all_data(lambda m: text in m["text"], storage)
 
     if len(to_delete) > 1:
-        msg = "Found more than one results (%d). Not deleting." % len(to_delete)
+        msg = "Found more than one results (%d). Not deleting." % len(
+            to_delete)
 
         if len(to_delete) < 10:
             msg += "\nThe IDs are: "
