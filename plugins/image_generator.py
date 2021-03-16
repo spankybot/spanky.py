@@ -9,19 +9,19 @@ from sqlalchemy.sql import select
 from spanky import database
 
 RODDIT_ID = "287285563118190592"
-FLR_SERVER = "573566494332420123"
 TESTOSTERON = "611894947024470027"
 ROBYTE = "464089471806210049"
 BEN_SRV = "484640057764872193"
 DISO_SRV = "423964901128536065"
+TZ_SRV = "754550072955371620"
 
 SERVERS = [
     RODDIT_ID,
-    FLR_SERVER,
     TESTOSTERON,
     ROBYTE,
     BEN_SRV,
-    DISO_SRV
+    DISO_SRV,
+    TZ_SRV
 ]
 
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
@@ -230,7 +230,7 @@ def craci():
 
 @hook.command(server_id=SERVERS)
 def buci():
-    data = get_links_from_subs(['ass', 'asstastic', 'assinthong', 'pawg'])
+    data = get_links_from_subs(['ass', 'asstastic', 'assinthong', 'pawg', 'SuperDuperAss'])
 
     return format_output_message(data)
 
@@ -349,11 +349,27 @@ def fetch_image(text):
 @hook.command(server_id=SERVERS)
 def plsporn():
     """pls gib porn"""
-    return fetch_image("randnsfw")
+    data = get_links_from_subs(['randnsfw', 'The_Best_NSFW_GIFS'])
+
+    return format_output_message(data)
 
 @hook.command(server_id=SERVERS)
 def plsgayporn():
     """pls gib porn"""
     data = get_links_from_subs(['AmateurGayPorn', 'DickPics4Freedom', 'foreskin', 'GaybrosGoneWild', 'gayporn', 'MassiveCock', 'penis', 'ratemycock', 'selfservice', 'totallystraight'])
+
+    return format_output_message(data)
+
+@hook.command(server_id=SERVERS)
+def blonde():
+    """blonde"""
+    data = get_links_from_subs(['Blonde', 'blondegirlsfucking', 'nsfwblondeporn', 'GoneWildBlondes', 'blondehairblueeyes'])
+
+    return format_output_message(data)
+
+@hook.command(server_id=SERVERS)
+def femboy():
+    """femboy"""
+    data = get_links_from_subs(['femboy', 'femboys'])
 
     return format_output_message(data)
