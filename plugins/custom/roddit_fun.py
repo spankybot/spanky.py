@@ -145,16 +145,16 @@ def cacat(send_message):
 def cola():
     return "un cola pls!"
 
-@hook.command(server_id=RODDIT_ID)
-def maslina(send_message, text):
-    dance = [
-            "ce zi minunata!",
-            "ce faceti, prieteni?",
-            "inca putin si se termina si ziua asta :D :D :D",
-            "CUŢUUUUUUU!!!",
-            "PISIIIIIII!!!"
-            ]
-    send_message(random.choice(dance))
+#@hook.command(server_id=RODDIT_ID)
+#def maslina(send_message, text):
+#    dance = [
+#            "ce zi minunata!",
+#            "ce faceti, prieteni?",
+#            "inca putin si se termina si ziua asta :D :D :D",
+#            "CUŢUUUUUUU!!!",
+#            "PISIIIIIII!!!"
+#            ]
+#    send_message(random.choice(dance))
 
 @hook.command(server_id=RODDIT_ID)
 def vasile(send_message, text):
