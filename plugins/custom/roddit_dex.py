@@ -9,12 +9,13 @@ from bs4 import BeautifulSoup
 RODDIT_ID = "287285563118190592"
 ROBAC_ID = "456496203040030721"
 
+
 @hook.command(server_id=[RODDIT_ID, ROBAC_ID])
 async def dex(send_message, async_send_message, text):
     """<cuvant> - Cauta definitia pentru un cuvant in DEX"""
     r = requests.get('https://dexonline.ro/definitie/%s/expandat' % text)
     bf = BeautifulSoup(r.content, "html.parser")
-    results = bf.find_all('div', {'class' : 'defWrapper'})
+    results = bf.find_all('div', {'class': 'defWrapper'})
 
     if len(results) == 0:
         send_message("n-am gasit boss")
@@ -22,7 +23,8 @@ async def dex(send_message, async_send_message, text):
 
     content = []
     for i in range(len(results)):
-        content.append(results[i].find_all('span', {'class' : 'def'})[0].text)
+        content.append(results[i].find_all('span', {'class': 'def'})[0].text)
 
-    paged_content = paged.element(content, async_send_message, "Definitii pentru %s" % text, max_lines=1, max_line_len=1800)
+    paged_content = paged.element(
+        content, async_send_message, "Definitii pentru %s" % text, max_lines=1, max_line_len=1800)
     await paged_content.get_crt_page()

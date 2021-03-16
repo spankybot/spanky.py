@@ -9,47 +9,57 @@ RODDIT_ID = "287285563118190592"
 MAX_OVERLAP_RATIO = 0.5
 MAX_OVERLAP_TOTAL = 10
 
+
 @hook.command(server_id=RODDIT_ID)
 def shrug(send_message):
     send_message(r"¯\_(ツ)_/¯")
 
+
 @hook.command(server_id=RODDIT_ID)
 def dance(send_message, text):
     dance = [
-            "└@(･◡･)@┐",
-            "〈( ^.^)ノ",
-            "ヽ(ﾟｰﾟ*ヽ)",
-            "ヾ(´〇｀)ﾉ",
-            "ヽ(´▽｀)ノ",]
+        "└@(･◡･)@┐",
+        "〈( ^.^)ノ",
+        "ヽ(ﾟｰﾟ*ヽ)",
+        "ヾ(´〇｀)ﾉ",
+        "ヽ(´▽｀)ノ", ]
     send_message(text + ": " + random.choice(dance))
+
 
 @hook.command(server_id=RODDIT_ID)
 def brutalistu(send_send_message):
     send_send_message("nu sunt bluntlee")
 
+
 @hook.command(server_id=RODDIT_ID)
 def bluntlee(send_message):
     send_message("nu sunt brutalistu")
+
 
 @hook.command(server_id=RODDIT_ID)
 def bitter(send_message):
     send_message("come play with me, Iazo")
 
+
 @hook.command(server_id=RODDIT_ID)
 def iazo(send_message):
     send_message(random.choice(["am treaba", "Ke"]))
+
 
 @hook.command(server_id=RODDIT_ID)
 def ayy(send_message):
     send_message("lmao")
 
+
 @hook.command(server_id=RODDIT_ID)
 def jupi(send_message):
     send_message("_rs _rs _rs _rs _rs _rs _rssss _rrrss erers Rs ERRES!!!")
 
+
 @hook.command(server_id=RODDIT_ID)
 def aplauze(send_message):
     send_message("CLAP CLAP CLAP CLAP CLAP")
+
 
 @hook.command(server_id=RODDIT_ID)
 def puti(send_message, text, nick):
@@ -57,6 +67,7 @@ def puti(send_message, text, nick):
         send_message(text.split()[0] + ": Puţi!")
     else:
         send_message(nick + ": Puţi!")
+
 
 @hook.command(server_id=RODDIT_ID)
 def murmuz():
@@ -66,25 +77,27 @@ def murmuz():
         text_model = markovify.Text(content)
         try:
             return("murmuz: " + text_model.make_sentence(tries=1000,
-                max_overlap_total=MAX_OVERLAP_TOTAL,
-                max_overlap_ratio=MAX_OVERLAP_RATIO))
+                                                         max_overlap_total=MAX_OVERLAP_TOTAL,
+                                                         max_overlap_ratio=MAX_OVERLAP_RATIO))
         except Exception as e:
             print(e)
             return "pula"
 
+
 @hook.command(server_id=RODDIT_ID)
 def mtutea():
-    with open(TEXTS_REL_PATH + "Tutea.txt", "r", encoding ='ISO-8859-1') as f:
+    with open(TEXTS_REL_PATH + "Tutea.txt", "r", encoding='ISO-8859-1') as f:
         content = f.read()
 
         text_model = markovify.Text(content)
         try:
             return("sluțea: " + text_model.make_sentence(tries=1000,
-                max_overlap_total = MAX_OVERLAP_TOTAL,
-                max_overlap_ratio=MAX_OVERLAP_RATIO))
+                                                         max_overlap_total=MAX_OVERLAP_TOTAL,
+                                                         max_overlap_ratio=MAX_OVERLAP_RATIO))
         except Exception as e:
             print(e)
             return "a murit, mai dă-l in pulă"
+
 
 @hook.command(server_id=RODDIT_ID)
 def mpuric():
@@ -94,11 +107,12 @@ def mpuric():
         text_model = markovify.Text(content)
         try:
             return("pulic: " + text_model.make_sentence(tries=1000,
-                max_overlap_total=MAX_OVERLAP_TOTAL,
-                max_overlap_ratio=MAX_OVERLAP_RATIO))
+                                                        max_overlap_total=MAX_OVERLAP_TOTAL,
+                                                        max_overlap_ratio=MAX_OVERLAP_RATIO))
         except Exception as e:
             print(e)
             return "pula"
+
 
 @hook.command(server_id=RODDIT_ID)
 def mcioran():
@@ -106,9 +120,10 @@ def mcioran():
         content = f.read()
 
         text_model = markovify.Text(content)
-        return("ciolan: " + text_model.make_short_sentence(max_chars = 140, tries=10000,
-            max_overlap_total=MAX_OVERLAP_TOTAL,
-            max_overlap_ratio=MAX_OVERLAP_RATIO))
+        return("ciolan: " + text_model.make_short_sentence(max_chars=140, tries=10000,
+                                                           max_overlap_total=MAX_OVERLAP_TOTAL,
+                                                           max_overlap_ratio=MAX_OVERLAP_RATIO))
+
 
 @hook.command(server_id=RODDIT_ID)
 def injur():
@@ -116,9 +131,9 @@ def injur():
         content = f.read()
 
         text_model = markovify.Text(content)
-        return("aihwh: " + text_model.make_short_sentence(max_chars = 140, tries=10000,
-            max_overlap_total=MAX_OVERLAP_TOTAL,
-            max_overlap_ratio=MAX_OVERLAP_RATIO))
+        return("aihwh: " + text_model.make_short_sentence(max_chars=140, tries=10000,
+                                                          max_overlap_total=MAX_OVERLAP_TOTAL,
+                                                          max_overlap_ratio=MAX_OVERLAP_RATIO))
 
 
 @hook.command(server_id=RODDIT_ID)
@@ -128,25 +143,27 @@ def manea():
 
         text_model = markovify.Text(content)
 
-        return("lautar: " + text_model.make_short_sentence(max_chars = 300, tries=10000,
-            max_overlap_total=MAX_OVERLAP_TOTAL,
-            max_overlap_ratio=MAX_OVERLAP_RATIO))
+        return("lautar: " + text_model.make_short_sentence(max_chars=300, tries=10000,
+                                                           max_overlap_total=MAX_OVERLAP_TOTAL,
+                                                           max_overlap_ratio=MAX_OVERLAP_RATIO))
 
 
 @hook.command(server_id=RODDIT_ID)
 def muie(send_message):
     send_message("ia muie!")
 
+
 @hook.command(server_id=RODDIT_ID)
 def cacat(send_message):
     send_message("ce cacat")
+
 
 @hook.command(server_id=RODDIT_ID)
 def cola():
     return "un cola pls!"
 
-#@hook.command(server_id=RODDIT_ID)
-#def maslina(send_message, text):
+# @hook.command(server_id=RODDIT_ID)
+# def maslina(send_message, text):
 #    dance = [
 #            "ce zi minunata!",
 #            "ce faceti, prieteni?",
@@ -155,6 +172,7 @@ def cola():
 #            "PISIIIIIII!!!"
 #            ]
 #    send_message(random.choice(dance))
+
 
 @hook.command(server_id=RODDIT_ID)
 def vasile(send_message, text):
@@ -170,7 +188,7 @@ def vasile(send_message, text):
         "nu imi trece sa am vreo manifestare vreo stiinta in mine daca mi se scoala pula",
         "vreau pizda vreau intre tate vreau in anus sa io bag si in multe alte alea la muie in gura sai bag",
         "vreau sami pun bile de aceea asteptatima sa imi pun bile 10 bile voi pune voi fute mai mult ca oricand acum la batranete"
-        ]
+    ]
 
     txt_en = [
         "I want to fuck"
@@ -184,7 +202,7 @@ def vasile(send_message, text):
         "I don't care if I have any manifestation or science in me if my cock rises",
         "I want a pussy, I want between my tits, I want to put it in her anus and in many other things I put it in her mouth in her mouth",
         "I want to put balls on my own therefore wait to put balls 10 balls I will put I will fuck more than ever now that I'm old"
-        ]
+    ]
 
     if text == "en":
         send_message(random.choice(txt_en))

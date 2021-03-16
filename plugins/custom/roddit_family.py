@@ -19,12 +19,13 @@ import spanky.inputs.discord_py as dpy
 import secrets
 
 SERVER_IDS = [
-    "648937029433950218", # Dev Server
-    "287285563118190592" # r/ro
+    "648937029433950218",  # Dev Server
+    "287285563118190592",  # r/ro
+    "754550072955371620",  # tz srv
 ]
 ELEVATED_PERMS = [Permission.admin, Permission.bot_owner]
 PLUGIN_DATA_NAME = "plugins_custom_roddit_family.json"
-PLUGIN_MAINTAINER = "195202549647671297" # CNC#9999
+PLUGIN_MAINTAINER = "195202549647671297"  # CNC#9999
 
 server_trees = {}
 
@@ -36,6 +37,7 @@ graph_attributes = []
 
 no_mentions = discord.AllowedMentions.none()
 
+
 class RelativeException(Exception):
     def __init__(self, p1, p2):
         self.p1 = p1
@@ -43,10 +45,12 @@ class RelativeException(Exception):
         self.err = f"{p1.name} e o rudă a lui {p2.name}"
         super().__init__(self.err)
 
+
 class OfferType(IntEnum):
     MARRY = 1
     ADOPT = 2
     CHOICE = 3
+
 
 class PendingOffer:
     """
@@ -85,29 +89,33 @@ class PendingOffer:
     def deserialize(serialized):
         return PendingOffer(serialized["id"], OfferType(serialized["type"]), serialized["from"], serialized["to"])
 
+
 class Person:
     def __init__(self, uid: str, name: str, spouse="", children=[], parents=[]):
         self.id = uid
         self.name = name
         self.tree: 'ServerTree' = None
-        
+
         self.raw_spouse = spouse
         self.raw_children = children
         self.raw_parents = parents
         self.spouse: Optional['Person'] = None
         self.children: List['Person'] = []
         self.parents: List['Person'] = []
-    
+
     def __repr__(self):
         return self.__str__()
+
     def __str__(self):
         return f"Person[id: {self.id}, name: {self.name}]"
+
     def __eq__(self, other):
         if isinstance(other, Person):
             return self.id == other.id
         if isinstance(other, str):
             return self.id == other
         return False
+
     def __hash__(self):
         return hash(self.id)
 
@@ -144,7 +152,7 @@ class Person:
         self.tree.add_offer(offer)
         print("Marriage action made from %s with %s" % (self.id, user_id))
         return offer
-    
+
     # For someone to adopt another user
     def adopt(self, user_id):
         if self.is_relative(user_id):
@@ -153,7 +161,7 @@ class Person:
         self.tree.add_offer(offer)
         print("Adopt action made from %s with %s" % (self.id, user_id))
         return offer
-    
+
     # complete_marriage is called by the tree to update the spouse
     def complete_marriage(self, spouse: 'Person'):
         self.spouse = spouse
@@ -164,9 +172,9 @@ class Person:
             child.parents = [self, spouse]
         self.spouse.children = self.children.copy()
         self.sync()
-    
+
     def complete_adoption(self, relative: 'Person', tp: str):
-        if tp == "child": # relative becomes a child
+        if tp == "child":  # relative becomes a child
             self.children.append(relative)
             if self.spouse:
                 self.spouse.children.append(relative)
@@ -182,7 +190,7 @@ class Person:
             self.spouse.divorce(from_spouse=True)
         self.spouse = None
         self.sync()
-    
+
     # get_all_relatives gets all the relatives from a person in no particular order
     # this assumes that the family graph is acyclic
     def get_all_relatives(self) -> List['Person']:
@@ -191,7 +199,7 @@ class Person:
             for person in v:
                 out.append(person)
         return out
-    
+
     def get_relative_levels(self) -> RelativeDict:
         levels: RelativeDict = {}
         self.fill_relative_dict(levels, 0, self.id)
@@ -200,16 +208,16 @@ class Person:
     def fill_relative_dict(self, levels: RelativeDict, curr_level: int, asker: str):
         if curr_level not in levels:
             levels[curr_level] = set()
-        
+
         levels[curr_level].add(self)
-        
+
         if self.spouse and self.spouse.id != asker and self.spouse not in levels[curr_level]:
             self.spouse.fill_relative_dict(levels, curr_level, self.id)
-        
+
         for p in self.parents:
             if p.id != asker and (curr_level - 1 not in levels or p not in levels[curr_level - 1]):
                 p.fill_relative_dict(levels, curr_level - 1, self.id)
-        
+
         for c in self.children:
             if c.id != asker and (curr_level + 1 not in levels or c not in levels[curr_level + 1]):
                 c.fill_relative_dict(levels, curr_level + 1, self.id)
@@ -235,7 +243,6 @@ class Person:
             self.spouse.delete_kid(child_id)
         return True
 
-
     def get_marriage_cross(self):
         if not self.spouse:
             return ''
@@ -247,7 +254,7 @@ class Person:
 
     def family_tree(self) -> Image.Image:
         ranks = self.get_relative_levels()
-        g = Digraph(name='family', 
+        g = Digraph(name='family',
                     format='png',
                     edge_attr=edge_attributes,
                     graph_attr=graph_attributes,
@@ -256,7 +263,7 @@ class Person:
         levels = self.get_relative_levels()
 
         lvl_ids = sorted(list(levels.keys()))
-        
+
         for level in lvl_ids:
             people = levels[level]
 
@@ -274,7 +281,7 @@ class Person:
                         s.node(person.id, label=person.name, color='blue')
                     else:
                         s.node(person.id, label=person.name)
-                    
+
                     if not person.married:
                         for child in person.children:
                             g.edge(person.id, child.id)
@@ -291,7 +298,8 @@ class Person:
                     cross = person.get_marriage_cross()
                     if cross not in cross_set:
                         cross_set.add(cross)
-                        s.node(cross, label="", shape="point", width="0.001", height="0.001")
+                        s.node(cross, label="", shape="point",
+                               width="0.001", height="0.001")
                         if person.id < spouse.id:
                             g.edge(person.id, cross)
                             g.edge(cross, spouse.id)
@@ -304,11 +312,13 @@ class Person:
         return Image.open(io.BytesIO(out))
 
     def delete_kid(self, child_id: str):
-        self.children = [child for child in self.children if child.id != child_id]
+        self.children = [
+            child for child in self.children if child.id != child_id]
         self.sync()
-    
+
     def delete_parent(self, parent_id: str):
-        self.parents = [parent for parent in self.parents if parent.id != parent_id]
+        self.parents = [
+            parent for parent in self.parents if parent.id != parent_id]
         self.sync()
 
     # For children to abandon their parents
@@ -326,11 +336,11 @@ class Person:
     @property
     def has_kids(self):
         return len(self.children) > 0
-    
+
     @property
     def married(self):
         return self.spouse is not None
-    
+
     @property
     def alone(self):
         return not (self.married or self.adopted or self.has_kids)
@@ -342,14 +352,14 @@ class Person:
             if offer.tp is OfferType.MARRY:
                 return True
         return False
-    
+
     @property
     def adopt_request(self):
         for offer in self.tree.offer_outbox(self.id):
             if offer.tp is OfferType.ADOPT:
                 return True
         return False
-    
+
     @property
     def divorced_child(self):
         for offer in self.tree.offer_inbox(self.id):
@@ -359,16 +369,16 @@ class Person:
 
     def sync(self):
         self.tree.sync()
-    
-    ##### Storage stuff
+
+    # Storage stuff
 
     def serialize(self):
         ret = {
-            "spouse": "", 
-            "children": [], 
+            "spouse": "",
+            "children": [],
             "parents": []
         }
-        
+
         if self.spouse:
             ret["spouse"] = self.spouse.id
 
@@ -383,6 +393,7 @@ class Person:
     def deserialize(serialized, uid, name):
         return Person(uid, name, serialized["spouse"], serialized["children"], serialized["parents"])
 
+
 class ServerTree:
     """ServerTree holds a "graph" of relationships in the server"""
 
@@ -391,15 +402,15 @@ class ServerTree:
         self.server = server
         self.people = people
         self.pending_offers = offers
-        
+
         self.fully_load_people()
-    
+
     def fully_load_people(self):
         for id in self.people.keys():
             self.people[id].load_info(self)
         self.sync()
-    
-    ##### Offer stuff
+
+    # Offer stuff
 
     def get_offer(self, id) -> Optional[PendingOffer]:
         for offer in self.pending_offers:
@@ -415,7 +426,6 @@ class ServerTree:
         self.pending_offers.remove(offer)
         self.sync()
 
-
     def outbox_by_event_type(self, user_id: str, ot: OfferType) -> List[PendingOffer]:
         offers = []
         for offer in self.offer_outbox(user_id):
@@ -424,7 +434,8 @@ class ServerTree:
         return offers
 
     def clear_with_event_type(self, user_id: str, ot: OfferType):
-        self.pending_offers = [offer for offer in self.pending_offers if not (offer.fr == user_id and offer.tp == ot)]
+        self.pending_offers = [offer for offer in self.pending_offers if not (
+            offer.fr == user_id and offer.tp == ot)]
         self.sync()
 
     # offer_inbox returns a list of offers
@@ -447,8 +458,10 @@ class ServerTree:
     def start_divorce_event(self, parent: Person) -> str:
         ch_ids = []
         for ch in parent.children:
-            self.add_offer(PendingOffer.create(OfferType.CHOICE, ch.id, parent.id))
-            self.add_offer(PendingOffer.create(OfferType.CHOICE, ch.id, parent.spouse.id))
+            self.add_offer(PendingOffer.create(
+                OfferType.CHOICE, ch.id, parent.id))
+            self.add_offer(PendingOffer.create(
+                OfferType.CHOICE, ch.id, parent.spouse.id))
             ch_ids.append(ch.id)
         # Disown all children
         for id in ch_ids:
@@ -466,8 +479,8 @@ class ServerTree:
         self.sync()
         return msg
 
-    ##### Person Stuff
-    
+    # Person Stuff
+
     def get_person(self, uid: str) -> Person:
         person = self.people.get(uid)
         if not person:
@@ -476,7 +489,7 @@ class ServerTree:
                 raise ValueError("invalid user id")
             return self.create_person_from_user(user)
         return self.people[uid]
-    
+
     def get_member(self, person: Person) -> dpy.User:
         return self.server.get_user(person.id)
 
@@ -499,7 +512,7 @@ class ServerTree:
         offers = []
         for offer in self.pending_offers:
             offers.append(offer.serialize())
-        
+
         people = {}
         for uid, person in self.people.items():
             people[uid] = person.serialize()
@@ -523,7 +536,7 @@ class ServerTree:
             if user is None:
                 continue
             people[uid] = Person.deserialize(person, uid, user.name)
-        
+
         for offer in raw_offers:
             offer["type"] = OfferType(offer["type"])
             off = PendingOffer.deserialize(offer)
@@ -532,11 +545,13 @@ class ServerTree:
             offers.append(off)
 
         tree = ServerTree(storage, server, people, offers)
-        server_trees[str(server.id)] = tree        
+        server_trees[str(server.id)] = tree
         return tree
+
 
 def get_server_tree(event) -> ServerTree:
     return server_trees[str(event.server.id)]
+
 
 @hook.command(server_id=SERVER_IDS, format="user")
 def marry(event, text):
@@ -550,7 +565,7 @@ def marry(event, text):
     user = event.server.get_user(text)
     if not user:
         return "Persoană invalidă."
-    
+
     if p.married:
         return "Ești deja căsătorit!"
     if user.id == event.author.id:
@@ -567,9 +582,8 @@ def marry(event, text):
     if p.is_relative(user.id):
         return "Nu poți căsători o rudă."
 
+    req = p.marry(spouse.id)
 
-    req = p.marry(spouse.id)  
-    
     user.send_pm(f"""Ai primit o cerere de căsătorie de la {event.author.name}
 Răspunde cu următoarea comandă pentru a accepta cererea:
 .accept_marry {req.id}
@@ -577,6 +591,7 @@ Dacă vrei să refuzi această cerere, răspunde cu următoarea comandă:
 .deny_marry {req.id}""")
 
     return "Ai trimis cerere de căsătorie lui %s." % user.name
+
 
 @hook.command(can_pm=True, format="id")
 def accept_marry(bot, text, event, reply):
@@ -590,7 +605,7 @@ def accept_marry(bot, text, event, reply):
         tree: ServerTree = server_trees[str(server.id)]
         offer = tree.get_offer(text)
         print(tree.pending_offers)
-        if not offer: 
+        if not offer:
             continue
         if offer.to != event.author.id:
             return "Cererea nu îți este destinată ție!"
@@ -606,13 +621,14 @@ def accept_marry(bot, text, event, reply):
         p2.complete_marriage(p1)
         tree.remove_offer(offer)
 
-
         user = server.get_user(offer.fr)
 
-        user.send_pm(f"{event.author.name} ți-a acceptat cererea de căsătorie. Casă de piatră!") 
+        user.send_pm(
+            f"{event.author.name} ți-a acceptat cererea de căsătorie. Casă de piatră!")
         return "Casă de piatră!"
 
     return "ID invalid"
+
 
 @hook.command(can_pm=True, format="id")
 def deny_marry(bot, text, event):
@@ -623,18 +639,20 @@ def deny_marry(bot, text, event):
 
         tree = server_trees[str(server.id)]
         offer = tree.get_offer(text)
-        if not offer: 
+        if not offer:
             continue
         if offer.to != event.author.id:
             return "Cererea nu îți este destinată ție!"
         if offer.tp != OfferType.MARRY:
             return "Asta nu-i cerere de căsătorie!"
-        
+
         user = server.get_user(offer.fr)
-        user.send_pm(f"{event.author.name} ți-a refuzat cererea de căsătorie. Mai mult noroc data viitoare!") 
+        user.send_pm(
+            f"{event.author.name} ți-a refuzat cererea de căsătorie. Mai mult noroc data viitoare!")
         return "I-am transmis veștile."
-    
+
     return "ID invalid"
+
 
 @hook.command(server_id=SERVER_IDS, format="user")
 def adopt(event, text):
@@ -645,7 +663,7 @@ def adopt(event, text):
 
     if p.adopt_request:
         return "Poți adopta o singură persoană în orice moment! Rulează .revoke_adopt_request pentru a anula cererea"
-    
+
     if text == "":
         return "Trebuie să specifici pe cineva pe care să adoptezi"
     user = event.server.get_user(text)
@@ -666,7 +684,7 @@ def adopt(event, text):
     if child.adopted:
         return "Persoana este deja adoptată"
 
-    req = p.adopt(child.id)  
+    req = p.adopt(child.id)
     print(req)
 
     user.send_pm(f"""Ai primit o cerere de adopție de la {event.author.name}
@@ -677,6 +695,7 @@ Dacă vrei să refuzi această cerere, răspunde cu următoarea comandă:
 
     return "Ai trimis cerere de adopție lui %s." % user.name
 
+
 @hook.command(can_pm=True, format="id")
 def accept_adoption(bot, text, event, reply, send_message):
     """<id> - Acceptă o ofertă de adopție"""
@@ -686,13 +705,13 @@ def accept_adoption(bot, text, event, reply, send_message):
         tree: ServerTree = server_trees[str(server.id)]
         offer = tree.get_offer(text)
         print(tree.pending_offers)
-        if not offer: 
+        if not offer:
             continue
         if offer.to != event.author.id:
             return "Cererea nu îți este destinată ție!"
         if offer.tp != OfferType.ADOPT:
             return "Asta nu-i cerere de adopție!"
-        
+
         p1 = tree.get_person(offer.to)
         p2 = tree.get_person(offer.fr)
         # check if person is relative, again
@@ -705,10 +724,12 @@ def accept_adoption(bot, text, event, reply, send_message):
         tree.remove_offer(offer)
 
         user = server.get_user(offer.fr)
-        user.send_pm(f"{event.author.name} ți-a acceptat cererea de adopție. Nu pot oferi scutecele.") 
+        user.send_pm(
+            f"{event.author.name} ți-a acceptat cererea de adopție. Nu pot oferi scutecele.")
         return "Salută-ți părinții din partea mea!"
 
     return "ID invalid"
+
 
 @hook.command(can_pm=True, format="id")
 def deny_adoption(bot, text, event):
@@ -719,18 +740,20 @@ def deny_adoption(bot, text, event):
 
         tree = server_trees[str(server.id)]
         offer = tree.get_offer(text)
-        if not offer: 
+        if not offer:
             continue
         if offer.to != event.author.id:
             return "Cererea nu îți este destinată ție!"
         if offer.tp != OfferType.ADOPT:
             return "Asta nu-i cerere de adopție!"
-        
+
         user = server.get_user(offer.fr)
-        user.send_pm(f"{server.get_user(offer.to).name} ți-a refuzat cererea de adopție. Încă n-a crescut suficient :(") 
+        user.send_pm(
+            f"{server.get_user(offer.to).name} ți-a refuzat cererea de adopție. Încă n-a crescut suficient :(")
         return "I-am transmis veștile."
-    
+
     return "ID invalid"
+
 
 @hook.command(server_id=SERVER_IDS)
 def revoke_marry_request(text, event):
@@ -742,11 +765,12 @@ def revoke_marry_request(text, event):
             continue
         u = event.server.get_user(offer.to)
         u1 = event.server.get_user(offer.fr)
-        u.send_pm(f"Oferta de căsătorie de la {u1.name} a fost anulată.") 
+        u.send_pm(f"Oferta de căsătorie de la {u1.name} a fost anulată.")
         tree.remove_offer(offer)
         return "Done"
 
     return "Nu ai trimis nicio cerere de căsătorie."
+
 
 @hook.command(server_id=SERVER_IDS)
 def revoke_adopt_request(text, event):
@@ -757,11 +781,12 @@ def revoke_adopt_request(text, event):
             continue
         u = event.server.get_user(offer.to)
         u1 = event.server.get_user(offer.fr)
-        u.send_pm(f"Oferta de adopție de la {u1.name} a fost anulată.") 
+        u.send_pm(f"Oferta de adopție de la {u1.name} a fost anulată.")
         tree.remove_offer(offer)
         return "Done"
 
     return "Nu ai trimis nicio cerere de adopție către acea persoană."
+
 
 @hook.command(server_id=SERVER_IDS)
 def divorce(event):
@@ -771,8 +796,10 @@ def divorce(event):
         return "Nu ești căsătorit!"
     old_spouse = p.spouse
     user = get_server_tree(event).get_member(p.spouse)
-    user.send_pm("Partenerul tău, %s, a decis să divorțeze cu tine. Nu te merita, crede-mă" % event.author.name)
+    user.send_pm(
+        "Partenerul tău, %s, a decis să divorțeze cu tine. Nu te merita, crede-mă" % event.author.name)
     return get_server_tree(event).start_divorce_event(p)
+
 
 @hook.command(server_id=SERVER_IDS, format="parent")
 def choose_parent(event, text):
@@ -797,6 +824,7 @@ def choose_parent(event, text):
     tree.clear_with_event_type(event.author.id, OfferType.CHOICE)
     return "Ți-ai ales un părinte, sper că veți continua fericiți"
 
+
 @hook.command(server_id=SERVER_IDS)
 def leave_parents(event):
     """Nu alege niciun părinte cu care să rămâi. Nu vei mai putea alege un părinte după."""
@@ -805,6 +833,7 @@ def leave_parents(event):
         return
     tree.clear_with_event_type(event.author.id, EventType.CHOICE)
     return "Ți-ai lăsat părinții divorțați în urmă"
+
 
 @hook.command(server_id=SERVER_IDS)
 def disown(text, event):
@@ -817,10 +846,12 @@ def disown(text, event):
     if not p.disown(text):
         return "Persoană invalidă"
     c = event.server.get_user(text)
-    c.send_pm("Părinții tăi au decis că nu meriți să fii copilul lor. Ești pe cont propriu. :'(")
+    c.send_pm(
+        "Părinții tăi au decis că nu meriți să fii copilul lor. Ești pe cont propriu. :'(")
     if p.spouse:
         user = tree.get_member(p.spouse)
-        user.send_pm("Partenerul tău a decis să %s nu merită să fie copilul vostru." % c.name)
+        user.send_pm(
+            "Partenerul tău a decis să %s nu merită să fie copilul vostru." % c.name)
     return "Gata, ai mai scăpat de o grijă"
 
 
@@ -833,13 +864,15 @@ def run_away(event):
     old_parents = p.parents
     for parent in old_parents:
         user = get_server_tree(event).get_member(parent)
-        user.send_pm("Copilul tău, %s, a fugit de acasă. Trebuia să-l tratezi mai bine :(" % event.author.name)
+        user.send_pm(
+            "Copilul tău, %s, a fugit de acasă. Trebuia să-l tratezi mai bine :(" % event.author.name)
     p.cut_parent_ties()
     return "Ai fugit de acasă"
 
 ###########################################################
 # INFORMATIVE STUFF #######################################
 ###########################################################
+
 
 @hook.command(server_id=SERVER_IDS)
 def offer_inbox(event, reply):
@@ -856,6 +889,7 @@ def offer_inbox(event, reply):
         if offer.tp == OfferType.CHOICE:
             ret += "Opțiune de ales părinte: <@%s>" % offer.fr
     reply(ret, allowed_mentions=no_mentions)
+
 
 @hook.command(server_id=SERVER_IDS)
 def offer_outbox(event, reply):
@@ -887,7 +921,7 @@ def family_info():
 Bine ați venit la sistemul de familii r/Romania!
 Aici, aveți ocazia să stabiliți numeroase relații ficționale cu alți membri ai server-ului: puteți să vă căsătoriți, să adoptați, să fiți adoptat, să divorțați, etc.
 
-Puteți începe căsătorind pe cineva cu `.marry`. Botul va trimite în DM-uri un cod unic pentru ofertă. Potențialul partener poate să accepte sau să refuze oferta! 
+Puteți începe căsătorind pe cineva cu `.marry`. Botul va trimite în DM-uri un cod unic pentru ofertă. Potențialul partener poate să accepte sau să refuze oferta!
 Asemănător, puteți adopta pe cineva cu `.adopt`, de menționat că poți încerca să adopți o singură persoană într-un moment.
 
 Odată ce stabiliți câteva relații, puteți rula `.family_tree` pentru a vedea arborele vostru genealogic. Puteți vedea și arborele altuia menționându-l când executați comanda.
@@ -901,6 +935,7 @@ Sistemul nu este perfect, dacă găsiți un bug nu ezitați să rulați comanda 
 Spor!
 """.strip()
 
+
 @hook.command(server_id=SERVER_IDS)
 def family_support(event, text):
     """Afișează toate comenzile pe care le poate face cineva. Lista se poate schimba după mulți factori. `.family_support full` dezactivează dinamicitatea """
@@ -909,16 +944,16 @@ def family_support(event, text):
     show_full = text == "full"
     funcs = [family_info, family_tree]
     empty_line = gen_func("")
-    
+
     funcs.append(empty_line)
     if p.married or show_full:
         funcs.append(divorce)
-    
+
     if not p.married or show_full:
         funcs.append(marry)
     if not p.adopt_request or show_full:
         funcs.append(adopt)
-    
+
     if p.marry_request or show_full:
         funcs.append(revoke_marry_request)
     if p.adopt_request or show_full:
@@ -940,8 +975,9 @@ def family_support(event, text):
     funcs.extend([bug_report, family_support])
 
     if event.author.bot_owner:
-         funcs.extend([gen_func("\n### Comenzi nedestinate publicului"), raw_relationships, get_person_info, get_requests, clear_requests, clear_relationships])
-         
+        funcs.extend([gen_func("\n### Comenzi nedestinate publicului"), raw_relationships,
+                      get_person_info, get_requests, clear_requests, clear_relationships])
+
     for func in funcs:
         if "__custom__" in dir(func):
             ret += "%s\n" % func.__doc__
@@ -954,12 +990,15 @@ def family_support(event, text):
     return ret + "```"
 
 # Generates a function made to fit nicely in the help command
+
+
 def gen_func(doc):
     def tmp():
         pass
     tmp.__doc__ = doc
     tmp.__custom__ = True
     return tmp
+
 
 @hook.command(server_id=SERVER_IDS)
 def family_tree(event, text):
@@ -975,7 +1014,7 @@ def family_tree(event, text):
     if user.alone:
         return "Nu-i nicio familie de arătat. :("
     try:
-        return dutils.pil_to_dfile(user.family_tree()) 
+        return dutils.pil_to_dfile(user.family_tree())
     except:
         import traceback
         bio = io.StringIO()
@@ -985,6 +1024,7 @@ def family_tree(event, text):
 ###########################################################
 # MAINTAINING STUFF #######################################
 ###########################################################
+
 
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def raw_relationships(event, text, async_send_message):
@@ -998,6 +1038,7 @@ def raw_relationships(event, text, async_send_message):
     except:
         return "Persoană invalidă"
     return str(p.get_relative_levels())
+
 
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def get_person_info(event, reply, text):
@@ -1023,6 +1064,7 @@ def get_person_info(event, reply, text):
         msg += f"parents: {','.join([f'<@{pr.id}>' for pr in p.parents])}\n"
     reply(msg, allowed_mentions=no_mentions)
 
+
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def get_requests(event, reply):
     """Afișează toate cererile"""
@@ -1031,13 +1073,15 @@ def get_requests(event, reply):
         msg += str(i) + "\n"
     reply(msg, allowed_mentions=no_mentions)
 
+
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def clear_requests(event):
     """Golește toate cererile. Nu este indicat să rulezi comanda în niciun caz"""
     tree = get_server_tree(event)
-    tree.pending_offers = [] 
+    tree.pending_offers = []
     tree.sync()
     return "Done."
+
 
 @hook.command(server_id=SERVER_IDS, permissions=Permission.bot_owner)
 def clear_relationships(event):
@@ -1057,17 +1101,19 @@ def clear_relationships(event):
 # INITIALIZING STUFF ########################
 #############################################
 
+
 @hook.on_ready()
 def load_from_storage(bot):
     for server in bot.backend.get_servers():
         if str(server.id) not in SERVER_IDS:
             continue
 
-        storage = bot.server_permissions[server.id].get_plugin_storage(PLUGIN_DATA_NAME)
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            PLUGIN_DATA_NAME)
 
         if storage == {}:
             # Set initial stuff
             storage["server_tree"] = {"offers": [], "people": {}}
             storage.sync()
-        
+
         ServerTree.deserialize(bot, storage, server)

@@ -3,6 +3,7 @@ from spanky.plugin import hook
 
 ROBAC_ID = "456496203040030721"
 
+
 @hook.command(server_id=ROBAC_ID)
 async def tara(send_message, server, event, bot, text):
     """
@@ -17,6 +18,7 @@ async def tara(send_message, server, event, bot, text):
         max_selectable=1)
 
     await sel.do_send(event)
+
 
 @hook.command(server_id=ROBAC_ID)
 async def am_luat(send_message, server, event, bot, text):
@@ -33,6 +35,7 @@ async def am_luat(send_message, server, event, bot, text):
 
     await sel.do_send(event)
 
+
 @hook.command(server_id=ROBAC_ID)
 async def culoare(send_message, server, event, bot, text):
     """
@@ -47,6 +50,7 @@ async def culoare(send_message, server, event, bot, text):
         max_selectable=1)
 
     await sel.do_send(event)
+
 
 @hook.command(server_id=ROBAC_ID)
 async def facultate(send_message, server, event, bot, text):

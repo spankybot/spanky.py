@@ -27,12 +27,14 @@ SRV = [
 JOIN_EMOTE = "✅"
 advert_queue = deque(maxlen=50)
 
+
 class AdvertObj():
     def __init__(self, server, storage, chname, msg):
         self.server = server
         self.storage = storage
         self.chname = chname
         self.msg = msg
+
 
 @hook.command(server_id=SRV)
 async def advertise(text, async_send_message, server, storage, event):
@@ -55,7 +57,8 @@ async def advertise(text, async_send_message, server, storage, event):
         descr = text[1]
 
     # Send the message
-    em = dutils.prepare_embed("Join %s" % target_chan.name, descr, footer_txt="Click on %s react to join" % JOIN_EMOTE)
+    em = dutils.prepare_embed("Join %s" % target_chan.name, descr,
+                              footer_txt="Click on %s react to join" % JOIN_EMOTE)
     msg = await async_send_message(embed=em)
 
     # Add react
@@ -84,10 +87,12 @@ async def parse_react(bot, event):
     await found.msg.async_remove_reaction(JOIN_EMOTE, event.author)
     await toggle_chan_presence(found.server, found.storage, found.chname, event, ToggleType.JOIN)
 
+
 class ToggleType():
     JOIN = 1
     PART = 2
     NONE = 99
+
 
 class BotCateg():
     def __init__(self, data):
@@ -148,6 +153,7 @@ def get_bot_categs(server, storage):
 
         yield BotCateg(cat)
 
+
 class ChanSelector(Selector):
     TOTAL_LEN = 80
     UPDATE_INTERVAL = 180
@@ -196,7 +202,6 @@ class ChanSelector(Selector):
 
             # Set the items
             self.set_items(role_dict)
-
 
     def serialize(self):
         data = {}
@@ -296,7 +301,8 @@ async def toggle_chan_presence(server, storage, chname, event, force_toggle):
     # Check if banned
     if is_banned(storage, target_chan, event.author):
         await event.async_send_message(
-            "<@%s>: You are banned from %s." % (event.author.id, target_chan.name),
+            "<@%s>: You are banned from %s." % (
+                event.author.id, target_chan.name),
             timeout=MSG_TIMEOUT,
             check_old=False)
         return
@@ -304,7 +310,8 @@ async def toggle_chan_presence(server, storage, chname, event, force_toggle):
     # Check if OP
     if is_channel_op(target_chan, event.author):
         await event.async_send_message(
-            "<@%s>: OPs can't leave a channel that they operate." % (event.author.id),
+            "<@%s>: OPs can't leave a channel that they operate." % (
+                event.author.id),
             timeout=MSG_TIMEOUT,
             check_old=False)
         return
@@ -393,12 +400,14 @@ async def toggle_chan_presence(server, storage, chname, event, force_toggle):
                 timeout=MSG_TIMEOUT,
                 check_old=False)
 
+
 @hook.command(server_id=SRV)
 async def join(server, storage, event, text):
     """
     <chname> - join a channel
     """
     await toggle_chan_presence(server, storage, text, event, ToggleType.JOIN)
+
 
 @hook.command(server_id=SRV)
 async def part(server, storage, event, text):
@@ -416,6 +425,7 @@ async def part(server, storage, event, text):
     # Delete the message
     event.msg.delete_message()
 
+
 @hook.command(server_id=SRV)
 async def vreau_canal(event, storage):
     """
@@ -428,10 +438,12 @@ async def vreau_canal(event, storage):
 
     await sel.do_send(event)
 
+
 def get_bot_categ_by(server, storage, name_or_id):
     for cat in get_bot_categs(server, storage):
         if cat.name == name_or_id or cat.id == name_or_id:
             return cat
+
 
 def get_removed_users(channel):
     """
@@ -444,6 +456,7 @@ def get_removed_users(channel):
 
     return users
 
+
 def get_operator_users(channel):
     """
     List of users operating a channel
@@ -454,6 +467,7 @@ def get_operator_users(channel):
             users.append(user)
 
     return users
+
 
 async def set_channel_op(chan, user):
     await chan.set_user_overwrite(
@@ -470,6 +484,7 @@ async def set_channel_op(chan, user):
         manage_channels=True,
         manage_webhooks=True)
 
+
 async def set_channel_member(chan, user):
     await chan.set_user_overwrite(
         user,
@@ -481,9 +496,11 @@ async def set_channel_member(chan, user):
         external_emojis=True,
         add_reactions=True)
 
+
 async def remove_from_overwrites(chan, user):
     await chan.remove_user_overwrite(
         user)
+
 
 async def ignore_channel(chan, user):
     await chan.set_user_overwrite(
@@ -491,6 +508,7 @@ async def ignore_channel(chan, user):
         send_messages=False,
         read_messages=False,
         read_message_history=False)
+
 
 def get_irc_chans(server, storage):
     """
@@ -502,6 +520,7 @@ def get_irc_chans(server, storage):
     for categ in get_bot_categs(server, storage):
         for chan in server.get_chans_in_cat(categ.id):
             yield chan, categ
+
 
 def is_irc_chan(server, storage, name_or_id):
     """
@@ -517,12 +536,14 @@ def is_irc_chan(server, storage, name_or_id):
 
     return False
 
+
 def is_channel_op(channel, user):
     for op in get_operator_users(channel):
         if user.name == op.name:
             return True
 
     return False
+
 
 def get_chan_cat(server, storage, chan_id):
     for chan, cat in get_irc_chans(server, storage):
@@ -531,6 +552,7 @@ def get_chan_cat(server, storage, chan_id):
 
     return None
 
+
 def get_irc_chan(server, storage, chan_name_or_id):
     for cat in get_bot_categs(server, storage):
         for chan in server.get_chans_in_cat(cat.id):
@@ -538,6 +560,7 @@ def get_irc_chan(server, storage, chan_name_or_id):
                 return chan, cat
 
     return None, None
+
 
 async def create_prv_chan_role(server, chan, role_name):
     role = dutils.get_role_by_name(server, role_name)
@@ -555,6 +578,7 @@ async def create_prv_chan_role(server, chan, role_name):
         add_reactions=True)
 
     return role
+
 
 def list_members_role_access(server, storage, channel):
     """
@@ -582,11 +606,13 @@ def list_members_perm_access(channel):
 
     return users
 
+
 def list_members_not_ignoring(channel):
     """
     Get users that do not ignore a channel
     """
     return channel.members_accessing_chan()
+
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
 async def add_chan_category(server, text, reply, storage):
@@ -652,6 +678,7 @@ async def add_chan_category(server, text, reply, storage):
 
     reply("Category not found")
 
+
 @hook.command(server_id=SRV, permissions=Permission.admin, format="name")
 async def del_chan_category(server, text, reply, storage):
     """
@@ -669,6 +696,7 @@ async def del_chan_category(server, text, reply, storage):
 
     reply("Category not found")
 
+
 @hook.command(server_id=SRV, permissions=Permission.admin)
 def list_chan_categories(server, storage):
     """
@@ -679,11 +707,14 @@ def list_chan_categories(server, storage):
     msg = ""
     for cat in cats:
         if not cat.is_archive:
-            msg += "Name: %s | ID: %s | Type: %s | Privacy: %s\n" % (cat.name, cat.id, cat.chtype, cat.privacy)
+            msg += "Name: %s | ID: %s | Type: %s | Privacy: %s\n" % (
+                cat.name, cat.id, cat.chtype, cat.privacy)
         else:
-            msg += "Name: %s | ID: %s | Type: %s\n" % (cat.name, cat.id, cat.chtype)
+            msg += "Name: %s | ID: %s | Type: %s\n" % (
+                cat.name, cat.id, cat.chtype)
 
     return dutils.code_block(msg)
+
 
 async def bring_back_actives(server, storage, channel):
     users = {}
@@ -704,6 +735,7 @@ async def bring_back_actives(server, storage, channel):
             continue
 
         user.add_role(role)
+
 
 async def make_chan_private(server, storage, chan, cat):
     # Move it
@@ -731,6 +763,7 @@ async def make_chan_private(server, storage, chan, cat):
     await save_server_cfg(server, storage)
     await bring_back_actives(server, storage, chan)
 
+
 async def make_chan_public(server, storage, chan, cat):
     # Move it
     if cat.is_unmanaged:
@@ -754,9 +787,11 @@ async def make_chan_public(server, storage, chan, cat):
 
         await ignore_channel(chan, ignoring)
 
+
 async def make_chan_archived(server, storage, chan, cat):
     # Move it
     await chan.move_to_category(cat.id)
+
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
 async def move_to_category(server, storage, text, event, reply):
@@ -785,6 +820,7 @@ async def move_to_category(server, storage, text, event, reply):
         reply("Done")
         await save_server_cfg(server, storage)
 
+
 @hook.command(server_id=SRV, permissions=Permission.admin)
 async def save_server_cfg(server, storage):
     if "irc_chans" not in storage:
@@ -805,7 +841,8 @@ async def save_server_cfg(server, storage):
             elem["permission_based"] = False
             elem["associated_roleid"] = ""
 
-            assoc_role = dutils.get_role_by_name(server, "%s-member" % chan.name)
+            assoc_role = dutils.get_role_by_name(
+                server, "%s-member" % chan.name)
             if assoc_role:
                 elem["associated_roleid"] = assoc_role.id
 
@@ -824,12 +861,15 @@ async def save_server_cfg(server, storage):
 
     storage.sync()
 
+
 def set_permission_based(chan, storage, ptype):
     storage["irc_chans"][chan.id]["permission_based"] = ptype
     storage.sync()
 
+
 def is_permission_based(chan, storage):
     return storage["irc_chans"][chan.id]["permission_based"]
+
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
 async def make_permission_based(server, storage, text, event, reply):
@@ -856,6 +896,7 @@ async def make_permission_based(server, storage, text, event, reply):
 
     await server.delete_role_by_name(chan_role.name)
     reply("Done")
+
 
 @hook.command(server_id=SRV, permissions=Permission.admin)
 async def make_role_based(server, storage, text, event, reply):
@@ -917,6 +958,7 @@ def list_members(server, storage, event):
     else:
         return ", ".join(user.name for user in users)
 
+
 @hook.command(server_id=SRV)
 def list_ops(server, storage, event):
     """
@@ -931,6 +973,7 @@ def list_ops(server, storage, event):
         return "No channel ops set"
 
     return ", ".join(i.name for i in ops)
+
 
 @hook.command(server_id=SRV)
 async def add_op(text, event, server, storage, reply):
@@ -968,6 +1011,7 @@ async def add_op(text, event, server, storage, reply):
     await save_server_cfg(server, storage)
     reply("Done!")
 
+
 @hook.command(server_id=SRV)
 async def remove_op(text, event, server, storage, reply):
     """
@@ -996,6 +1040,7 @@ async def remove_op(text, event, server, storage, reply):
     await remove_from_overwrites(event.channel, user)
     await save_server_cfg(server, storage)
     reply("Done!")
+
 
 @hook.command(server_id=SRV)
 async def kick_member(text, event, server, storage, reply):
@@ -1031,6 +1076,7 @@ async def kick_member(text, event, server, storage, reply):
         await ignore_channel(event.channel, user)
         reply("Done!")
 
+
 def add_to_banlist(storage, chan, member):
     if member.id in storage["irc_chans"][chan.id]["bans"]:
         return "Already banned"
@@ -1038,6 +1084,7 @@ def add_to_banlist(storage, chan, member):
     storage["irc_chans"][chan.id]["bans"].append(member.id)
     storage.sync()
     return "Done"
+
 
 def remove_from_banlist(storage, chan, member):
     if member.id in storage["irc_chans"][chan.id]["bans"]:
@@ -1047,10 +1094,12 @@ def remove_from_banlist(storage, chan, member):
     else:
         return "Not in banlist"
 
+
 def is_banned(storage, chan, member):
     if member.id in storage["irc_chans"][chan.id]["bans"]:
         return True
     return False
+
 
 @hook.command(server_id=SRV)
 def list_bans(server, storage, event):
@@ -1074,6 +1123,7 @@ def list_bans(server, storage, event):
         return "Empty"
 
     return ", ".join(users)
+
 
 @hook.command(server_id=SRV)
 async def ban_member(text, event, server, storage, reply):
@@ -1112,6 +1162,7 @@ async def ban_member(text, event, server, storage, reply):
     await save_server_cfg(server, storage)
     reply("Done")
 
+
 @hook.command(server_id=SRV)
 async def unban_member(text, event, server, storage, reply):
     """
@@ -1133,12 +1184,14 @@ async def unban_member(text, event, server, storage, reply):
     remove_from_banlist(storage, event.channel, user)
     reply("Done")
 
+
 def give_assoc_role(server, storage, channel):
     assoc_id = storage["irc_chans"][channel.id]["associated_roleid"]
     if assoc_id == "":
         return None
 
     return dutils.get_role_by_id(server, assoc_id)
+
 
 @hook.command(server_id=SRV)
 def get_associated_role(event, server, storage):
@@ -1159,6 +1212,7 @@ def get_associated_role(event, server, storage):
         return "Could not get role"
 
     return role.name
+
 
 @hook.command(server_id=SRV)
 async def set_associated_role_name(text, event, server, storage, reply):
@@ -1185,6 +1239,7 @@ async def set_associated_role_name(text, event, server, storage, reply):
     role = dutils.get_role_by_id(server, assoc_id)
     role.set_name(text)
     reply("Done")
+
 
 @hook.command(server_id=SRV)
 def irc_help():
@@ -1238,6 +1293,7 @@ def irc_help():
 
 #         crt_pos -= 1
 
+
 async def sort_chans(server, categ):
     """
     Sort channels alphabetically
@@ -1254,6 +1310,7 @@ async def sort_chans(server, categ):
 
         min_pos += 1
 
+
 @hook.command(permissions=Permission.admin, server_id=SRV)
 async def check_irc_stuff(server, storage, reply):
     reply("Sorting channels")
@@ -1266,6 +1323,7 @@ async def check_irc_stuff(server, storage, reply):
         await sort_chans(server, categ)
 
     reply("Done")
+
 
 @hook.command(server_id=SRV)
 def request_channel(text, event, send_message):
@@ -1310,7 +1368,8 @@ async def create_channel(text, server, reply, storage):
             target_cat = cat
 
     if not target_cat:
-        reply("Channel type must be one of: %s" % ", ".join([i.name for i in categs]))
+        reply("Channel type must be one of: %s" %
+              ", ".join([i.name for i in categs]))
         return
 
     # Check dupes
@@ -1361,6 +1420,7 @@ async def delete_channel(text, server, reply):
             return
 
     reply("No channel named %s" % chname)
+
 
 @hook.command(server_id=SRV)
 def set_topic(server, storage, reply, event, text):
@@ -1510,7 +1570,7 @@ def invite_member(event, server, storage, text):
     if already_in_chan:
         return "User already in channel"
 
-    #if "invite_ids" not in storage:
+    # if "invite_ids" not in storage:
     storage["invite_ids"] = []
 
     # Clean up old invites
@@ -1529,9 +1589,11 @@ def invite_member(event, server, storage, text):
     storage["invite_ids"].append(new_invite)
     storage.sync()
 
-    user.send_pm(f"You have been invited to {event.channel.name}.\nReply with the following command to accept the invite:")
+    user.send_pm(
+        f"You have been invited to {event.channel.name}.\nReply with the following command to accept the invite:")
     user.send_pm(f".accept_invite {invite_id}")
     return "Done!"
+
 
 @hook.command(can_pm=True)
 async def accept_invite(bot, text, event):
@@ -1541,7 +1603,8 @@ async def accept_invite(bot, text, event):
             continue
 
         # Get storage
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_custom_roddit_irc_mode.json")
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_custom_roddit_irc_mode.json")
 
         # Bail if no invite ids list
         if not storage["invite_ids"]:
@@ -1565,8 +1628,7 @@ async def accept_invite(bot, text, event):
                 event.author.send_pm("Done!")
 
 
-
-### Experimental stuff
+# Experimental stuff
 
 class ActionType():
     SET = 0
@@ -1579,6 +1641,7 @@ def test123(storage, chan, value, action_type):
     muie dinamo
     """
     pass
+
 
 def irc_motd(storage, chan, value, action_type):
     """
@@ -1605,6 +1668,7 @@ SETGET_CMDS = {
     "motd": irc_motd,
     "test1": test123
 }
+
 
 def launch_icmd(server, storage, channel, action_type, text):
     # Get channel
@@ -1663,6 +1727,7 @@ async def iclear(event, server, storage, text, reply):
 
     reply(launch_icmd(server, storage, event.channel, ActionType.CLEAR, text))
 
+
 def gen_ihelp():
     reply = ""
     for func_name, func in SETGET_CMDS.items():
@@ -1674,7 +1739,6 @@ def gen_ihelp():
 iset.__doc__ = iset.__doc__.format(SUBCMDS=gen_ihelp())
 iget.__doc__ = iset.__doc__.format(SUBCMDS=gen_ihelp())
 iclear.__doc__ = iset.__doc__.format(SUBCMDS=gen_ihelp())
-
 
 
 # @hook.command(permissions=Permission.admin, server_id=SRV)

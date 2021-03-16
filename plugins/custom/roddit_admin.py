@@ -10,6 +10,7 @@ from plugins.temp_role import assign_temp_role, check_exp_time, get_reasons
 
 RODDIT_ID = "287285563118190592"
 
+
 @hook.command(server_id=RODDIT_ID)
 async def votat(author, event, server):
     role = dutils.get_role_by_name(server, "A votat")
@@ -20,6 +21,7 @@ async def votat(author, event, server):
     except:
         import traceback
         traceback.print_exc()
+
 
 @hook.event(EventType.join)
 def auto_ok(server, event, send_message, storage):
@@ -47,6 +49,7 @@ def auto_ok(server, event, send_message, storage):
         send_message(target="449899630176632842",
                      text="Auto-valoare given to <@%s>" % event.member.id)
 
+
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def get_auto_valoare(storage):
     if "join_params" not in storage:
@@ -56,6 +59,7 @@ def get_auto_valoare(storage):
         return "No value set"
 
     return time_utils.sec_to_human(storage["join_params"]["aval"])
+
 
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def set_auto_valoare(storage, text):
@@ -70,6 +74,7 @@ def set_auto_valoare(storage, text):
 
     return "Set to %s" % time_utils.sec_to_human(storage["join_params"]["aval"])
 
+
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def get_auto_bulau(storage):
     if "join_params" not in storage:
@@ -79,6 +84,7 @@ def get_auto_bulau(storage):
         return "No value set"
 
     return time_utils.sec_to_human(storage["join_params"]["abulau"])
+
 
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 def set_auto_bulau(storage, text):
@@ -92,6 +98,7 @@ def set_auto_bulau(storage, text):
     storage.sync()
 
     return "Set to %s" % time_utils.sec_to_human(storage["join_params"]["abulau"])
+
 
 @hook.command(permissions=Permission.admin, server_id=RODDIT_ID)
 async def ok(event, text, str_to_id, server):
@@ -178,7 +185,7 @@ def assign_old(bot):
 
     if not server:
         return
-    
+
     import datetime
     now = datetime.datetime.now()
 

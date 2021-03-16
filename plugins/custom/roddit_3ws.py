@@ -3,6 +3,7 @@ from spanky.plugin.permissions import Permission
 
 from spanky.plugin.event import EventType
 
+
 @hook.event(EventType.message)
 async def alog(event):
     if event.channel.id != "728013984430555156":

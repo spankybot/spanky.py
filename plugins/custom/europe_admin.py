@@ -1,3 +1,4 @@
+import spanky.utils.carousel as carousel
 import datetime
 import plugins.paged_content as paged
 from collections import deque
@@ -56,6 +57,7 @@ SPAM_LIMIT = 4
 
 #         send_message(ret)
 
+
 @hook.command(server_id=EUROPE_ID)
 def country(send_message, server, event, bot, text):
     """
@@ -64,13 +66,26 @@ def country(send_message, server, event, bot, text):
     **.nocountry** `name`  |  Removes a country role
     """
     return add_role_from_list(
-            "▼ COUNTRIES ▼",
-            "▲ COUNTRIES ▲",
-            server,
-            event,
-            send_message,
-            text,
-            max_assignable=2)
+        "▼ COUNTRIES ▼",
+        "▲ COUNTRIES ▲",
+        server,
+        event,
+        send_message,
+        text,
+        max_assignable=2)
+
+
+@hook.command(server_id=EUROPE_ID)
+async def country2(send_message, server, event, bot, text):
+    sel = carousel.RoleSelectorInterval(
+        server=event.server,
+        channel=event.channel,
+        title="r/Europe countries",
+        first_role="▼ COUNTRIES ▼",
+        last_role="▲ COUNTRIES ▲",
+        max_selectable=2)
+
+    await sel.do_send(event)
 
 
 @hook.command(server_id=EUROPE_ID)
@@ -79,12 +94,12 @@ def nocountry(send_message, server, event, text):
     **.nocountry** `name` | Remove a given country
     """
     return remove_given_role_from_list(
-            "▼ COUNTRIES ▼",
-            "▲ COUNTRIES ▲",
-            server,
-            event,
-            send_message,
-            text)
+        "▼ COUNTRIES ▼",
+        "▲ COUNTRIES ▲",
+        server,
+        event,
+        send_message,
+        text)
 
 
 @hook.command(server_id=EUROPE_ID)
@@ -95,12 +110,26 @@ def assign(send_message, server, event, text):
     **.unassign** `name` | Unassigns the given role
     """
     return add_role_from_list(
-            "▼ ASSIGNABLE ▼",
-            "▲ ASSIGNABLE ▲",
-            server,
-            event,
-            send_message,
-            text)
+        "▼ ASSIGNABLE ▼",
+        "▲ ASSIGNABLE ▲",
+        server,
+        event,
+        send_message,
+        text)
+
+
+@hook.command(server_id=EUROPE_ID)
+async def assign2(send_message, server, event, bot, text):
+    sel = carousel.RoleSelectorInterval(
+        server=event.server,
+        channel=event.channel,
+        title="r/Europe roles",
+        first_role="▼ ASSIGNABLE ▼",
+        last_role="▲ ASSIGNABLE ▲",
+        max_selectable=1)
+
+    await sel.do_send(event)
+
 
 @hook.command(server_id=EUROPE_ID)
 def unassign(send_message, server, event, text):
@@ -108,12 +137,13 @@ def unassign(send_message, server, event, text):
     Unassigns a given role
     """
     return remove_given_role_from_list(
-            "▼ ASSIGNABLE ▼",
-            "▲ ASSIGNABLE ▲",
-            server,
-            event,
-            send_message,
-            text)
+        "▼ ASSIGNABLE ▼",
+        "▲ ASSIGNABLE ▲",
+        server,
+        event,
+        send_message,
+        text)
+
 
 @hook.command(server_id=EUROPE_ID)
 def iam():
