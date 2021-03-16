@@ -123,6 +123,19 @@ async def gis(text, async_send_message, event):
 
     await SearchResult(res, async_send_message, text, event, images=True).send_msg()
 
+@hook.command()
+async def nsfwgis(text, async_send_message, event):
+    """<query> - Search for a image."""
+    service = build("customsearch", "v1", developerKey=dev_key)
+
+    res = service.cse().list(
+        q=text,
+        safe="off",
+        cx=dev_cx,
+        ).execute()
+
+    await SearchResult(res, async_send_message, text, event, images=True).send_msg()
+
 import pprint
 @hook.command()
 async def g(text, async_send_message, event):
