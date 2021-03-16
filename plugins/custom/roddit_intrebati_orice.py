@@ -4,7 +4,7 @@ from spanky.plugin import hook
 from datetime import datetime
 from spanky.plugin.permissions import Permission
 
-USER_AGENT = ""
+USER_AGENT = "/r/Romania scraper by /u/programatorulupeste"
 LAST_CHECK = 0
 RODDIT_ID = "287285563118190592"
 
@@ -39,10 +39,7 @@ def get_roddit_channel(id_to_chan):
 
 @hook.on_ready()
 def init(server, storage):
-    global USER_AGENT
     global LAST_CHECK
-
-    USER_AGENT = "/r/Romania scraper by /u/programatorulupeste"
     LAST_CHECK = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
 
     if server.id == RODDIT_ID:
