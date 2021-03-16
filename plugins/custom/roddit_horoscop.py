@@ -7,7 +7,8 @@ from unidecode import unidecode
 SERVERS = [
     "648937029433950218", # CNC test server
     "297483005763780613", # plp test server
-    "287285563118190592"  # Roddit
+    "287285563118190592", # Roddit
+    "754550072955371620"  # tz srv
 ]
 
 URL = "https://horoscop.ro/%s"
@@ -25,6 +26,6 @@ async def horoscop(text, reply, async_send_message):
         return
 
     header = bf.find('div', {'class': 'big-title'})
-    
-    em = dutils.prepare_embed(title=header.text, description=body.text) 
+
+    em = dutils.prepare_embed(title=header.text, description=body.text)
     await async_send_message(embed=em)
