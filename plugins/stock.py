@@ -1,7 +1,5 @@
 from spanky.plugin import hook
-from webull import webull
-
-wb = webull()
+import yfinance as yf
 
 filter_fields = [
     "name", "symbol", "exchangeCode", "close", "change", "pPrice", "pChange", "open", "low", "high"
@@ -14,19 +12,18 @@ def stock(text):
 @hook.command()
 def quote(text):
     try:
-        data = wb.get_quote(text)
+        data = yf.Ticker(text).info
     except ValueError as e:
         return str(e)
 
-    return "`{symbol}: {price} {currency} || Open: {open}, Close: {close}, High: {high}, Low: {low} || Change: {change}%`".format(
+    return "`{symbol}: {price} {currency} || Open: {open}, Close: {close}, High: {high}, Low: {low}`".format(
         symbol=data["symbol"],
-        price=data["pPrice"],
-        currency=data["currencyCode"],
+        price=data["bid"],
+        currency=data["currency"],
         open=data["open"],
-        close=data["close"],
-        high=data["high"],
-        low=data["low"],
-        change=data["pChange"]
+        close=data["regularMarketPreviousClose"],
+        high=data["dayHigh"],
+        low=data["dayLow"]
     )
 
 @hook.command()
