@@ -8,7 +8,7 @@ MAX_LEN = 50
 @hook.command()
 async def s(text, channel, reply, event, bot):
     """<word replacement> - replace 'word' with replacement"""
-    text = text.split()
+    text = text.split(maxsplit=1)
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
         msg += ": " + "\n`" + "<word replacement> - replace 'word' with replacement`"
@@ -43,7 +43,7 @@ async def s(text, channel, reply, event, bot):
 async def ss(text, channel, reply, event, bot):
     """<regex replacement> - replace regex with replacement"""
 
-    text = text.split()
+    text = text.split(maxsplit=1)
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
         msg += ": " + "\n`" + "<regex replacement> - replace regex with replacement`"
