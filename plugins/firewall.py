@@ -6,7 +6,7 @@ from spanky.utils import time_utils
 from spanky.utils.cmdparser import CmdParser
 
 
-@hook.periodic(1, initial_interval=1)
+@hook.periodic(10)
 def firewall_check(bot):
     for server in bot.backend.get_servers():
         storage = bot.server_permissions[server.id].get_plugin_storage(
