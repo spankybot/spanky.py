@@ -267,4 +267,8 @@ async def rebuild_poll_selectors(bot):
             continue
 
         for poll in storage["polls"].values():
-            await Poll.deserialize(bot, poll, storage)
+            try:
+                await Poll.deserialize(bot, poll, storage)
+            except Exception as e:
+                print(e)
+
