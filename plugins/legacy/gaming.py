@@ -125,8 +125,7 @@ def choose(text, event):
     if len(choices) == 1:
         choices = choices[0].split(' or ')
         if len(choices) == 1:
-            event.notice_doc()
-            return
+            return choose.__doc__
 
     return random.choice([choice.strip() for choice in choices])
 
