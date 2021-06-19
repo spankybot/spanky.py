@@ -273,7 +273,7 @@ class RoleSelector(Selector):
                 self.name_to_role[role] = roles[role]
                 role_list.append(role)
 
-            role_list = sorted(list(role_list), key=str.lower)
+            role_list = sorted(list(role_list), key=str.casefold)
 
             role_dict = OrderedDict()  # Role list to pass to the selector
             for item in role_list:
@@ -403,6 +403,8 @@ class RoleSelectorInterval(RoleSelector):
             for role in roles:
                 self.name_to_role[role.name] = role
                 role_list[role.name] = self.do_stuff
+
+            role_list = OrderedDict(sorted(role_list.items(), key=lambda m: str.casefold(m[0])))
 
             # Mark last role update time
             self.last_role_update = tutils.tnow()
