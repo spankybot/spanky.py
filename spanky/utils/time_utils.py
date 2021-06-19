@@ -9,7 +9,16 @@ SEC_IN_YEAR = SEC_IN_HOUR * 24 * 365 # yeah, maybe there aren't 365 days in one 
 interval_units = [(60, 'minute'), (60, 'hour'), (24, 'day'), (365, 'year')]
 
 def tnow():
+    """
+    Time right now as float.
+    """
     return datetime.datetime.now().timestamp()
+
+def time_to_date(time_param: float):
+    """
+    Convert a floating time to formatted date.
+    """
+    return datetime.datetime.utcfromtimestamp(time_param)
 
 def timeout_to_sec(stime):
     """
