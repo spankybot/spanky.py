@@ -9,7 +9,7 @@ LARROW = u'\U0001F448'
 RARROW = u'\U0001F449'
 dev_key = None
 dev_cx = None
-search_results = deque(maxlen=50)
+search_results = deque(maxlen=500)
 
 
 class CSEResult():
@@ -18,10 +18,12 @@ class CSEResult():
 
     @property
     def image_url(self):
-        try:
+        if "cse_image" in self.data["pagemap"]:
             return self.data["pagemap"]["cse_image"][0]["src"]
-        except:
-            ""
+        elif "cse_thumbnail" in self.data["pagemap"]:
+            return self.data["pagemap"]["cse_thumbnail"][0]["src"]
+        else:
+            return self.data["link"]
 
     @property
     def image_thumb(self):
@@ -85,7 +87,14 @@ class SearchResult():
                 footer_txt=self.footer)
 
         new_message = self.msg
-        self.msg = await self.async_send_message(embed=embed)
+        try:
+            updated_message = await self.async_send_message(embed=embed)
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return
+
+        if updated_message:
+            self.msg = updated_message
 
         if new_message is None:
             await self.msg.async_add_reaction(LARROW)
@@ -163,9 +172,6 @@ async def parse_react(bot, event):
     # Check if the reaction was made on a message that contains a search result
     found = None
     for res in search_results:
-        if res is None or event is None or res.msg is None or event.msg is None:
-            break
-
         if res.msg.id == event.msg.id:
             found = res
             break
