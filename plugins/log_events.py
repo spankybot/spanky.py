@@ -225,7 +225,7 @@ def check_bad_words(storage, event, bot):
     if event.author.id == bot.get_own_id():
         return
 
-    if not storage["bad"]:
+    if not "bad" in storage:
         return
 
     for word in storage["bad"]:
