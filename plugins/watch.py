@@ -59,7 +59,7 @@ def checker(send_message):
     global reddit_inst
 
     for server_id, storage in storages.items():
-        if storage["watching"] == False:
+        if "watching" not in storage or storage["watching"] == False:
             continue
 
         for sub in storage["subs"].keys():
