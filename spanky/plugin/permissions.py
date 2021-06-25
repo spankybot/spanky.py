@@ -1,4 +1,6 @@
 import enum
+import os
+
 from spanky.utils import storage
 
 @enum.unique
@@ -28,4 +30,4 @@ class PermissionMgr():
         return self.stor_cache[self.server_id + stor_file]
 
     def get_data_location(self, name):
-        return storage.DS_LOC + "/" + self.server_id + "/" + name + "_data/"
+        return str(storage.DS_LOC / self.server_id / (name  +"_data")) + os.sep
