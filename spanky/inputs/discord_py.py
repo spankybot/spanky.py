@@ -1070,12 +1070,15 @@ async def on_reaction_remove(reaction, user):
 @client.event
 async def on_raw_reaction_add(reaction):
     if reaction.member.id != client.user.id:
-        msg_id = str(reaction.message_id)
-        if msg_id not in raw_msg_cache:
-            return
 
-        # push in stuff into the reaction object
-        # TODO: don't override things
+        # Fetch the message
+        if reaction.message_id not in raw_msg_cache:
+            msg_id = str(reaction.message_id)
+            channel = await client.fetch_channel(reaction.channel_id)
+            msg = await channel.fetch_message(reaction.message_id)
+
+            raw_msg_cache[msg_id] = Message(msg)
+
         reaction.message = raw_msg_cache[msg_id]._raw
         reaction.channel = raw_msg_cache[msg_id]._raw.channel
 
