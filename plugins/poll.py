@@ -12,6 +12,9 @@ active_polls = {}
 
 
 class Poll(carousel.Selector):
+    class InvalidMessage(Exception):
+        pass
+
     def __init__(self, server, channel, title, items, storage):
         self.server = server
         self.channel = channel
@@ -115,9 +118,14 @@ class Poll(carousel.Selector):
         if not server:
             print("Could not find server id %s" % data["server_id"])
             return None
+        # Rebuild message cache
+        msg_id = data["msg_id"]
 
         # Get the channel
         chan = dutils.get_channel_by_id(server, data["channel_id"])
+
+        if not msg_id or not chan:
+            raise Poll.InvalidMessage("Invalid message ID.")
 
         # Create the object
         poll = Poll(
@@ -127,8 +135,6 @@ class Poll(carousel.Selector):
             data["items"],
             storage)
 
-        # Rebuild message cache
-        msg_id = data["msg_id"]
 
         # Get the saved message and set it
         msg = await chan.async_get_message(msg_id)
@@ -266,9 +272,12 @@ async def rebuild_poll_selectors(bot):
         if "polls" not in storage:
             continue
 
-        for poll in storage["polls"].values():
+        for key, poll in list(storage["polls"].items()):
             try:
                 await Poll.deserialize(bot, poll, storage)
+            except Poll.InvalidMessage:
+                del storage["polls"][key]
+                storage.sync()
             except Exception as e:
                 print(e)
 
