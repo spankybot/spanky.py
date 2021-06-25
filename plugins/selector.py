@@ -184,53 +184,54 @@ def del_permanent_selector(text, storage):
 
     return "Done"
 
-# @hook.on_connection_ready()
-# async def rebuild_selectors(bot):
-#     for server in bot.backend.get_servers():
-#         storage = bot.server_permissions[server.id].get_plugin_storage(
-#             "plugins_selector.json")
 
-#         if "role_selectors" in storage:
-#             for element in list(storage["role_selectors"]):
-#                 try:
-#                     selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
+@hook.command(permissions=Permission.admin)
+async def rebuild_selectors(bot):
+    for server in bot.backend.get_servers():
+        storage = bot.server_permissions[server.id].get_plugin_storage(
+            "plugins_selector.json")
 
-#                     # Add it to the permanent message list
-#                     permanent_messages.append(selector)
-#                 except discord.errors.NotFound:
-#                     storage["role_selectors"].remove(element)
-#                     storage.sync()
-#                 except:
-#                     import traceback
-#                     traceback.print_exc()
-#                     print(element)
+        if "role_selectors" in storage:
+            for element in list(storage["role_selectors"]):
+                try:
+                    selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
 
-
-#         if "chan_selectors" in storage:
-#             for element in list(storage["chan_selectors"]):
-#                 try:
-#                     selector = await roddit.ChanSelector.deserialize(bot, element)
-#                     # Add it to the permanent message list
-#                     permanent_messages.append(selector)
-#                 except discord.errors.NotFound:
-#                     storage["chan_selectors"].remove(element)
-#                     storage.sync()
-#                 except:
-#                     import traceback
-#                     traceback.print_exc()
-#                     print(element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except discord.errors.NotFound:
+                    storage["role_selectors"].remove(element)
+                    storage.sync()
+                except:
+                    import traceback
+                    traceback.print_exc()
+                    print(element)
 
 
-#         if "simple_selectors" in storage:
-#             for element in list(storage["simple_selectors"]):
-#                 try:
-#                     selector = await carousel.RoleSelector.deserialize(bot, element)
-#                     # Add it to the permanent message list
-#                     permanent_messages.append(selector)
-#                 except discord.errors.NotFound:
-#                     storage["simple_selectors"].remove(element)
-#                     storage.sync()
-#                 except:
-#                     import traceback
-#                     traceback.print_exc()
-#                     print(element)
+        if "chan_selectors" in storage:
+            for element in list(storage["chan_selectors"]):
+                try:
+                    selector = await roddit.ChanSelector.deserialize(bot, element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except discord.errors.NotFound:
+                    storage["chan_selectors"].remove(element)
+                    storage.sync()
+                except:
+                    import traceback
+                    traceback.print_exc()
+                    print(element)
+
+
+        if "simple_selectors" in storage:
+            for element in list(storage["simple_selectors"]):
+                try:
+                    selector = await carousel.RoleSelector.deserialize(bot, element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except discord.errors.NotFound:
+                    storage["simple_selectors"].remove(element)
+                    storage.sync()
+                except:
+                    import traceback
+                    traceback.print_exc()
+                    print(element)
