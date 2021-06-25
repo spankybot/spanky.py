@@ -103,7 +103,7 @@ class DiscordUtils(abc.ABC):
         try:
             iuid = int(uid)
         except ValueError:
-            return uid 
+            return uid
 
         user = discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members)
         if not user:
@@ -134,9 +134,9 @@ class DiscordUtils(abc.ABC):
         In case server=None, target = -1 and we are in a PM, we will return the PM channel
         """
 
-        if server is None and target == -1 and self.is_pm:
+        if server is None and target == -1 and hasattr(self, "is_pm") and self.is_pm:
             return self.channel._raw
-        
+
         if server:
             target_server = server._raw
         else:
@@ -357,7 +357,7 @@ class EventMessage(DiscordUtils):
 
     def get_server(self):
         if self.is_pm: # Shitty workaround
-            return self.channel 
+            return self.channel
         return self.server
 
     def get_msg(self):
@@ -730,7 +730,7 @@ class Server():
         except:
             return None
         role = self._raw.get_role(int(role_id))
-        
+
         if role:
             return Role(role)
         return None
