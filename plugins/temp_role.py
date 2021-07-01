@@ -5,6 +5,7 @@ import plugins.paged_content as paged
 import io
 import discord
 import csv
+import sys
 
 from spanky.plugin import hook, permissions
 from spanky.plugin.permissions import Permission
@@ -698,9 +699,8 @@ async def export_cases(storage, event, reply):
             writer.writerow(reason)
 
         await event.channel._raw.send(file=discord.File(fp=io.BytesIO(out_file.getvalue().encode('utf-8')), filename='data.csv'))
-    except:
-        e = sys.exc_info()[0]
-        reply("Couldn't export cases: %s" % e)
+    except Exception as e:
+        reply("Couldn't export cases: %s" % repr(e))
 
 def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id, event):
     data = text.split(" ")
