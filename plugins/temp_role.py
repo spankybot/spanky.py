@@ -685,7 +685,7 @@ async def export_cases(storage, event, reply):
     try:
         out_file = io.StringIO(newline='')
         field_names = ['Case ID', 'Type', 'Reason', 'Date', 'Expire date', 'Link', 'User', 'Author']
-        writer = csv.DictWriter(out_file, field_names)
+        writer = csv.DictWriter(out_file, field_names, extrasaction='ignore')
         writer.writeheader()
 
         all_reasons = []
