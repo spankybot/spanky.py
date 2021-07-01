@@ -680,23 +680,27 @@ def create_user_reason(storage, user, author, reason, message_link, expire, reas
     return new_elem
 
 @hook.command(permissions=Permission.admin)
-async def export_cases(storage, event):
-    out_file = io.StringIO(newline='')
-    field_names = ['Case ID', 'Type', 'Reason', 'Date', 'Expire date', 'Link', 'User', 'Author']
-    writer = csv.DictWriter(out_file, field_names)
-    writer.writeheader()
+async def export_cases(storage, event, reply):
+    try:
+        out_file = io.StringIO(newline='')
+        field_names = ['Case ID', 'Type', 'Reason', 'Date', 'Expire date', 'Link', 'User', 'Author']
+        writer = csv.DictWriter(out_file, field_names)
+        writer.writeheader()
 
-    all_reasons = []
-    if "reasons" in storage:
-        for user in storage["reasons"].values():
-            for reason in user:
-                all_reasons.append(reason)
+        all_reasons = []
+        if "reasons" in storage:
+            for user in storage["reasons"].values():
+                for reason in user:
+                    all_reasons.append(reason)
 
-    all_reasons.sort(key=lambda x: x['Case ID'])
-    for reason in all_reasons:
-        writer.writerow(reason)
+        all_reasons.sort(key=lambda x: x['Case ID'])
+        for reason in all_reasons:
+            writer.writerow(reason)
 
-    await event.channel._raw.send(file=discord.File(fp=io.BytesIO(out_file.getvalue().encode('utf-8')), filename='data.csv'))
+        await event.channel._raw.send(file=discord.File(fp=io.BytesIO(out_file.getvalue().encode('utf-8')), filename='data.csv'))
+    except:
+        e = sys.exc_info()[0]
+        reply("Couldn't export cases: %s" % e)
 
 def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id, event):
     data = text.split(" ")
