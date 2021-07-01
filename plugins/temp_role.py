@@ -2,6 +2,9 @@ import os
 import datetime
 import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
+import io
+import discord
+import csv
 
 from spanky.plugin import hook, permissions
 from spanky.plugin.permissions import Permission
@@ -561,7 +564,6 @@ def ban(user_id_to_object, str_to_id, text, storage, event, send_embed, server, 
     user.ban(server)
     return "User banned permanently." if permanent else "User banned temporarily."
 
-
 def check_expired_roles(server, storage):
     tnow = datetime.datetime.now().timestamp()
     # Go through each command
@@ -677,6 +679,25 @@ def create_user_reason(storage, user, author, reason, message_link, expire, reas
 
     return new_elem
 
+@hook.command(permissions=Permission.admin)
+async def export_cases(storage, event):
+    out_file = io.StringIO(newline='')
+    field_names = ['Case ID', 'Type', 'Reason', 'Date', 'Expire date', 'Link', 'User', 'Author']
+    writer = csv.DictWriter(out_file, field_names)
+    writer.writeheader()
+
+    all_reasons = []
+    if "reasons" in storage:
+        for user in storage["reasons"].values():
+            for reason in user:
+                print('asdf',reason)
+                all_reasons.append(reason)
+
+    all_reasons.sort(key=lambda x: x['Case ID'])
+    for reason in all_reasons:
+        writer.writerow(reason)
+
+    await event.channel._raw.send(file=discord.File(fp=io.BytesIO(out_file.getvalue().encode('utf-8')), filename='data.csv'))
 
 def assign_temp_role(rstorage, server, bot, role, text, command_name, str_to_id, event):
     data = text.split(" ")
