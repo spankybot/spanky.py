@@ -690,7 +690,6 @@ async def export_cases(storage, event):
     if "reasons" in storage:
         for user in storage["reasons"].values():
             for reason in user:
-                print('asdf',reason)
                 all_reasons.append(reason)
 
     all_reasons.sort(key=lambda x: x['Case ID'])
