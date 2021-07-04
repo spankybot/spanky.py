@@ -311,7 +311,7 @@ def give_toggled_role(text, server, command_name, storage, event):
         if not user:
             return "No such user"
 
-        reson = "Not given"
+        reason = "Not given"
         if len(text) >= 2:
             reason = " ".join(text[1:])
 
