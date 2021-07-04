@@ -332,23 +332,12 @@ def give_toggled_role(text, server, command_name, storage, event):
         if not present:
             user.add_role(main_role)
 
-            # Create a new user entry
-            reason_entry = create_user_reason(
-                storage,
-                user,
-                event.author,
-                reason,
-                "https://discordapp.com/channels/%s/%s/%s" % (
-                    server.id, event.channel.id, event.msg.id),
-                None,
-                command_name)
-
             storage.sync()
 
             user.send_pm("You have been given the `%s` role.\nReason: %s\nAuthor: %s" %
                          (storage["cmds"][command_name]["role_name"], reason, event.author.name))
 
-            return reason_entry
+            return "Given role"
         else:
             user.remove_role(main_role)
             user.send_pm("You have been removed the `%s` role.\nReason: %s\nAuthor: %s" %
