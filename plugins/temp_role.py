@@ -45,7 +45,6 @@ def register_cmd(cmd, server):
             Temporary role assignment command as defined by server ops.
             """
             print("Got temp cmd %s" % cmd_name)
-            return "Debugging"
             if "cmd_type" not in storage["cmds"][cmd_name]:
                 storage["cmds"][cmd_name]["cmd_type"] = "temporary"
 
