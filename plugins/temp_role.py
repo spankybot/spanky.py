@@ -45,7 +45,16 @@ def register_cmd(cmd, server):
             Temporary role assignment command as defined by server ops.
             """
             print("Got temp cmd %s" % cmd_name)
-            ret_val = give_temp_role(text, server, cmd_name, storage, event)
+            if "cmd_type" not in storage["cmds"][cmd_name]:
+                storage["cmds"][cmd_name]["cmd_type"] = "temporary"
+
+            ret_val = None
+            if storage["cmds"][cmd_name]["cmd_type"] == "temporary":
+                ret_val = give_temp_role(text, server, cmd_name, storage, event)
+            elif storage["cmds"][cmd_name]["cmd_type"] == "toggled":
+                ret_val = give_toggled_role(text, server, cmd_name, storage, event)
+            else:
+                return "Unknown command type"
 
             if type(ret_val) == str:
                 return ret_val
@@ -130,6 +139,7 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
 
     # Create new object
     new_cmd = {}
+    new_cmd["cmd_type"] = "temporary"
     new_cmd["name"] = cmd
     new_cmd["role_id"] = role.id
     new_cmd["role_name"] = role.name
@@ -177,6 +187,22 @@ def delete_temp_role_cmd(storage, text, bot):
 
     return "Command not registered"
 
+@hook.command(permissions=Permission.admin)
+def set_temp_role_cmd_type(storage, text):
+    if "cmds" not in storage:
+        return "No commands created"
+    text = text.split()
+    if len(text) != 2:
+        return "Invalid arguments"
+    if not (text[1] == "temporary" or text[1] == "toggled"):
+        return "Invalid command type"
+
+    for cmd in storage["cmds"].values():
+        if cmd["name"] == text[0]:
+            storage["cmds"][cmd["name"]]["cmd_type"] = text[1]
+            storage.sync()
+            return "Done"
+    return "Command not registered"
 
 @hook.command(permissions=Permission.admin)
 async def userhistory(text, storage, async_send_message, server):
@@ -274,6 +300,61 @@ def show_user_case(text, storage, send_embed):
                     "Result", "",
                     {"Details": log_text})
 
+
+def give_toggled_role(text, server, command_name, storage, event):
+    text = " ".join(text.split()).split()
+
+    if len(text) < 1:
+        return "Needs a user (e.g. .{CMD} @cnc - to toggle @cnc the {CMD} role OR .{CMD} @cnc bad boy - to toggle @cnc the {CMD} role and save the reason \"bad boy\"".format(CMD=command_name)
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
+    if not user:
+        return "No such user"
+
+    reson = "Not given"
+    if len(text) >= 2:
+        reason = " ".join(text[1:])
+
+    # Get the role
+    main_role = dutils.get_role_by_id(
+        server, storage["cmds"][command_name]["role_id"])
+
+    if main_role is None:
+        return "Could not find given role"
+
+    # Check if user is already in toggled role
+    present = False
+    for role in user.roles:
+        if role == main_role:
+            present = True
+            break
+
+    if not present:
+        user.add_role(main_role)
+
+        # Create a new user entry
+        reason_entry = create_user_reason(
+            storage,
+            user,
+            event.author,
+            reason,
+            "https://discordapp.com/channels/%s/%s/%s" % (
+                server.id, event.channel.id, event.msg.id),
+            None,
+            command_name)
+
+        storage.sync()
+
+        user.send_pm("You have been given the `%s` role.\nReason: %s\nAuthor: %s" %
+                     (storage["cmds"][command_name]["role_name"], reason, event.author.name))
+
+        return reason_entry
+    else:
+        user.remove_role(main_role)
+        user.send_pm("You have been removed the `%s` role.\nReason: %s\nAuthor: %s" %
+                     (storage["cmds"][command_name]["role_name"], reason, event.author.name))
+        return "Removed the role"
+
+    return "Nothing happened"
 
 def give_temp_role(text, server, command_name, storage, event):
     # Remove extra whitespace and split
