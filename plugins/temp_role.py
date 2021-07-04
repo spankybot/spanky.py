@@ -358,7 +358,7 @@ def give_toggled_role(text, server, command_name, storage, event):
 
         return "Nothing happened"
     except Exception as e:
-        return "Couldn't give role: %s" % repr(e))
+        return "Couldn't give role: %s" % repr(e)
 
 def give_temp_role(text, server, command_name, storage, event):
     # Remove extra whitespace and split
