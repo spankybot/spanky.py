@@ -448,6 +448,7 @@ class Message():
         self.author = User(obj.author)
         self.clean_content = obj.clean_content
         self._raw = obj
+        self.reference_info = obj.reference
 
         # Delete the message `timeout` seconds after it was created
         self.timeout = timeout
@@ -463,6 +464,14 @@ class Message():
     @property
     def channel(self):
         return Channel(self._raw.channel)
+
+    async def reference(self):
+        if not self.reference_info:
+            return None
+        try:
+            return await self.channel.async_get_message(self.reference_info.message_id)
+        except:
+            return None
 
     async def async_add_reaction(self, string):
         try:
