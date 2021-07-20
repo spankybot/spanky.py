@@ -15,33 +15,34 @@ async def grab(text, channel, storage, reply, event):
 
     to_grab = None
 
-    # Check if we're grabbing a user
-    user_id = dutils.str_to_id(text)
-    if event.author.id == user_id:
-        reply("Didn't your mom teach you not to grab yourself in public?")
-        return
+    if text != "":
+        # Check if we're grabbing a user
+        user_id = dutils.str_to_id(text)
+        if event.author.id == user_id:
+            reply("Didn't your mom teach you not to grab yourself in public?")
+            return
 
-    messages = await channel.async_get_latest_messages(100)
+        messages = await channel.async_get_latest_messages(100)
 
-    to_grab = None
-    for msg in messages:
-        if msg.author.id == user_id:
-            to_grab = msg
-            break
+        to_grab = None
+        for msg in messages:
+            if msg.author.id == user_id:
+                to_grab = msg
+                break
 
-    # Or we may be grabbing a message link or ID
-    if not to_grab:
-        _, _, msg_id = dutils.parse_message_link(text)
+        # Or we may be grabbing a message link or ID
+        if not to_grab:
+            _, _, msg_id = dutils.parse_message_link(text)
 
-        if not msg_id:
-            msg_id = text
-        try:
-            to_grab = await channel.async_get_message(msg_id)
-        except discord.errors.NotFound:
-            pass
-        except:
-            import traceback
-            traceback.print_exc()
+            if not msg_id:
+                msg_id = text
+            try:
+                to_grab = await channel.async_get_message(msg_id)
+            except discord.errors.NotFound:
+                pass
+            except:
+                import traceback
+                traceback.print_exc()
 
     # Or we're grabbing a message we are replying to
     if not to_grab:
