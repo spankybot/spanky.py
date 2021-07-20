@@ -1,13 +1,67 @@
 # -*- coding: utf-8 -*-
 from spanky.plugin import hook
 import re2
+from spanky.plugin.permissions import Permission
+ELEVATED_PERMS = [Permission.admin, Permission.bot_owner]
 
 MAX_LEN = 50
 
+@hook.command(permissions=ELEVATED_PERMS)
+def toggle_correction_msg_del_ability(storage, event):
+    """enable/disable ability for automatic deletion of command when running .s/.ss"""
+    if "disabled" not in storage:
+        storage["disabled"] = True
+
+    newVal = not storage["disabled"]
+    storage["disabled"] = newVal
+    storage.sync()
+
+    if newVal:
+        return "Users now cannot auto-delete messages"
+    else:
+        return "Users can now auto-delete messages"
 
 @hook.command()
-async def s(text, channel, reply, event, bot):
+def toggle_correction_msg_del(storage, event):
+    """enable/disable automatic deletion of command when running .s/.ss"""
+    if "disabled" not in storage:
+        storage["disabled"] = True 
+    if storage["disabled"]:
+        return "Function disabled."
+    if "prefs" not in storage:
+        storage["prefs"] = {}
+
+    if event.author.id not in storage["prefs"]:
+        storage["prefs"][event.author.id] = False
+
+    newVal = not storage["prefs"][event.author.id]
+    storage["prefs"][event.author.id] = newVal
+    storage.sync()
+    
+    if newVal:
+        return "I will now auto-delete your commands"
+    else:
+        return "I will no longer auto-delete your commands"
+
+def delete_if_needed(storage, event):
+    if "disabled" not in storage:
+        storage["disabled"] = True
+    if storage["disabled"]:
+        return
+    if "prefs" not in storage:
+        storage["prefs"] = {}
+    if event.author.id not in storage["prefs"]:
+        storage["prefs"][event.author.id] = False
+
+    if storage["prefs"][event.author.id]:
+        event.msg.delete_message()
+
+@hook.command()
+async def s(text, channel, reply, event, bot, storage):
     """<word replacement> - replace 'word' with replacement"""
+
+    delete_if_needed(storage, event)
+
     text = text.split(maxsplit=1)
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
@@ -42,6 +96,8 @@ async def s(text, channel, reply, event, bot):
 @hook.command()
 async def ss(text, channel, reply, event, bot):
     """<regex replacement> - replace regex with replacement"""
+
+    delete_if_needed(storage, event)
 
     text = text.split(maxsplit=1)
     if len(text) == 0 or len(text) > 2:
