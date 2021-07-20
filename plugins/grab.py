@@ -6,11 +6,12 @@ import spanky.utils.discord_utils as dutils
 from spanky.plugin import hook
 from spanky.plugin.event import EventType
 from spanky.plugin.permissions import Permission
+import discord
 
 
-@hook.command(format="user")
+@hook.command()
 async def grab(text, channel, storage, reply, event):
-    """<user> - grab user's last message"""
+    """<user> - grab user's last message. If <user> is empty, it will try to grab the message you're replying to"""
 
     to_grab = None
 
@@ -36,12 +37,23 @@ async def grab(text, channel, storage, reply, event):
             msg_id = text
         try:
             to_grab = await channel.async_get_message(msg_id)
+        except discord.errors.NotFound:
+            pass
         except:
             import traceback
             traceback.print_exc()
 
+    # Or we're grabbing a message we are replying to
+    if not to_grab:
+        ref = await event.msg.reference()
+        if ref.author.id == event.author.id:
+            reply("Don't try to grab yourself 😉")
+            return
+        to_grab = ref
+
     if not to_grab:
         reply("Couldn't find anything.")
+        return
 
     if not storage["grabs"]:
         storage["grabs"] = []
