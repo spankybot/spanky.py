@@ -165,7 +165,7 @@ def bday_dbg(text, reply, server, storage):
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def trigger_check(server, storage, send_message):
     try:
-        check_birthdays(server, storage, send_message, check=True)
+        check_birthdays(server, storage, send_message, force=True)
     except:
         import traceback
         return str(traceback.format_exc())
