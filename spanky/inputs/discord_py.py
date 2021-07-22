@@ -900,6 +900,13 @@ class Role():
         self.position = obj.position
         self._raw = obj
 
+    @property
+    def members(self):
+        users = []
+        for user in self._raw.members:
+            users.append(User(user))
+        return users
+
     async def set_position(self, position):
         await self._raw.edit(position=position)
 

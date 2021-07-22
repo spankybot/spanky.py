@@ -48,6 +48,10 @@ def restart():
 def gitpull():
     return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
 
+@hook.command(permissions=Permission.bot_owner)
+def gitpull2():
+    return subprocess.check_output("git pull --recurse-submodules", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+
 
 @hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():

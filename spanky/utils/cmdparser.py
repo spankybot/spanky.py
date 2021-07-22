@@ -137,7 +137,7 @@ class CmdParser():
                     required_args.append(arg)
 
             if len(text) < len(required_args):
-                return CmdParser.Exception(
+                raise CmdParser.Exception(
                     f"Incorrect number of parameter for {self.name}. Parameters: {self.args}")
 
             # Build result list
