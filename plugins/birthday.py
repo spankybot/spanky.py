@@ -30,7 +30,7 @@ def birthday_check(bot, send_message):
         
         check_birthdays(server, storage, send_message)
 
-def check_birthdays(server, storage, send_message):
+def check_birthdays(server, storage, send_message, force=False):
     global last_time
     
     now = datetime.now()
@@ -41,12 +41,13 @@ def check_birthdays(server, storage, send_message):
     except:
         last_time = now
 
-    if debug:
-        if now.minute == last_time.minute:
-            return
-    else:
-        if now.hour == last_time.hour:
-            return
+    if not force:
+        if debug:
+            if now.minute == last_time.minute:
+                return
+        else:
+            if now.hour == last_time.hour:
+                return
    
     # reset last_time
     last_time = now
@@ -153,12 +154,18 @@ def is_bday_boy(uid, storage, date: datetime):
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def bday_dbg(text, reply, server, storage):
+    # Rectify incorrect keys
     for month, month_data in storage["birthdays"].items():
         for day in month_data.keys():
             storage["birthdays"][month][str(int(day))] = storage["birthdays"][month].pop(day)
         storage["birthdays"][str(int(month))] = storage["birthdays"].pop(month)
     storage.sync()
     return str(storage["birthdays"])
+
+@hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
+def trigger_check(server, storage, send_message):
+    check_birthdays(server, storage, send_message, check=True)
+    return "Done."
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def birthday(text, reply, server, storage):
