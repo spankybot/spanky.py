@@ -50,7 +50,7 @@ def gitpull():
 
 @hook.command(permissions=Permission.bot_owner)
 def gitpull2():
-    return subprocess.check_output("git pull --recurse-submodules", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    return subprocess.check_output("git pull -C plugins/custom", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
 
 
 @hook.command(permissions=Permission.bot_owner)
