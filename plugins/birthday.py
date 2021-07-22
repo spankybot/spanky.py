@@ -112,8 +112,8 @@ def send_messages(server, storage, now, send_message):
         try:
             send_message(msg, server=server, target=chan.id, check_old=False, allowed_mentions=discord.AllowedMentions(everyone=False, users=[user._raw], roles=False))
         except Exception as e:
-            import traceback
             debug_msg(server, storage, f"Send Message Exception: {str(e)}")
+            import traceback
             print(traceback.format_exc())
 
 def debug_msg(server, send_message, msg):
@@ -164,7 +164,11 @@ def bday_dbg(text, reply, server, storage):
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def trigger_check(server, storage, send_message):
-    check_birthdays(server, storage, send_message, check=True)
+    try:
+        check_birthdays(server, storage, send_message, check=True)
+    except:
+        import traceback
+        return str(traceback.format_exc())
     return "Done."
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
