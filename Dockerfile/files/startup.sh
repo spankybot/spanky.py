@@ -4,15 +4,16 @@ if [[ ! -d /botsrc/.pyenv ]]; then
     git clone https://github.com/pyenv/pyenv.git /botsrc/.pyenv
 fi
 
-echo 'export PYENV_ROOT="/botsrc/.pyenv"' >> ~/.bashrc
-echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-source ~/.bashrc
+export PYENV_ROOT="/botsrc/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv init --path)"
 
-pyenv install -s 3.7.1
-pyenv shell 3.7.1
+pyenv install -s 3.9.6
+pyenv global 3.9.6
 
 cd /botsrc/
 pip3 install -r requirements.txt
 
-while true; do python3.7 main.py || sleep 1; done
+#python3.9 main.py
+while true; do python3.9 main.py || sleep 1; done

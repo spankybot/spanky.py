@@ -22,3 +22,5 @@ fb-re2
 google-api-python-client
 webull
 graphviz
+face_recognition
+yfinance
