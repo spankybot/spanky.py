@@ -48,6 +48,8 @@ def restart():
 def gitpull():
     try:
         return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        return e.stdout.decode("utf-8")
     except:
         import traceback
         return traceback.format_exc()
@@ -56,6 +58,8 @@ def gitpull():
 def gitpull2():
     try:
         return subprocess.check_output("git -C plugins/custom/ pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        return e.stdout.decode("utf-8")
     except:
         import traceback
         return traceback.format_exc()
