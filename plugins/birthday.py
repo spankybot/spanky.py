@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 ro = pytz.timezone('Europe/Bucharest')
 
-debug = True
+debug = False
 
 SERVERS = [
     "648937029433950218",  # CNC test server
