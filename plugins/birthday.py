@@ -134,7 +134,7 @@ def parse_day(text):
         (day, month) = text.split('-')
         if not validate_date(int(day), int(month)):
             raise Exception("Invalid date")
-        return (str(day), str(month))
+        return (str(int(day)), str(int(month)))
     except:
         raise Exception("Invalid date")
 
@@ -153,6 +153,11 @@ def is_bday_boy(uid, storage, date: datetime):
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def bday_dbg(text, reply, server, storage):
+    for month, month_data in storage["birthdays"].items():
+        for day in month_data.keys():
+            storage["birthdays"][month][str(int(day))] = storage["birthdays"][month].pop(day)
+        storage["birthdays"][str(int(month))] = storage["birthdays"].pop(month)
+    storage.sync()
     return str(storage["birthdays"])
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
