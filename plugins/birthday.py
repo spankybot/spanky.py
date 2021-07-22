@@ -30,7 +30,7 @@ def birthday_check(bot, send_message):
         
         check_birthdays(server, storage, send_message)
 
-def check_birthdays(server, storage, send_message):
+def check_birthdays(server, storage, send_message, force=False):
     global last_time
     
     now = datetime.now()
@@ -41,12 +41,13 @@ def check_birthdays(server, storage, send_message):
     except:
         last_time = now
 
-    if debug:
-        if now.minute == last_time.minute:
-            return
-    else:
-        if now.hour == last_time.hour:
-            return
+    if not force:
+        if debug:
+            if now.minute == last_time.minute:
+                return
+        else:
+            if now.hour == last_time.hour:
+                return
    
     # reset last_time
     last_time = now
@@ -75,17 +76,21 @@ def update_roles(server, storage, now):
             user.remove_role(role)
 
     if month not in storage["birthdays"]:
+        debug_msg(server, storage, "Month not found")
         return
     if day not in storage["birthdays"][month]:
+        debug_msg(server, storage, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
+            debug_msg(server, storage, f"User <@{user.id}> not found.")
             continue
         user.add_role(role)
 
 def send_messages(server, storage, now, send_message):
     if "chan" not in storage:
+        debug_msg(server, storage, "Channel not found")
         return
     chan = server.get_chan(storage["chan"])
     if not chan:
@@ -93,19 +98,26 @@ def send_messages(server, storage, now, send_message):
     (month, day) = (str(now.month), str(now.day))
 
     if month not in storage["birthdays"]:
+        debug_msg(server, storage, "Month not found")
         return
     if day not in storage["birthdays"][month]:
+        debug_msg(server, storage, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
+            debug_msg(server, storage, f"User <@{user.id}> not found.")
             continue
         msg = storage["bday_message"].replace("<userid>", f"<@{user.id}>")
         try:
             send_message(msg, server=server, target=chan.id, check_old=False, allowed_mentions=discord.AllowedMentions(everyone=False, users=[user._raw], roles=False))
         except Exception as e:
+            debug_msg(server, storage, f"Send Message Exception: {str(e)}")
             import traceback
             print(traceback.format_exc())
+
+def debug_msg(server, send_message, msg):
+    send_message(f"(Birthday debug) {msg}", server=server, target="449899630176632842", check_old=False)
 
 def get_date():
     date = datetime.today()
@@ -123,7 +135,7 @@ def parse_day(text):
         (day, month) = text.split('-')
         if not validate_date(int(day), int(month)):
             raise Exception("Invalid date")
-        return (str(day), str(month))
+        return (str(int(day)), str(int(month)))
     except:
         raise Exception("Invalid date")
 
@@ -131,7 +143,7 @@ def find_user(uid, storage):
     for month, month_data in storage["birthdays"].items():
         for day, day_data in month_data.items():
             if uid in day_data:
-                return (day, month)
+                return (str(day), str(month))
     return None
 
 def is_bday_boy(uid, storage, date: datetime):
@@ -139,6 +151,25 @@ def is_bday_boy(uid, storage, date: datetime):
     if date == find_user(uid, storage):
         return True
     return False
+
+@hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
+def bday_dbg(text, reply, server, storage):
+    # Rectify incorrect keys
+    for month, month_data in storage["birthdays"].items():
+        for day in month_data.keys():
+            storage["birthdays"][month][str(int(day))] = storage["birthdays"][month].pop(day)
+        storage["birthdays"][str(int(month))] = storage["birthdays"].pop(month)
+    storage.sync()
+    return str(storage["birthdays"])
+
+@hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
+def trigger_check(server, storage, send_message):
+    try:
+        check_birthdays(server, storage, send_message, force=True)
+    except:
+        import traceback
+        return str(traceback.format_exc())
+    return "Done."
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def birthday(text, reply, server, storage):
