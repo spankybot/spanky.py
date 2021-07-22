@@ -46,12 +46,19 @@ def restart():
 
 @hook.command(permissions=Permission.bot_owner)
 def gitpull():
-    return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    try:
+        return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    except:
+        import traceback
+        return traceback.format_exc()
 
 @hook.command(permissions=Permission.bot_owner)
 def gitpull2():
-    return subprocess.check_output("git -C plugins/custom/ pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
-
+    try:
+        return subprocess.check_output("git -C plugins/custom/ pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    except:
+        import traceback
+        return traceback.format_exc()
 
 @hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
