@@ -75,17 +75,21 @@ def update_roles(server, storage, now):
             user.remove_role(role)
 
     if month not in storage["birthdays"]:
+        debug_msg(server, storage, "Month not found")
         return
     if day not in storage["birthdays"][month]:
+        debug_msg(server, storage, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
+            debug_msg(server, storage, f"User <@{user.id}> not found.")
             continue
         user.add_role(role)
 
 def send_messages(server, storage, now, send_message):
     if "chan" not in storage:
+        debug_msg(server, storage, "Channel not found")
         return
     chan = server.get_chan(storage["chan"])
     if not chan:
@@ -93,19 +97,26 @@ def send_messages(server, storage, now, send_message):
     (month, day) = (str(now.month), str(now.day))
 
     if month not in storage["birthdays"]:
+        debug_msg(server, storage, "Month not found")
         return
     if day not in storage["birthdays"][month]:
+        debug_msg(server, storage, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
+            debug_msg(server, storage, f"User <@{user.id}> not found.")
             continue
         msg = storage["bday_message"].replace("<userid>", f"<@{user.id}>")
         try:
             send_message(msg, server=server, target=chan.id, check_old=False, allowed_mentions=discord.AllowedMentions(everyone=False, users=[user._raw], roles=False))
         except Exception as e:
             import traceback
+            debug_msg(server, storage, f"Send Message Exception: {str(e)}")
             print(traceback.format_exc())
+
+def debug_msg(server, send_message, msg):
+    send_message(f"(Birthday debug) {msg}", server=server, target="449899630176632842", check_old=False)
 
 def get_date():
     date = datetime.today()
@@ -131,7 +142,7 @@ def find_user(uid, storage):
     for month, month_data in storage["birthdays"].items():
         for day, day_data in month_data.items():
             if uid in day_data:
-                return (day, month)
+                return (str(day), str(month))
     return None
 
 def is_bday_boy(uid, storage, date: datetime):
@@ -139,6 +150,10 @@ def is_bday_boy(uid, storage, date: datetime):
     if date == find_user(uid, storage):
         return True
     return False
+
+@hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
+def bday_dbg(text, reply, server, storage):
+    return str(storage["birthdays"])
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def birthday(text, reply, server, storage):
