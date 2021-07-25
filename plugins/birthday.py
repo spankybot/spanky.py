@@ -58,11 +58,11 @@ def check_birthdays(server, storage, send_message, force=False):
     else:
         hour = ro_now.hour
     
-    update_roles(server, storage, now)
+    update_roles(server, storage, now, send_message)
     if hour == 8: # 8am
         send_messages(server, storage, now, send_message)
 
-def update_roles(server, storage, now):
+def update_roles(server, storage, now, send_message):
     if "role" not in storage:
         return
     role = server.get_role(storage["role"])
@@ -76,21 +76,21 @@ def update_roles(server, storage, now):
             user.remove_role(role)
 
     if month not in storage["birthdays"]:
-        debug_msg(server, storage, "Month not found")
+        debug_msg(server, send_message, "Month not found")
         return
     if day not in storage["birthdays"][month]:
-        debug_msg(server, storage, "Day not found")
+        debug_msg(server, send_message, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
-            debug_msg(server, storage, f"User <@{user.id}> not found.")
+            debug_msg(server, send_message, f"User <@{user.id}> not found.")
             continue
         user.add_role(role)
 
 def send_messages(server, storage, now, send_message):
     if "chan" not in storage:
-        debug_msg(server, storage, "Channel not found")
+        debug_msg(server, send_message, "Channel not found")
         return
     chan = server.get_chan(storage["chan"])
     if not chan:
@@ -98,21 +98,21 @@ def send_messages(server, storage, now, send_message):
     (month, day) = (str(now.month), str(now.day))
 
     if month not in storage["birthdays"]:
-        debug_msg(server, storage, "Month not found")
+        debug_msg(server, send_message, "Month not found")
         return
     if day not in storage["birthdays"][month]:
-        debug_msg(server, storage, "Day not found")
+        debug_msg(server, send_message, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
-            debug_msg(server, storage, f"User <@{user.id}> not found.")
+            debug_msg(server, send_message, f"User <@{user.id}> not found.")
             continue
         msg = storage["bday_message"].replace("<userid>", f"<@{user.id}>")
         try:
             send_message(msg, server=server, target=chan.id, check_old=False, allowed_mentions=discord.AllowedMentions(everyone=False, users=[user._raw], roles=False))
         except Exception as e:
-            debug_msg(server, storage, f"Send Message Exception: {str(e)}")
+            debug_msg(server, send_message, f"Send Message Exception: {str(e)}")
             import traceback
             print(traceback.format_exc())
 
