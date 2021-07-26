@@ -1,78 +1,58 @@
 [
 	{
-		"filename": "bells.png",
-		"emoji_name": "cr_clopotei"
+		"filename": "castel.png",
+		"emoji_name": "vr_castel"
 	},
 	{
-		"filename": "candy.png",
-		"emoji_name": "cr_bomboana"
+		"filename": "castel2.png",
+		"emoji_name": "vr_castel2"
 	},
 	{
-		"filename": "cane.png",
-		"emoji_name": "cr_acadea"
+		"filename": "colac.png",
+		"emoji_name": "vr_colac"
 	},
 	{
-		"filename": "glob1.png",
-		"emoji_name": "cr_glob_rosu"
+		"filename": "inghetata.png",
+		"emoji_name": "vr_inghetata"
 	},
 	{
-		"filename": "glob2.png",
-		"emoji_name": "cr_glob_portocaliu"
+		"filename": "lady1.png",
+		"emoji_name": "vr_femeie"
 	},
 	{
-		"filename": "glob3.png",
-		"emoji_name": "cr_glob_verde"
+		"filename": "lady2.png",
+		"emoji_name": "vr_femeie2"
 	},
 	{
-		"filename": "glob4.png",
-		"emoji_name": "cr_glob_mov"
+		"filename": "lady3.png",
+		"emoji_name": "vr_femeie3"
 	},
 	{
-		"filename": "glob5.png",
-		"emoji_name": "cr_glob_turcoaz"
+		"filename": "lady4.png",
+		"emoji_name": "vr_femeie4"
 	},
 	{
-		"filename": "glob6.png",
-		"emoji_name": "cr_glob_morcoviu"
+		"filename": "minge.png",
+		"emoji_name": "vr_minge"
 	},
 	{
-		"filename": "glob7.png",
-		"emoji_name": "cr_glob_lime"
+		"filename": "rac.png",
+		"emoji_name": "vr_rac"
 	},
 	{
-		"filename": "glob8.png",
-		"emoji_name": "cr_glob_albastru"
+		"filename": "scoica.png",
+		"emoji_name": "vr_scoica"
 	},
 	{
-		"filename": "glob9.png",
-		"emoji_name": "cr_glob_capucin"
+		"filename": "slapi.png",
+		"emoji_name": "vr_slapi"
 	},
 	{
-		"filename": "stocking.png",
-		"emoji_name": "cr_soseta"
+		"filename": "stea.png",
+		"emoji_name": "vr_stea"
 	},
 	{
-		"filename": "vasc.png",
-		"emoji_name": "cr_vasc"
-	},
-	{
-		"filename": "cr_vadim.png",
-		"emoji_name": "cr_vadmin"
-	},
-	{
-		"filename": "cr_ciudat.png",
-		"emoji_name": "cr_ciudat"
-	},
-	{
-		"filename": "cr_perry.png",
-		"emoji_name": "cr_perry"
-	},
-	{
-		"filename": "cr_pisik.png",
-		"emoji_name": "cr_pisik"
-	},
-	{
-		"filename": "cr_yay.png",
-		"emoji_name": "cr_yay"
+		"filename": "stea2.png",
+		"emoji_name": "vr_stea2"
 	}
 ]

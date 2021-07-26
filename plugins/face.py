@@ -301,7 +301,7 @@ def add_hat(image, hat_img, debug=False):
 
 
 @hook.command(params="string:name=random")
-def eyes(event, send_file, storage_loc, send_message, cmd_args):
+def eyes(event, send_file, send_message, cmd_args):
     valid, overlay = get_overlay(
         cmd_args["name"], "plugin_data/face_res/eyes/")
 
