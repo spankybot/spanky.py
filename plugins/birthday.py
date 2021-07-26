@@ -22,15 +22,19 @@ ELEVATED_PERMS = [Permission.admin, Permission.bot_owner]
 
 @hook.periodic(10)
 def birthday_check(bot, send_message):
+    debug_srv = None
+    for server in bot.backend.get_servers():
+        if server.id == "648937029433950218":
+            debug_srv = server
     for server in bot.backend.get_servers():
         storage = bot.server_permissions[server.id].get_plugin_storage("plugins_birthday.json")
 
         if "birthdays" not in storage:
             continue
         
-        check_birthdays(server, storage, send_message)
+        check_birthdays(server, storage, send_message, dbg_srv)
 
-def check_birthdays(server, storage, send_message, force=False):
+def check_birthdays(server, storage, send_message, dbg_srv, force=False):
     global last_time
     
     now = datetime.now()
@@ -58,11 +62,11 @@ def check_birthdays(server, storage, send_message, force=False):
     else:
         hour = ro_now.hour
     
-    update_roles(server, storage, now, send_message)
+    update_roles(server, storage, now, send_message, dbg_srv)
     if hour == 8: # 8am
-        send_messages(server, storage, now, send_message)
+        send_messages(server, storage, now, send_message, dbg_srv)
 
-def update_roles(server, storage, now, send_message):
+def update_roles(server, storage, now, send_message, dbg_srv):
     if "role" not in storage:
         return
     role = server.get_role(storage["role"])
@@ -76,21 +80,21 @@ def update_roles(server, storage, now, send_message):
             user.remove_role(role)
 
     if month not in storage["birthdays"]:
-        debug_msg(server, send_message, "Month not found")
+        debug_msg(dbg_srv, send_message, "Month not found")
         return
     if day not in storage["birthdays"][month]:
-        debug_msg(server, send_message, "Day not found")
+        debug_msg(dbg_srv, send_message, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
-            debug_msg(server, send_message, f"User <@{user.id}> not found.")
+            debug_msg(dbg_srv, send_message, f"User <@{user.id}> not found.")
             continue
         user.add_role(role)
 
-def send_messages(server, storage, now, send_message):
+def send_messages(server, storage, now, send_message, dbg_srv):
     if "chan" not in storage:
-        debug_msg(server, send_message, "Channel not found")
+        debug_msg(dbg_srv, send_message, "Channel not found")
         return
     chan = server.get_chan(storage["chan"])
     if not chan:
@@ -98,26 +102,26 @@ def send_messages(server, storage, now, send_message):
     (month, day) = (str(now.month), str(now.day))
 
     if month not in storage["birthdays"]:
-        debug_msg(server, send_message, "Month not found")
+        debug_msg(dbg_srv, send_message, "Month not found")
         return
     if day not in storage["birthdays"][month]:
-        debug_msg(server, send_message, "Day not found")
+        debug_msg(dbg_srv, send_message, "Day not found")
         return
     for uid in storage["birthdays"][month][day]:
         user = server.get_user(uid)
         if not user:
-            debug_msg(server, send_message, f"User <@{user.id}> not found.")
+            debug_msg(dbg_srv, send_message, f"User <@{user.id}> not found.")
             continue
         msg = storage["bday_message"].replace("<userid>", f"<@{user.id}>")
         try:
             send_message(msg, server=server, target=chan.id, check_old=False, allowed_mentions=discord.AllowedMentions(everyone=False, users=[user._raw], roles=False))
         except Exception as e:
-            debug_msg(server, send_message, f"Send Message Exception: {str(e)}")
+            debug_msg(dbg_srv, send_message, f"Send Message Exception: {str(e)}")
             import traceback
             print(traceback.format_exc())
 
-def debug_msg(server, send_message, msg):
-    send_message(f"(Birthday debug) {msg}", server=server, target="449899630176632842", check_old=False)
+def debug_msg(dbg_srv, send_message, msg):
+    send_message(f"(Birthday debug) {msg}", server=debug_srv, target="869130692490059816", check_old=False)
 
 def get_date():
     date = datetime.today()
