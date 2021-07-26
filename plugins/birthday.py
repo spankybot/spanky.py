@@ -120,7 +120,7 @@ def send_messages(server, storage, now, send_message, dbg_srv):
             import traceback
             print(traceback.format_exc())
 
-def debug_msg(dbg_srv, send_message, msg):
+def debug_msg(debug_srv, send_message, msg):
     send_message(f"(Birthday debug) {msg}", server=debug_srv, target="869130692490059816", check_old=False)
 
 def get_date():
