@@ -32,7 +32,7 @@ def birthday_check(bot, send_message):
         if "birthdays" not in storage:
             continue
         
-        check_birthdays(server, storage, send_message, dbg_srv)
+        check_birthdays(server, storage, send_message, debug_srv)
 
 def check_birthdays(server, storage, send_message, dbg_srv, force=False):
     global last_time
