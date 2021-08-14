@@ -17,7 +17,7 @@ forecastiopy
 idna==2.9
 pillow
 numpy
-pythonwhois
+python-whois
 fb-re2
 google-api-python-client
 webull

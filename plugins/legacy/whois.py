@@ -4,10 +4,16 @@ Provides a command to allow users to look up information on domain names.
 """
 
 import sys
-import pythonwhois
+import whois as pythonwhois
 from contextlib import suppress
 
 from spanky.plugin import hook
+
+def get_data(val):
+    print(val, type(val))
+    if type(val) is list:
+        return val[0]
+    return val
 
 @hook.command
 def whois(text, reply):
@@ -18,8 +24,8 @@ def whois(text, reply):
     domain = text.strip().lower()
 
     try:
-        data = pythonwhois.get_whois(domain, normalized=True)
-    except pythonwhois.shared.WhoisException:
+        data = pythonwhois.whois(domain)
+    except:
         reply("Invalid input.")
         raise
 
@@ -27,13 +33,13 @@ def whois(text, reply):
 
     # We suppress errors here because different domains provide different data fields
     with suppress(KeyError):
-        info.append(("Registrar", data["registrar"][0]))
+        info.append(("Registrar", get_data(data["registrar"])))
 
     with suppress(KeyError):
-        info.append(("Registered", data["creation_date"][0].strftime("%d-%m-%Y")))
+        info.append(("Registered", get_data(data["creation_date"]).strftime("%d-%m-%Y")))
 
     with suppress(KeyError):
-        info.append(("Expires", data["expiration_date"][0].strftime("%d-%m-%Y")))
+        info.append(("Expires", get_data(data["expiration_date"]).strftime("%d-%m-%Y")))
 
     if not info:
         return "No information returned."
