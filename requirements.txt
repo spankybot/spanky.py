@@ -2,7 +2,7 @@ watchdog
 Unidecode
 sqlalchemy
 praw
-discord.py==1.6
+git+https://github.com/Rapptz/discord.py.git@1e17b7fceaf7173b1666465e639d1bebaa126683
 markovify
 cleverwrap
 bs4
