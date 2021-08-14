@@ -518,7 +518,7 @@ class User():
         self.id = str(obj.id)
         self.bot = obj.bot
 
-        self.avatar_url = obj.avatar_url
+        self.avatar_url = obj.avatar.url
 
         self.roles = []
         if hasattr(obj, "roles"):
