@@ -35,6 +35,7 @@ domains = ['imgur.com', 'gfycat.com', 'redditmedia.com',
 dont_cache = ['random', 'randnsfw']
 
 g_db = None
+reddit_inst = None
 
 links = Table(
     'links',
@@ -96,17 +97,10 @@ def del_sub(sub):
 
 
 def get_links_from_subs(sub):
-    try:
-        return _get_links_from_subs(sub)
-    except:
-        import traceback
-        traceback.print_exc()
-        return("My owner is too dumb to fix me. Please try again")
+    return _get_links_from_subs(reddit_inst, sub)
 
 
-def _get_links_from_subs(sub):
-    data = []
-    r = praw.Reddit("irc_bot", user_agent=USER_AGENT)
+def _get_links_from_subs(r, sub):
 
     now = datetime.utcnow()
 
@@ -115,6 +109,7 @@ def _get_links_from_subs(sub):
     for row in db_sub_list:
         sub_list[row['subreddit']] = row['cachetime']
 
+    data = []
     for el in sub:
         if el in dont_cache:
             print("%s is in no cache list" % el)
@@ -153,8 +148,18 @@ def _get_links_from_subs(sub):
 
 
 @hook.on_start
-def init(db):
+def init(bot, db):
     global g_db
+    global reddit_inst
+
+    auth = bot.config.get("reddit_auth")
+    reddit_inst = praw.Reddit(
+        client_id=auth.get("client_id"),
+        client_secret=auth.get("client_secret"),
+        username=auth.get("username"),
+        password=auth.get("password"),
+        user_agent="Subreddit watcher by /u/programatorulupeste")
+
     g_db = db
     with open(os.path.realpath(__file__)) as f:
         data = f.read()
@@ -196,11 +201,10 @@ def refresh_porn(db):
 
 @hook.command(server_id=SERVERS)
 def force_refresh_porn():
-    r = praw.Reddit("irc_bot", user_agent=USER_AGENT)
     db_subs = g_db.execute(select([subs.c.subreddit]))
     for el in db_subs:
         try:
-            refresh_cache(r, el['subreddit'])
+            refresh_cache(reddit_inst, el['subreddit'])
         except Exception as e:
             print(e)
             pass
