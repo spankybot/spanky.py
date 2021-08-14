@@ -4,7 +4,6 @@ from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
 tstamps = {}
-reddit_inst = None
 g_db = None
 
 storages = {}
@@ -23,13 +22,6 @@ def set_crt_timestamps():
         for sub in storage["subs"].keys():
             storage["subs"][sub]["timestamp"] = epoch
         storage.sync()
-
-
-@hook.on_start()
-def init():
-    global reddit_inst
-    reddit_inst = praw.Reddit(
-        "irc_bot", user_agent='Subreddit watcher by /u/programatorulupeste')
 
 
 @hook.on_ready()
@@ -55,8 +47,14 @@ def do_it(thread):
 
 
 @hook.periodic(30)
-def checker(send_message):
-    global reddit_inst
+def checker(bot, send_message):
+    auth = bot.config.get("reddit_auth")
+    reddit_inst = praw.Reddit(
+        client_id=auth.get("client_id"),
+        client_secret=auth.get("client_secret"),
+        username=auth.get("username"),
+        password=auth.get("password"),
+        user_agent="Subreddit watcher by /u/programatorulupeste")
 
     for server_id, storage in storages.items():
         if "watching" not in storage or storage["watching"] == False:
