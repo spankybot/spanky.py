@@ -149,7 +149,10 @@ class DiscordUtils(abc.ABC):
                 target = target[1:]
                 return discord.utils.find(lambda m: m.name == target, target_server.channels)
 
-            return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
+            if not self.in_thread:
+                return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
+            else:
+                return discord.utils.find(lambda m: m.id == int(target), target_server.threads)
 
     def get_channel_name(self, chan_id):
         chan = discord.utils.find(lambda m: m.id == int(chan_id), self.get_server()._raw.channels)
@@ -355,6 +358,10 @@ class EventMessage(DiscordUtils):
 
         self._message = message
 
+    @property
+    def in_thread(self):
+        return self.msg.in_thread
+
     def get_server(self):
         if self.is_pm: # Shitty workaround
             return self.channel
@@ -464,6 +471,10 @@ class Message():
     @property
     def channel(self):
         return Channel(self._raw.channel)
+
+    @property
+    def in_thread(self):
+        return self.channel.is_thread
 
     async def reference(self):
         if not self.reference_info:
@@ -621,6 +632,11 @@ class Channel():
         self.is_nsfw = None
         if hasattr(obj, "is_nsfw"):
             self.is_nsfw = obj.is_nsfw()
+
+        self.is_thread = False
+        if type(obj) == discord.threads.Thread:
+            self.is_thread = True
+
         self._raw = obj
 
     def delete_messages(self, number):
