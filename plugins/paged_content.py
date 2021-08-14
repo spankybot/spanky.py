@@ -34,6 +34,7 @@ class element():
             else:
                 self.parsed_lines.append(line)
 
+        self.id = None
         elements.append(self)
 
     def set_msg_id(self, msg_id):
