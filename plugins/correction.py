@@ -94,7 +94,7 @@ async def s(text, channel, reply, event, bot, storage):
 
 
 @hook.command()
-async def ss(text, channel, reply, event, bot):
+async def ss(text, channel, reply, event, bot, storage):
     """<regex replacement> - replace regex with replacement"""
 
     delete_if_needed(storage, event)
