@@ -17,4 +17,14 @@ RUN curl -L https://github.com/sgreben/yeetgif/releases/download/1.23.6/gif_1.23
 
 RUN apt install -y cmake libffi-dev liblzma-dev imagemagick libmagickwand-dev
 
+# qalc stuff
+RUN apt install -y intltool libcurl4-nss-dev
+RUN git clone https://github.com/Qalculate/libqalculate.git /qalc
+RUN cd /qalc && \
+	git checkout v3.20.1 && \
+	./autogen.sh && \
+	make -j4 && \
+	make install && \
+	ldconfig
+
 ADD files/startup.sh /startup.sh
