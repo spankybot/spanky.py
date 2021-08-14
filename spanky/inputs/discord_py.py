@@ -294,7 +294,7 @@ class EventReact(DiscordUtils):
 
     @property
     def in_thread(self):
-        return self.channel.in_thread
+        return self.channel.is_thread
 
     def get_server(self):
         return self.server
