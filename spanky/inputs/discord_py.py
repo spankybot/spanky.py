@@ -292,6 +292,10 @@ class EventReact(DiscordUtils):
 
         self.reaction = Reaction(reaction)
 
+    @property
+    def in_thread(self):
+        return self.channel.in_thread
+
     def get_server(self):
         return self.server
 
