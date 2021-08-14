@@ -42,6 +42,8 @@ class Bot():
         self.plugin_manager = PluginManager(
             self.config.get("plugin_paths", ""), self, self.db)
 
+        self._prefix = self.config.get("command_prefix")
+
         # Import the backend
         try:
             module = importlib.import_module("spanky.inputs.%s" % input_type)
@@ -238,11 +240,11 @@ class Bot():
             return
 
         cmd_text = event.msg.text.lstrip()
-        
+
         # Check if the command starts with .
-        if not (len(cmd_text) > 1 and cmd_text[0] == "."):
+        if not (len(cmd_text) > 1 and cmd_text[0] == self._prefix):
             return
-        
+
         # Get the actual command
         cmd_split = cmd_text[1:].split(maxsplit=1)
 
@@ -252,7 +254,7 @@ class Bot():
         # Check if it's in the command list
         if command in self.plugin_manager.commands.keys():
             hook = self.plugin_manager.commands[command]
-            
+
             # Test if we can actually send a PM with the command
             if event.is_pm and not hook.can_pm:
                 return
