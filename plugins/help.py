@@ -14,7 +14,7 @@ def help(bot, text, event, send_embed):
         return
 
     send_embed("Bot help:", "",
-               {"Links:": "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
+               {"Links:": "See <https://github.com/spankybot/commands/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/spankybot/commands/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
     return
 
 
@@ -22,7 +22,7 @@ def prepare_repo(storage_loc):
     dest = storage_loc + "/doc/"
     os.system("rm -rf %s" % dest)
     os.system("mkdir -p %s" % dest)
-    os.system("git clone git@github.com:gc-plp/spanky-command-doc.git %s"
+    os.system("git clone git@github.com:spankybot/commands.git %s"
               % (storage_loc + "/doc"))
 
 
