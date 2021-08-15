@@ -77,6 +77,10 @@ class DiscordUtils(abc.ABC):
     def get_msg(self):
         pass
 
+    @property
+    def in_thread(self):
+        return False
+
     def str_to_id(self, string):
         return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
 
@@ -149,10 +153,10 @@ class DiscordUtils(abc.ABC):
                 target = target[1:]
                 return discord.utils.find(lambda m: m.name == target, target_server.channels)
 
-            if not self.in_thread:
-                return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
-            else:
-                return discord.utils.find(lambda m: m.id == int(target), target_server.threads)
+        if not self.in_thread:
+            return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
+        else:
+            return discord.utils.find(lambda m: m.id == int(target), target_server.threads)
 
     def get_channel_name(self, chan_id):
         chan = discord.utils.find(lambda m: m.id == int(chan_id), self.get_server()._raw.channels)
