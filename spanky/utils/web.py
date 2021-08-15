@@ -28,41 +28,19 @@ HASTEBIN_SERVER = 'https://hastebin.com'
 SNOONET_PASTE = 'https://paste.snoonet.org'
 
 
-# Python eval
-
-@asyncio.coroutine
-def pyeval(code, pastebin=True):
-    p = {'input': code}
-    r = requests.post('http://pyeval.appspot.com/exec', data=p)
-
-    p = {'id': r.text}
-    r = None
-    j = {}
-    while not r or j.get("status", "not ready").lower() == "not ready":
-        r = requests.get('http://pyeval.appspot.com/exec', params=p)
-        j = r.json()
-        yield from asyncio.sleep(0.5)
-
-    output = j['output'].rstrip('\n')
-    if '\n' in output and pastebin:
-        return paste(output)
-    else:
-        return output
-
-
 # Shortening / pasting
 
 # Public API
 
 
-def shorten(url, custom=None, key=None, service=DEFAULT_SHORTENER):
+def shorten(url, custom=None, service=DEFAULT_SHORTENER):
     impl = shorteners[service]
-    return impl.shorten(url, custom, key)
+    return impl.shorten(url, custom)
 
 
-def try_shorten(url, custom=None, key=None, service=DEFAULT_SHORTENER):
+def try_shorten(url, custom=None, service=DEFAULT_SHORTENER):
     impl = shorteners[service]
-    return impl.try_shorten(url, custom, key)
+    return impl.try_shorten(url, custom)
 
 
 def expand(url, service=None):
@@ -99,12 +77,12 @@ class Shortener:
     def __init__(self):
         pass
 
-    def shorten(self, url, custom=None, key=None):
+    def shorten(self, url, custom=None):
         return url
 
-    def try_shorten(self, url, custom=None, key=None):
+    def try_shorten(self, url, custom=None):
         try:
-            return self.shorten(url, custom, key)
+            return self.shorten(url, custom)
         except ServiceError:
             return url
 
@@ -146,7 +124,7 @@ def _pastebin(name):
 
 @_shortener('is.gd')
 class Isgd(Shortener):
-    def shorten(self, url, custom=None, key=None):
+    def shorten(self, url, custom=None):
         p = {'url': url, 'shorturl': custom, 'format': 'json'}
         r = requests.get('http://is.gd/create.php', params=p)
         j = r.json()
@@ -165,48 +143,6 @@ class Isgd(Shortener):
             return j['url']
         else:
             raise ServiceError(j['errormessage'], r)
-
-
-@_shortener('goo.gl')
-class Googl(Shortener):
-    def shorten(self, url, custom=None, key=None):
-        h = {'content-type': 'application/json'}
-        k = {'key': key}
-        p = {'longUrl': url}
-        r = requests.post('https://www.googleapis.com/urlshortener/v1/url', params=k, data=json.dumps(p), headers=h)
-        j = r.json()
-
-        if 'error' not in j:
-            return j['id']
-        else:
-            raise ServiceError(j['error']['message'], r)
-
-    def expand(self, url):
-        p = {'shortUrl': url}
-        r = requests.get('https://www.googleapis.com/urlshortener/v1/url', params=p)
-        j = r.json()
-
-        if 'error' not in j:
-            return j['longUrl']
-        else:
-            raise ServiceError(j['error']['message'], r)
-
-
-@_shortener('git.io')
-class Gitio(Shortener):
-    def shorten(self, url, custom=None, key=None):
-        p = {'url': url, 'code': custom}
-        r = requests.post('http://git.io', data=p)
-
-        if r.status_code == requests.codes.created:
-            s = r.headers['location']
-            if custom and custom not in s:
-                raise ServiceError('That URL is already in use', r)
-            else:
-                return s
-        else:
-            raise ServiceError(r.text, r)
-
 
 @_pastebin('hastebin')
 class Hastebin(Pastebin):

@@ -25,6 +25,14 @@ class EventType(enum.Enum):
 
     msg_bulk_del    = 13
 
+    # Bot events
+    command         = 100
+    periodic        = 101
+    on_start        = 102
+    on_ready        = 103
+    on_conn_ready   = 104
+
+'''
 class BaseEvent():
     def __init__(self, bot):
         self.bot = bot
@@ -112,3 +120,5 @@ class HookEvent(BaseEvent):
         self.hook = hook
         self.event = event
         self.permission_mgr = permission_mgr
+
+'''

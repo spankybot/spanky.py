@@ -1,0 +1,12 @@
+		Hook v1       |            Hook v2
+------------------------------------------------------
+command               | command
+regex (doesn't work)  | N/A
+sieve                 | middleware (TODO)
+event                 | event
+periodic              | periodic
+on_start              | event(EventType.on_start)
+on_ready              | event(EventType.on_ready)
+on_connection_ready   | event(EventType.on_conn_ready)
+storage 			  | TODO
+db 					  | N/A?

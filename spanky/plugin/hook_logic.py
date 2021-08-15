@@ -34,7 +34,7 @@ class Hook:
         self.function = func_hook.function
         self.function_name = self.function.__name__
 
-        self.required_args = inspect.getargspec(self.function)[0]
+        self.required_args = inspect.getfullargspec(self.function)[0]
         if self.required_args is None:
             self.required_args = []
 
@@ -119,28 +119,6 @@ class CommandHook(Hook):
         return "command {} from {}".format("/".join(self.aliases), self.plugin.file_name)
 
 
-class RegexHook(Hook):
-    """
-    :type regexes: set[re.__Regex]
-    """
-
-    def __init__(self, plugin, regex_hook):
-        """
-        :type plugin: Plugin
-        :type regex_hook: cloudbot.util.hook._RegexHook
-        """
-        self.regexes = regex_hook.regexes
-
-        super().__init__("regex", plugin, regex_hook)
-
-    def __repr__(self):
-        return "Regex[regexes: [{}], {}]".format(", ".join(regex.pattern for regex in self.regexes),
-                                                 Hook.__repr__(self))
-
-    def __str__(self):
-        return "regex {} from {}".format(self.function_name, self.plugin.file_name)
-
-
 class PeriodicHook(Hook):
     """
     :type interval: int
@@ -163,30 +141,6 @@ class PeriodicHook(Hook):
 
     def __str__(self):
         return "periodic hook ({} seconds) {} from {}".format(self.interval, self.function_name, self.plugin.file_name)
-
-
-class RawHook(Hook):
-    """
-    :type triggers: set[str]
-    """
-
-    def __init__(self, plugin, msg_raw_hook):
-        """
-        :type plugin: Plugin
-        :type msg_raw_hook: cloudbot.util.hook._RawHook
-        """
-        super().__init__("msg_raw", plugin, msg_raw_hook)
-
-        self.triggers = msg_raw_hook.triggers
-
-    def is_catch_all(self):
-        return "*" in self.triggers
-
-    def __repr__(self):
-        return "Raw[triggers: {}, {}]".format(list(self.triggers), Hook.__repr__(self))
-
-    def __str__(self):
-        return "irc raw {} ({}) from {}".format(self.function_name, ",".join(self.triggers), self.plugin.file_name)
 
 
 class SieveHook(Hook):
@@ -268,20 +222,18 @@ def find_hooks(parent, module):
     """
     :type parent: Plugin
     :type module: object
-    :rtype: (list[CommandHook], list[RegexHook], list[RawHook], list[SieveHook], List[EventHook], list[OnStartHook])
+    :rtype: (list[CommandHook], list[SieveHook], List[EventHook], list[OnStartHook])
     """
     # set the loaded flag
     module._cloudbot_loaded = True
     command = []
-    regex = []
-    raw = []
     sieve = []
     event = []
     periodic = []
     on_start = []
     on_ready = []
     on_conn_ready = []
-    type_lists = {"command": command, "regex": regex, "msg_raw": raw, "sieve": sieve, "event": event,
+    type_lists = {"command": command, "sieve": sieve, "event": event,
                   "periodic": periodic, "on_start": on_start, "on_ready": on_ready, "on_connection_ready": on_conn_ready}
     for name, func in module.__dict__.items():
         if hasattr(func, "_cloudbot_hook"):
@@ -294,7 +246,7 @@ def find_hooks(parent, module):
             # delete the hook to free memory
             del func._cloudbot_hook
 
-    return command, regex, raw, sieve, event, periodic, on_start, on_ready, on_conn_ready
+    return command, sieve, event, periodic, on_start, on_ready, on_conn_ready
 
 def find_tables(code):
     """
@@ -311,8 +263,6 @@ def find_tables(code):
 
 _hook_name_to_plugin = {
     "command": CommandHook,
-    "regex": RegexHook,
-    "msg_raw": RawHook,
     "sieve": SieveHook,
     "event": EventHook,
     "periodic": PeriodicHook,

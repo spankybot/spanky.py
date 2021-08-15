@@ -14,9 +14,9 @@ import codecs
 import json
 import os
 
-from spanky.plugin import hook
 from spanky.utils import formatting, textgen
-
+from spanky.hook2 import Hook
+hook = Hook("name_generator")
 
 def get_generator(_json):
     data = json.loads(_json)

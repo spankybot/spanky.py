@@ -67,70 +67,6 @@ class _CommandHook(_Hook):
         self.aliases.update(alias_param)
 
 
-class _RegexHook(_Hook):
-    """
-    :type regexes: list[re.__Regex]
-    """
-
-    def __init__(self, function):
-        """
-        :type function: function
-        """
-        _Hook.__init__(self, function, "regex")
-        self.regexes = []
-
-    def add_hook(self, regex_param, kwargs):
-        """
-        :type regex_param: Iterable[str | re.__Regex] | str | re.__Regex
-        :type kwargs: dict[str, unknown]
-        """
-        self._add_hook(kwargs)
-        # add all regex_parameters to valid regexes
-        if isinstance(regex_param, str):
-            # if the parameter is a string, compile and add
-            self.regexes.append(re.compile(regex_param))
-        elif hasattr(regex_param, "search"):
-            # if the parameter is an re.__Regex, just add it
-            # we only use regex.search anyways, so this is a good determiner
-            self.regexes.append(regex_param)
-        else:
-            assert isinstance(regex_param, collections.Iterable)
-            # if the parameter is a list, add each one
-            for re_to_match in regex_param:
-                if isinstance(re_to_match, str):
-                    re_to_match = re.compile(re_to_match)
-                else:
-                    # make sure that the param is either a compiled regex, or has a search attribute.
-                    assert hasattr(regex_param, "search")
-                self.regexes.append(re_to_match)
-
-
-class _RawHook(_Hook):
-    """
-    :type triggers: set[str]
-    """
-
-    def __init__(self, function):
-        """
-        :type function: function
-        """
-        _Hook.__init__(self, function, "msg_raw")
-        self.triggers = set()
-
-    def add_hook(self, trigger_param, kwargs):
-        """
-        :type trigger_param: list[str] | str
-        :type kwargs: dict[str, unknown]
-        """
-        self._add_hook(kwargs)
-
-        if isinstance(trigger_param, str):
-            self.triggers.add(trigger_param)
-        else:
-            # it's a list
-            self.triggers.update(trigger_param)
-
-
 class _PeriodicHook(_Hook):
     def __init__(self, function):
         """
@@ -211,26 +147,6 @@ def command(*args, **kwargs):
         return lambda func: _command_hook(func, alias_param=args)
 
 
-def msg_raw(triggers_param, **kwargs):
-    """External raw decorator. Must be used as a function to return a decorator
-    :type triggers_param: str | list[str]
-    """
-
-    def _raw_hook(func):
-        hook = _get_hook(func, "msg_raw")
-        if hook is None:
-            hook = _RawHook(func)
-            _add_hook(func, hook)
-
-        hook.add_hook(triggers_param, kwargs)
-        return func
-
-    if callable(triggers_param):  # this decorator is being used directly, which isn't good
-        raise TypeError("@msg_raw() must be used as a function that returns a decorator")
-    else:  # this decorator is being used as a function, so return a decorator
-        return lambda func: _raw_hook(func)
-
-
 def event(types_param, **kwargs):
     """External event decorator. Must be used as a function to return a decorator
     :type types_param: cloudbot.event.EventType | list[cloudbot.event.EventType]
@@ -246,31 +162,9 @@ def event(types_param, **kwargs):
         return func
 
     if callable(types_param):  # this decorator is being used directly, which isn't good
-        raise TypeError("@msg_raw() must be used as a function that returns a decorator")
+        raise TypeError("@event() must be used as a function that returns a decorator")
     else:  # this decorator is being used as a function, so return a decorator
         return lambda func: _event_hook(func)
-
-
-def regex(regex_param, **kwargs):
-    """External regex decorator. Must be used as a function to return a decorator.
-    :type regex_param: str | re.__Regex | list[str | re.__Regex]
-    :type flags: int
-    """
-
-    def _regex_hook(func):
-        hook = _get_hook(func, "regex")
-        if hook is None:
-            hook = _RegexHook(func)
-            _add_hook(func, hook)
-
-        hook.add_hook(regex_param, kwargs)
-        return func
-
-    if callable(regex_param):  # this decorator is being used directly, which isn't good
-        raise TypeError("@regex() hook must be used as a function that returns a decorator")
-    else:  # this decorator is being used as a function, so return a decorator
-        return lambda func: _regex_hook(func)
-
 
 def sieve(param=None, **kwargs):
     """External sieve decorator. Can be used directly as a decorator, or with args to return a decorator

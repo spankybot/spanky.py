@@ -13,17 +13,18 @@ fh = logging.FileHandler("storage.log")
 fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
-DS_LOC = Path("storage_data/")
+DS_LOC = Path("hook2/storage_data/")
 
 
 class dstype():
-    def __init__(self, parent, name):
+    def __init__(self, parent, name, *, loc: Path=DS_LOC):
         parent = Path(parent)
         logger.debug("Initializing %s, %s" % (parent, name))
-        os.system("mkdir -p %s" % DS_LOC / parent / "backup")
+        os.system("mkdir -p %s" % loc / parent / "backup")
 
-        self.location = parent / name
-        self.backup_name = parent / "backup" / name
+        self.loc: Path = loc
+        self.location: Path = parent / name
+        self.backup_name: Path = parent / "backup" / name
 
         data_obj = self.get_obj(self.location)
         if data_obj:
@@ -34,18 +35,18 @@ class dstype():
             logger.debug("Do sync on " + str(name))
 
             # Check if the current file is valid
-            with open(DS_LOC / name, "r") as f:
-                json.load(f)
+            json.load(open(self.loc / name, "r"))
             # If yes, do a backup
-            os.system("cp %s %s" % (DS_LOC / name, DS_LOC / backup_name))
+            os.system("cp %s %s" % (self.loc / name, DS_LOC / backup_name))
             logger.debug("Load/sync OK")
         except:
-            print("File at %s is not valid" % (DS_LOC / name))
+            print("File at %s is not valid" % (self.loc / name))
             logger.debug("Sync error - file invalid")
 
         logger.debug("Open file")
-        with open(DS_LOC / name, "w") as file:
-            json.dump(obj, file, indent=4, sort_keys=True)
+        file = open(self.loc / name, "w")
+
+        json.dump(obj, file, indent=4, sort_keys=True)
         logger.debug("Sync finished")
 
     def sync(self):
@@ -56,22 +57,20 @@ class dstype():
         Get an object from disk
         """
 
-        file_loc = DS_LOC / location
-        backup_loc = DS_LOC / self.backup_name
+        file_loc = self.loc / location
+        backup_loc = self.loc / self.backup_name
 
         if not Path(file_loc).exists() and not Path(backup_loc).exists():
             return {}
 
         try:
             logger.info("Load file %s" % location)
-            with open(file_loc, "r") as f:
-                return json.load(f)
+            return json.load(open(file_loc, "r"))
         except:
             logger.error("Trying backup %s" % location)
             try:
                 # Try the backup
-                with open(backup_loc, "r") as f:
-                    data = json.load(f)
+                data = json.load(open(backup_loc, "r"))
 
                 logger.critical("Loaded backup for " + self.location)
                 return data
@@ -91,3 +90,30 @@ class dsdict(dstype, collections.UserDict):
         collections.UserDict.__setitem__(self, key, value)
         self.sync()
         return self.data
+
+
+class Storage():
+    def __init__(self, hook_id: str):
+        self.hook_id = hook_id
+        self.srv_stor_cache: dict[str, dsdict] = {}
+        self.hook_stor_cache: Optional[dsdict] = None
+
+    def get_server(self, server_id: str):
+        if server_id not in self.srv_stor_cache:
+            self.srv_stor_cache[server_id] = dsdict(server_id, self.hook_id)
+        return self.srv_stor_cache[server_id]
+
+    def invalidate_cache(self, server_id: str):
+        del self.srv_stor_cache[server_id] 
+
+    def get_hook(self):
+        if not self.hook_stor_cache:
+            self.hook_stor_cache = dsdict("global_hook", self.hook_id)
+        return self.hook_stor_cache
+    
+    def invalidate_hook_cache(self):
+        self.srv_stor_cache = {}
+        self.hook_stor_cache = None
+
+    def data_location(server_id: str):
+        return str(DS_LOC / server_id / (self.hook_id + "_data")) + os.linesep

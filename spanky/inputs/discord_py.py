@@ -30,7 +30,8 @@ client = discord.Client(intents=intents, allowed_mentions=allowed_mentions)
 bot = None
 bot_replies = {}
 to_delete = {}
-emojis = json.load(open("plugin_data/twemoji_800x800.json"))
+with open("plugin_data/twemoji_800x800.json") as f:
+    emojis = json.load(f)
 raw_msg_cache = {} # message cache that we use to map msg_id to msg
 
 class Init():

@@ -7,15 +7,16 @@ import sys
 import whois as pythonwhois
 from contextlib import suppress
 
-from spanky.plugin import hook
+from spanky.hook2.hook2 import Hook
+
+hook = Hook("whois")
 
 def get_data(val):
-    print(val, type(val))
     if type(val) is list:
         return val[0]
     return val
 
-@hook.command
+@hook.command()
 def whois(text, reply):
     """<domain> - Does a whois query on <domain>."""
     if pythonwhois is None:
@@ -44,5 +45,6 @@ def whois(text, reply):
     if not info:
         return "No information returned."
 
+    print(text)
     info_text = ", ".join("{name}: {info}".format(name=name, info=i) for name, i in info)
     return "{} - {}".format(domain, info_text)

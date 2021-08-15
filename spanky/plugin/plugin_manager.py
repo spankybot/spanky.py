@@ -12,6 +12,9 @@ from spanky.plugin.event import EventType, OnStartEvent, OnReadyEvent, OnConnRea
 from spanky.inputs.console import EventMessage
 from spanky.plugin.hook_parameters import map_params
 
+from spanky.hook2 import hook2
+from spanky.hook2.event import EventType as EventType2
+
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
@@ -27,12 +30,9 @@ class PluginManager():
         self.plugins = {}
         self.commands = {}
         self.event_type_hooks = {}
-        self.regex_hooks = []
         self.sieves = []
-        self.catch_all_triggers = []
         self.run_on_ready = []
         self.run_on_conn_ready = []
-        self.raw_triggers = []
         self.bot = bot
         self.db = db
 
@@ -50,12 +50,16 @@ class PluginManager():
         for plugin in self.plugins.values():
             self.finalize_plugin(plugin)
 
-    def finalize_plugin(self, plugin):
+    def finalize_plugin(self, plugin: 'Plugin'):
         plugin.create_tables(self.db)
 
+        for hk2 in plugin.hook2s:
+            self.bot.run_sync(hk2.dispatch_action(hook2.ActionEvent(self.bot, {}, EventType2.on_start)))
+            
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
             success = self.launch(OnStartEvent(bot=self.bot, hook=on_start_hook))
+            # NOTE: This can never currently happen.
             if not success:
                 logger.warning("Not registering hooks from plugin {}: on_start hook errored".format(plugin.name))
 
@@ -65,14 +69,20 @@ class PluginManager():
 
         # run on_ready hooks if bot ready
         if self.bot.is_ready:
+            
             # Run the on ready hooks per server
             for server in self.bot.backend.get_servers():
+                for hk2 in plugin.hook2s:
+                    self.bot.run_sync(hk2.dispatch_action(hook2.ActionOnReady(self.bot, server)))
                 for on_ready_hook in plugin.run_on_ready:
                     self.launch(OnReadyEvent(
                         bot=self.bot,
                         hook=on_ready_hook,
                         permission_mgr=self.bot.get_pmgr(server.id),
                         server=server))
+
+            for hk2 in plugin.hook2s:
+                self.bot.run_sync(hk2.dispatch_action(hook2.ActionEvent(self.bot, {}, EventType2.on_conn_ready)))
 
             # Run connection ready hooks too
             for on_conn_ready_hook in plugin.run_on_conn_ready:
@@ -93,19 +103,7 @@ class PluginManager():
                         "Ignoring new assignment.".format(plugin.name, alias, self.commands[alias].plugin.name))
                 else:
                     self.commands[alias] = command_hook
-            logger.debug("Loaded {}".format(repr(command_hook)))
-
-        # register raw hooks
-        for raw_hook in plugin.raw_hooks:
-            if raw_hook.is_catch_all():
-                self.catch_all_triggers.append(raw_hook)
-            else:
-                for trigger in raw_hook.triggers:
-                    if trigger in self.raw_triggers:
-                        self.raw_triggers[trigger].append(raw_hook)
-                    else:
-                        self.raw_triggers[trigger] = [raw_hook]
-            logger.debug("Loaded {}".format(repr(raw_hook)))
+            #logger.debug("Loaded {}".format(repr(command_hook)))
 
         # register events
         for event_hook in plugin.events:
@@ -115,12 +113,6 @@ class PluginManager():
                 else:
                     self.event_type_hooks[event_type] = [event_hook]
             logger.debug("Loaded {}".format(repr(event_hook)))
-
-        # register regexps
-        for regex_hook in plugin.regexes:
-            for regex_match in regex_hook.regexes:
-                self.regex_hooks.append((regex_match, regex_hook))
-            logger.debug("Loaded {}".format(repr(regex_hook)))
 
         # register sieves
         for sieve_hook in plugin.sieves:
@@ -310,23 +302,17 @@ class PluginManager():
         # get the loaded plugin
         plugin = self.plugins[path]
 
+        #TODO: Remove
+        for h2 in plugin.hook2s:
+            h2.unload()
+
+
         # unregister commands
         for command_hook in plugin.commands:
             for alias in command_hook.aliases:
                 if alias in self.commands and self.commands[alias] == command_hook:
                     # we need to make sure that there wasn't a conflict, so we don't delete another plugin's command
                     del self.commands[alias]
-
-        # unregister raw hooks
-        for raw_hook in plugin.raw_hooks:
-            if raw_hook.is_catch_all():
-                self.catch_all_triggers.remove(raw_hook)
-            else:
-                for trigger in raw_hook.triggers:
-                    assert trigger in self.raw_triggers  # this can't be not true
-                    self.raw_triggers[trigger].remove(raw_hook)
-                    if not self.raw_triggers[trigger]:  # if that was the last hook for this trigger
-                        del self.raw_triggers[trigger]
 
         # unregister events
         for event_hook in plugin.events:
@@ -335,11 +321,6 @@ class PluginManager():
                 self.event_type_hooks[event_type].remove(event_hook)
                 if not self.event_type_hooks[event_type]:  # if that was the last hook for this event type
                     del self.event_type_hooks[event_type]
-
-        # unregister regexps
-        for regex_hook in plugin.regexes:
-            for regex_match in regex_hook.regexes:
-                self.regex_hooks.remove((regex_match, regex_hook))
 
         # unregister sieves
         for sieve_hook in plugin.sieves:
@@ -411,14 +392,20 @@ class PluginManager():
 
         return plugin_dict
 
+# TODO: Remove
+def find_hook2s(module) -> list[hook2.Hook]:
+    vals = []
+    for value in module.__dict__.values():
+        if isinstance(value, hook2.Hook):
+            vals.append(value)
+    return vals
+
 class Plugin():
     def __init__(self, name, module):
         self.name = name
         self.file_name = name # Compat with spanky/plugin/hook_logic code
 
         self.commands, \
-            self.regexes, \
-            self.raw_hooks, \
             self.sieves, \
             self.events, \
             self.periodic, \
@@ -427,6 +414,9 @@ class Plugin():
             self.run_on_conn_ready = find_hooks(self, module)
 
         self.tables = find_tables(module)
+        # TODO: Remove
+        self.hook2s = find_hook2s(module)
+        
 
     def create_tables(self, db_data):
 

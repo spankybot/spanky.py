@@ -1,9 +1,9 @@
 import random
 
-from spanky.plugin import hook
+from spanky.hook2 import Hook
+hook = Hook("lurve")
 
-
-@hook.command("lurve")
+@hook.command()
 def lurve(text, event):
     """lurves all over <user>"""
     target = text.strip()

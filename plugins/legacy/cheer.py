@@ -16,7 +16,7 @@ def load_cheers(bot):
     with data_file.open(encoding='utf-8') as f:
         cheers.extend(line.strip() for line in f if not line.startswith('//'))
 
-@hook.regex(cheer_re)
+@hook.command()
 def cheer():
     """
     :type chan: str

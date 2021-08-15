@@ -2,9 +2,8 @@ import codecs
 import os
 import random
 
-from spanky.plugin import hook
-from spanky.plugin.permissions import Permission
-
+from spanky.hook2 import Hook, EventType
+hook = Hook("jokes")
 
 def load_joke_data():
     global yo_momma, do_it, pun, confucious, one_liner, wisdom, book_puns, lawyerjoke, kero_sayings
@@ -37,13 +36,13 @@ def load_joke_data():
         kero_sayings = [line.strip() for line in f.readlines() if not line.startswith("//")]
 
 
-@hook.command(permissions=Permission.bot_owner)
+@hook.command(permissions=['bot_owner'])
 def reload_jokes():
     load_joke_data()
     print(yo_momma)
     return "Reloaded."
 
-@hook.on_start()
+@hook.event(EventType.on_start)
 def load_jokes():
     load_joke_data()
 
@@ -94,7 +93,7 @@ def bookpun():
     return "{} by {}".format(title, author)
 
 
-@hook.command("boobs")
+@hook.command(name="boobs")
 def boobies(text):
     """- prints boobies!"""
     boob = "\u2299"
@@ -105,7 +104,7 @@ def boobies(text):
     return out
 
 
-@hook.command("awesome")
+@hook.command(name="awesome")
 def awesome(text):
     """- Prints a webpage to show <nick> how awesome they are."""
     link = 'http://is-awesome.cool/{}'

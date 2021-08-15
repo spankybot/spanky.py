@@ -1,8 +1,8 @@
 import requests
 from requests import HTTPError
 
-from spanky.plugin import hook
-
+from spanky.hook2.hook2 import Hook
+hook = Hook("quran")
 
 def statuscheck(status, item):
     """since we are doing this a lot might as well return something more meaningful"""
@@ -23,7 +23,7 @@ def smart_truncate(content, length=425, suffix='...\n'):
             content[length:])
 
 
-@hook.command("quran", format="verse")
+@hook.command(format="verse")
 def quran(text, send_message, reply):
     """<verse> - Prints the specified Qur'anic verse(s) and its/their translation(s)"""
     api_url = "http://quranapi.azurewebsites.net/api/verse/"

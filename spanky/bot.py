@@ -7,10 +7,13 @@ import time
 import asyncio
 
 from spanky.plugin.plugin_manager import PluginManager
-from spanky.plugin.event import EventType, TextEvent, TimeEvent, RegexEvent, HookEvent, OnReadyEvent, OnConnReadyEvent
+from spanky.plugin.event import EventType, TextEvent, TimeEvent, HookEvent, OnReadyEvent, OnConnReadyEvent
 from spanky.database.db import db_data
 from spanky.plugin.permissions import PermissionMgr
 from spanky.plugin.hook_logic import OnStartHook
+from spanky.hook2 import hook2
+from spanky.hook2.event import EventType as H2EventType
+from spanky.hook2.hook_manager import HookManager
 
 logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
@@ -24,9 +27,10 @@ audit.addHandler(fh)
 
 class Bot():
     def __init__(self, input_type):
-        self.user_agent = "spaky.py bot https://github.com/gc-plp/spanky.py"
+        self.user_agent = "spanky.py bot https://github.com/gc-plp/spanky.py"
         self.is_ready = False
         self.loop = asyncio.get_event_loop()
+        self.hook2 = hook2.Hook("bot_hook")
 
         # Open the bot config file
         with open('bot_config.json') as data_file:
@@ -39,10 +43,13 @@ class Bot():
         self.db = db_data(db_path)
 
         # Create the plugin manager instance
-        self.plugin_manager = PluginManager(
-            self.config.get("plugin_paths", ""), self, self.db)
+        self.plugin_manager=PluginManager([], self, self.db)
+        #self.plugin_manager = PluginManager(
+        #    self.config.get("plugin_paths", ""), self, self.db)
+        
+        self.hook_manager = HookManager(self.config.get("plugin_paths", []), self)
 
-        self._prefix = self.config.get("command_prefix")
+        self._prefix = self.config.get("command_prefix", ".")
 
         # Import the backend
         try:
@@ -60,7 +67,9 @@ class Bot():
         await self.backend.do_init()
 
     def run_on_ready_work(self):
+
         for server in self.backend.get_servers():
+            self.run_sync(self.hook2.dispatch_action(hook2.ActionOnReady(self, server)))
             for on_ready in self.plugin_manager.run_on_ready:
                 self.plugin_manager.launch(
                     OnReadyEvent(
@@ -70,6 +79,7 @@ class Bot():
                         server=server))
 
         # Run on connection ready hooks
+        self.run_sync(self.hook2.dispatch_action(hook2.ActionEvent(self, {}, H2EventType.on_conn_ready)))
         for on_conn_ready in self.plugin_manager.run_on_conn_ready:
             self.plugin_manager.launch(
                     OnConnReadyEvent(
@@ -119,6 +129,9 @@ class Bot():
     def run_in_thread(self, target, args=()):
         thread = threading.Thread(target=target, args=args)
         thread.start()
+
+    def run_sync(self, coro):
+        asyncio.run_coroutine_threadsafe(coro, self.loop)
 
 # ---------------
 # Server events
@@ -190,37 +203,12 @@ class Bot():
         self.do_non_text_event(evt)
 
 
-    def run_type_events(self, event):
-        # Raw hooks
-
-        pmgr = None
-        # Handle PMs
-        if hasattr(event, "server"):
-            pmgr = self.get_pmgr(event.server.id)
-
-        for raw_hook in self.plugin_manager.catch_all_triggers:
-            self.run_in_thread(self.plugin_manager.launch, (
-                HookEvent(
-                    bot=self,
-                    hook=raw_hook,
-                    event=event,
-                    permission_mgr=pmgr),))
-
-        # Event hooks
-        if event.type in self.plugin_manager.event_type_hooks:
-            for event_hook in self.plugin_manager.event_type_hooks[event.type]:
-                self.run_in_thread(
-                    self.plugin_manager.launch, (
-                        HookEvent(bot=self,
-                                  hook=event_hook,
-                                  event=event,
-                                  permission_mgr=pmgr),))
-
     def do_non_text_event(self, event):
+        # Don't do anything if bot is not connected
         if not self.is_ready:
             return
 
-        self.run_type_events(event)
+        self.run_sync(self.hook2.dispatch_action(hook2.ActionEvent(self, event, H2EventType(event.type.value))))
 
     def do_text_event(self, event):
         """Process a text event"""
@@ -228,12 +216,12 @@ class Bot():
         if not self.is_ready:
             return
 
+        self.run_sync(self.hook2.dispatch_action(hook2.ActionEvent(self, event, H2EventType(event.type.value))))
+
         # Let's not
         # Ignore private messages
         #if event.is_pm and event.msg.text.split(maxsplit=1)[0] != ".accept_invite":
         #    return
-
-        self.run_type_events(event)
 
         # Don't answer to own commands and don't trigger invalid events
         if event.author.bot or not event.do_trigger:
@@ -251,14 +239,13 @@ class Bot():
         command = cmd_split[0]
         logger.debug("Got command %s" % str(command))
 
-        # Check if it's in the command list
-        if command in self.plugin_manager.commands.keys():
-            hook = self.plugin_manager.commands[command]
-
-            # Test if we can actually send a PM with the command
-            if event.is_pm and not hook.can_pm:
+        # Hook2
+        print(self.hook2.all_commands)
+        if command in self.hook2.all_commands.keys():
+            hooklet = self.hook2.all_commands[command]
+            if event.is_pm and not hooklet.can_pm:
                 return
-            if not event.is_pm and hook.pm_only:
+            if not event.is_pm and hooklet.pm_only:
                 return
 
             if len(cmd_split) > 1:
@@ -266,18 +253,7 @@ class Bot():
             else:
                 event_text = ""
 
-            pmgr = None
-            # Handle PMs
-            if hasattr(event, "server"):
-                pmgr = self.get_pmgr(event.server.id)
-
-            text_event = TextEvent(
-                hook=hook,
-                text=event_text,
-                triggered_command=command,
-                event=event,
-                bot=self,
-                permission_mgr=pmgr)
+            self.run_sync(self.hook2.dispatch_action(hook2.ActionCommand(self, event, event_text, command)))
 
             if event.is_pm:
                 # Log audit data
@@ -295,19 +271,16 @@ class Bot():
                     event.channel.name,
                     event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
                     event.text))
-            self.run_in_thread(target=self.plugin_manager.launch, args=(text_event,))
-
-        # Regex hooks
-        for regex, regex_hook in self.plugin_manager.regex_hooks:
-            regex_match = regex.search(event.msg.text)
-            if regex_match:
-                regex_event = RegexEvent(bot=self, hook=regex_hook, match=regex_match, event=event)
-                thread = threading.Thread(target=self.plugin_manager.launch, args=(regex_event,))
-                thread.start()
 
     def on_periodic(self):
         if not self.is_ready:
             return
+
+        for hooklet in self.hook2.all_periodics.values():
+            if time.time() - hooklet.last_time > hooklet.interval:
+                hooklet.last_time = time.time()
+                action = hook2.ActionPeriodic(self, hooklet.hooklet_id)
+                self.run_sync(self.hook2.dispatch_action(action))
 
         for _, plugin in self.plugin_manager.plugins.items():
             for periodic in plugin.periodic:
