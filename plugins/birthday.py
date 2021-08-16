@@ -9,6 +9,7 @@ import discord
 from collections import OrderedDict
 
 ro = pytz.timezone('Europe/Bucharest')
+print(ro)
 
 debug = False
 
@@ -56,15 +57,15 @@ def check_birthdays(server, storage, send_message, dbg_srv, force=False):
     # reset last_time
     last_time = now
 
-    ro_now = ro.localize(now)
+    ro_now = now.astimezone(ro)#ro.localize(now)
     if debug:
         hour = ro_now.minute
     else:
         hour = ro_now.hour
     
-    update_roles(server, storage, now, send_message, dbg_srv)
+    update_roles(server, storage, ro_now, send_message, dbg_srv)
     if hour == 8: # 8am
-        send_messages(server, storage, now, send_message, dbg_srv)
+        send_messages(server, storage, ro_now, send_message, dbg_srv)
 
 def update_roles(server, storage, now, send_message, dbg_srv):
     if "role" not in storage:
@@ -159,17 +160,21 @@ def is_bday_boy(uid, storage, date: datetime):
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def bday_dbg(text, reply, server, storage):
     # Rectify incorrect keys
-    for month, month_data in storage["birthdays"].items():
-        for day in month_data.keys():
+    for month, month_data in [*storage["birthdays"].items()]:
+        for day in [*month_data.keys()]:
             storage["birthdays"][month][str(int(day))] = storage["birthdays"][month].pop(day)
         storage["birthdays"][str(int(month))] = storage["birthdays"].pop(month)
     storage.sync()
     return str(storage["birthdays"])
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
-def trigger_check(server, storage, send_message):
+def trigger_check(server, storage, send_message, bot):
+    debug_srv = None
+    for srv in bot.backend.get_servers():
+        if srv.id == "648937029433950218":
+            debug_srv = srv
     try:
-        check_birthdays(server, storage, send_message, force=True)
+        check_birthdays(server, storage, send_message, debug_srv, force=True)
     except:
         import traceback
         return str(traceback.format_exc())
