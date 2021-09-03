@@ -44,7 +44,7 @@ Additions
 		- They can mutate the Context. 
 	- They are of 2 scopes: Global (attached to the master Hook, ALL events pass through them) and Local (only events that are to be executed by the current Hook and its children)
 		- ? Global middleware is just Local middleware but attached to the master Hook 
-		- Order of execution: Global, ?Server?, Local (all middleware from each scope also has a priority attached, just like sieves did)
+		- All middleware is run based on the priority integer. When equal, the order is ambiguous.
 			- ?Server scope, only commands in one or more servers pass through it?
 				- ?Can be used to more easily implement admin.py?
 - Better permissions handling

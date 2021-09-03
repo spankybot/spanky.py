@@ -1,7 +1,8 @@
 # Delay checking for typing (TODO: remove when bot runs on python 3.10)
 from __future__ import annotations
 
-from .hook2 import Hook, ActionOnReady, ActionEvent
+from .hook2 import Hook
+from .actions import ActionOnReady, ActionEvent
 from .event import EventType
 import os
 import glob
@@ -26,16 +27,24 @@ class HookManager():
         for path in paths:
             self.directories[path] = PluginDirectory(path, self)
 
+    async def load(self):
+        coros = []
+        for d in self.directories.values():
+            coros.append(d.load())
+        await asyncio.gather(*coros)
+
 class Plugin():
-    def __init__(self, path: str, mgr: PluginManager):
+    def __init__(self, path: str, mgr: PluginManager, parent_hook: Hook):
         self.name: str = path
         self.module: Optional[ModuleType] = None
         self.mgr: PluginManager = mgr
+        self.parent_hook = parent_hook
         self.loaded: bool = False
+        self.plugin_hook = Hook(f"plugin_obj_{path!s}")
 
     # load actually imports the plugin and returns wether to continue with the module loading:
     # NOTE: This maybe can be done in a better way, try and find it.
-    def load(self) -> bool:
+    async def load(self) -> bool:
         
         # Load module
         print(f"Loading {self.name}")
@@ -54,36 +63,38 @@ class Plugin():
         
         # Load hooks
         print(f"Found {len(self.hooks)} Hook2s in plugin {self.name}")
-        self.finalize_hooks()
+        self.parent_hook.add_child(self.plugin_hook)
+        await self.finalize_hooks()
 
         self.loaded = True
 
         return True
     
     # finalize_hooks fires on_start and (if the bot is already loaded) on_ready and on_conn_ready events to the hooks
-    def finalize_hooks(self):
+    async def finalize_hooks(self):
+        coros = []
         for hook in self.hooks:
             print(hook.hook_id)
-            self.mgr.hook.add_child(hook)
-            self.mgr.bot.run_sync(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_start)))
+            self.plugin_hook.add_child(hook)
+            coros.append(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_start)))
             
             # Run on ready work
             if self.mgr.bot.is_ready:
                 for server in self.mgr.bot.get_servers():
-                    self.mgr.bot.run_sync(hook.dispatch_action(ActionOnReady(self.mgr.bot, server)))
-                self.mgr.bot.run_sync(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready)))
+                    coros.append(hook.dispatch_action(ActionOnReady(self.mgr.bot, server)))
+                coros.append(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready)))
+        await asyncio.gather(*coros)
 
     # unload removes the hooks from the master hook
     def unload(self):
-        for hook in self.hooks:
-            hook.unload()
+        self.plugin_hook.unload()
         self.loaded = False
         print(f"Unloaded {self.name}")
 
     # reload is shorthand for unloading then loading
-    def reload(self) -> bool:
+    async def reload(self) -> bool:
         self.unload()
-        return self.load()
+        return await self.load()
 
     @property
     def hooks(self) -> list[Hook]:
@@ -110,16 +121,16 @@ class PluginDirectory():
         self.event_handler = PluginDirectoryEventHandler(self, patterns=["*.py"])
         self.observer.schedule(self.event_handler, path, recursive=False)
         self.observer.start()
+        
+        self.hook = Hook(f"plugin_dir_{path}")
+        self.mgr.hook.add_child(self.hook)
 
         self.reloading = set() 
 
-        # Initially load all plugins
-        self.load()
-
-    def load(self):
+    async def load(self):
         for plugin_file in glob.iglob(os.path.join(self.path, '*.py')):
-            plugin = Plugin(plugin_file, self.mgr)
-            if plugin.load():
+            plugin = Plugin(plugin_file, self.mgr, self.hook)
+            if (await plugin.load()):
                 self.plugins[plugin_file] = plugin
 
     def unload(self, path):
@@ -127,7 +138,7 @@ class PluginDirectory():
             self.plugins[path].unload()
         pass
 
-    def reload(self, path):
+    async def reload(self, path):
         # Might have been very quickly deleted
         if not os.path.isfile(path):
             return
@@ -135,28 +146,52 @@ class PluginDirectory():
             return
         self.reloading.add(path)
         print(path)
-        self.plugins[path].reload()
+        await self.plugins[path].reload()
         self.reloading.remove(path)
 
-class PluginDirectoryEventHandler(PatternMatchingEventHandler):
+class PluginDirectoryEventHandler:
     def __init__(self, pd: PluginDirectory, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.pd = pd
 
-    def on_created(self, event):
-        print("create")
-        self.pd.reload(event.src_path)
+    def valid_event(self, event) -> bool:
+        if event.is_directory:
+            return False
+        paths = []
+        if hasattr(event, 'dest_path'):
+            paths.append(os.fsdecode(event.dest_path))
+        if event.src_path:
+            paths.append(os.fsdecode(event.src_path))
+        for p in paths:
+            if p.endswith('.py' if isinstance(p, str) else b".py"):
+                return True
+        return False
 
-    def on_deleted(self, event):
+    def dispatch(self, event):
+        if not self.valid_event(event):
+            return
+        func = {
+            'created': self.on_created,
+            'deleted': self.on_deleted,
+            'modified': self.on_modified,
+            'moved': self.on_moved,
+        }[event.event_type]
+        print(event.event_type, func.__name__)
+        self.pd.mgr.bot.run_sync(func(event))
+
+    async def on_created(self, event):
+        print("create")
+        await self.pd.reload(event.src_path)
+
+    async def on_deleted(self, event):
         print("delete")
         self.pd.unload(event.src_path)
 
-    def on_modified(self, event):
+    async def on_modified(self, event):
         print("modify")
-        self.pd.reload(event.src_path)
+        await self.pd.reload(event.src_path)
 
-    def on_moved(self, event):
+    async def on_moved(self, event):
         print("move")
         if event.dest_path.endswith('.py' if isinstance(event.dest_path, str) else b".py"):
             self.pd.unload(event.src_path)
-            self.pd.reload(event.dest_path)
+            await self.pd.reload(event.dest_path)

@@ -14,6 +14,7 @@ from spanky.plugin.hook_logic import OnStartHook
 from spanky.hook2 import hook2
 from spanky.hook2.event import EventType as H2EventType
 from spanky.hook2.hook_manager import HookManager
+from spanky.hook2.actions import Action, ActionCommand, ActionPeriodic, ActionEvent, ActionOnReady
 
 logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
@@ -25,6 +26,12 @@ fh = logging.FileHandler('audit.log')
 fh.setLevel(logging.DEBUG)
 audit.addHandler(fh)
 
+def print_hook_assocs(hook: hook2.Hook):
+    out = ""
+    for ch in hook.children:
+        out += f'"{hook.hook_id}"-> "{ch.hook_id}"\n{print_hook_assocs(ch)}'
+    return out
+    
 class Bot():
     def __init__(self, input_type):
         self.user_agent = "spanky.py bot https://github.com/gc-plp/spanky.py"
@@ -43,11 +50,7 @@ class Bot():
         self.db = db_data(db_path)
 
         # Create the plugin manager instance
-        self.plugin_manager=PluginManager([], self, self.db)
-        #self.plugin_manager = PluginManager(
-        #    self.config.get("plugin_paths", ""), self, self.db)
-        
-        self.hook_manager = HookManager(self.config.get("plugin_paths", []), self)
+        self.hook_manager = HookManager(['spanky/core_plugins'] + self.config.get("plugin_paths", []), self)
 
         self._prefix = self.config.get("command_prefix", ".")
 
@@ -64,27 +67,15 @@ class Bot():
     async def start(self):
         # Initialize the backend module
         self.backend = self.input.Init(self)
+        await self.hook_manager.load()
         await self.backend.do_init()
 
-    def run_on_ready_work(self):
-
+    async def run_on_ready_work(self):
         for server in self.backend.get_servers():
-            self.run_sync(self.hook2.dispatch_action(hook2.ActionOnReady(self, server)))
-            for on_ready in self.plugin_manager.run_on_ready:
-                self.plugin_manager.launch(
-                    OnReadyEvent(
-                        bot=self,
-                        hook=on_ready,
-                        permission_mgr=self.get_pmgr(server.id),
-                        server=server))
+            await self.dispatch_action(ActionOnReady(self, server))
 
         # Run on connection ready hooks
-        self.run_sync(self.hook2.dispatch_action(hook2.ActionEvent(self, {}, H2EventType.on_conn_ready)))
-        for on_conn_ready in self.plugin_manager.run_on_conn_ready:
-            self.plugin_manager.launch(
-                    OnConnReadyEvent(
-                        bot=self,
-                        hook=on_conn_ready))
+        await self.dispatch_action(ActionEvent(self, {}, H2EventType.on_conn_ready))
 
     def ready(self):
         # Initialize per server permissions
@@ -92,7 +83,7 @@ class Bot():
         for server in self.backend.get_servers():
             self.server_permissions[server.id] = PermissionMgr(server)
 
-        self.run_on_ready_work()
+        self.run_sync(self.run_on_ready_work())
 
         self.is_ready = True
 
@@ -133,90 +124,93 @@ class Bot():
     def run_sync(self, coro):
         asyncio.run_coroutine_threadsafe(coro, self.loop)
 
+    async def dispatch_action(self, action: Action):
+        await self.hook2.dispatch_action(action)
+
 # ---------------
 # Server events
 # ---------------
-    def on_server_join(self, server):
+    async def on_server_join(self, server):
         pass
 
-    def on_server_leave(self, server):
+    async def on_server_leave(self, server):
         pass
 
 # ----------------
 # Message events
 # ----------------
 
-    def on_message_delete(self, message):
+    async def on_message_delete(self, message):
         """On message delete external hook"""
         evt = self.input.EventMessage(EventType.message_del, message, deleted=True)
 
-        self.do_text_event(evt)
+        await self.do_text_event(evt)
 
-    def on_bulk_message_delete(self, messages):
+    async def on_bulk_message_delete(self, messages):
         """On message bulk delete external hook"""
         evt = self.input.EventMessage(EventType.msg_bulk_del, messages[0], deleted=True, messages=messages)
 
-        self.do_text_event(evt)
+        await self.do_text_event(evt)
 
-    def on_message_edit(self, before, after):
+    async def on_message_edit(self, before, after):
         """On message edit external hook"""
         evt = self.input.EventMessage(EventType.message_edit, after, before)
 
-        self.do_text_event(evt)
+        await self.do_text_event(evt)
 
-    def on_message(self, message):
+    async def on_message(self, message):
         """On message external hook"""
         evt = self.input.EventMessage(EventType.message, message)
 
-        self.do_text_event(evt)
+        await self.do_text_event(evt)
 
 # ----------------
 # Member events
 # ----------------
-    def on_member_update(self, before, after):
+    async def on_member_update(self, before, after):
         evt = self.input.EventMember(EventType.member_update, member=before, member_after=after)
-        self.do_non_text_event(evt)
+        await self.do_non_text_event(evt)
 
-    def on_member_join(self, member):
+    async def on_member_join(self, member):
         evt = self.input.EventMember(EventType.join, member)
-        self.do_non_text_event(evt)
+        await self.do_non_text_event(evt)
 
-    def on_member_remove(self, member):
+    async def on_member_remove(self, member):
         evt = self.input.EventMember(EventType.part, member)
-        self.do_non_text_event(evt)
+        await self.do_non_text_event(evt)
 
-    def on_member_ban(self, server, member):
+    async def on_member_ban(self, server, member):
         pass
 
-    def on_member_unban(self, server, member):
+    async def on_member_unban(self, server, member):
         pass
 
 # ----------------
 # Reaction events
 # ----------------
-    def on_reaction_add(self, reaction, user):
+    async def on_reaction_add(self, reaction, user):
         evt = self.input.EventReact(EventType.reaction_add, user=user, reaction=reaction)
-        self.do_non_text_event(evt)
+        await self.do_non_text_event(evt)
 
-    def on_reaction_remove(self, reaction, user):
+    async def on_reaction_remove(self, reaction, user):
         evt = self.input.EventReact(EventType.reaction_remove, user=user, reaction=reaction)
-        self.do_non_text_event(evt)
+        await self.do_non_text_event(evt)
 
 
-    def do_non_text_event(self, event):
+    async def do_non_text_event(self, event):
         # Don't do anything if bot is not connected
         if not self.is_ready:
             return
 
-        self.run_sync(self.hook2.dispatch_action(hook2.ActionEvent(self, event, H2EventType(event.type.value))))
+        await self.dispatch_action(ActionEvent(self, event, H2EventType(event.type.value)))
 
-    def do_text_event(self, event):
+    async def do_text_event(self, event):
         """Process a text event"""
         # Don't do anything if bot is not connected
         if not self.is_ready:
             return
 
-        self.run_sync(self.hook2.dispatch_action(hook2.ActionEvent(self, event, H2EventType(event.type.value))))
+        await self.dispatch_action(ActionEvent(self, event, H2EventType(event.type.value)))
 
         # Let's not
         # Ignore private messages
@@ -240,7 +234,6 @@ class Bot():
         logger.debug("Got command %s" % str(command))
 
         # Hook2
-        print(self.hook2.all_commands)
         if command in self.hook2.all_commands.keys():
             hooklet = self.hook2.all_commands[command]
             if event.is_pm and not hooklet.can_pm:
@@ -252,8 +245,8 @@ class Bot():
                 event_text = cmd_split[1]
             else:
                 event_text = ""
-
-            self.run_sync(self.hook2.dispatch_action(hook2.ActionCommand(self, event, event_text, command)))
+                
+            await self.dispatch_action(ActionCommand(self, event, event_text, command))
 
             if event.is_pm:
                 # Log audit data
@@ -279,16 +272,5 @@ class Bot():
         for hooklet in self.hook2.all_periodics.values():
             if time.time() - hooklet.last_time > hooklet.interval:
                 hooklet.last_time = time.time()
-                action = hook2.ActionPeriodic(self, hooklet.hooklet_id)
-                self.run_sync(self.hook2.dispatch_action(action))
-
-        for _, plugin in self.plugin_manager.plugins.items():
-            for periodic in plugin.periodic:
-                if time.time() - periodic.last_time > periodic.interval:
-                    periodic.last_time = time.time()
-                    t_event = self.input.EventPeriodic()
-                    event = TimeEvent(bot=self, hook=periodic, event=t_event)
-
-                    # TODO account for these
-                    thread = threading.Thread(target=self.plugin_manager.launch, args=(event,))
-                    thread.start()
+                action = ActionPeriodic(self, hooklet.hooklet_id)
+                self.dispatch_action(action)

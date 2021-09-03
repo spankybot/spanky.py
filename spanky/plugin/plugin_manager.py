@@ -12,9 +12,6 @@ from spanky.plugin.event import EventType, OnStartEvent, OnReadyEvent, OnConnRea
 from spanky.inputs.console import EventMessage
 from spanky.plugin.hook_parameters import map_params
 
-from spanky.hook2 import hook2
-from spanky.hook2.event import EventType as EventType2
-
 logger = logging.getLogger('spanky')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
@@ -53,9 +50,6 @@ class PluginManager():
     def finalize_plugin(self, plugin: 'Plugin'):
         plugin.create_tables(self.db)
 
-        for hk2 in plugin.hook2s:
-            self.bot.run_sync(hk2.dispatch_action(hook2.ActionEvent(self.bot, {}, EventType2.on_start)))
-            
         # run on_start hooks
         for on_start_hook in plugin.run_on_start:
             success = self.launch(OnStartEvent(bot=self.bot, hook=on_start_hook))
@@ -72,17 +66,12 @@ class PluginManager():
             
             # Run the on ready hooks per server
             for server in self.bot.backend.get_servers():
-                for hk2 in plugin.hook2s:
-                    self.bot.run_sync(hk2.dispatch_action(hook2.ActionOnReady(self.bot, server)))
                 for on_ready_hook in plugin.run_on_ready:
                     self.launch(OnReadyEvent(
                         bot=self.bot,
                         hook=on_ready_hook,
                         permission_mgr=self.bot.get_pmgr(server.id),
                         server=server))
-
-            for hk2 in plugin.hook2s:
-                self.bot.run_sync(hk2.dispatch_action(hook2.ActionEvent(self.bot, {}, EventType2.on_conn_ready)))
 
             # Run connection ready hooks too
             for on_conn_ready_hook in plugin.run_on_conn_ready:
@@ -302,11 +291,6 @@ class PluginManager():
         # get the loaded plugin
         plugin = self.plugins[path]
 
-        #TODO: Remove
-        for h2 in plugin.hook2s:
-            h2.unload()
-
-
         # unregister commands
         for command_hook in plugin.commands:
             for alias in command_hook.aliases:
@@ -392,14 +376,6 @@ class PluginManager():
 
         return plugin_dict
 
-# TODO: Remove
-def find_hook2s(module) -> list[hook2.Hook]:
-    vals = []
-    for value in module.__dict__.values():
-        if isinstance(value, hook2.Hook):
-            vals.append(value)
-    return vals
-
 class Plugin():
     def __init__(self, name, module):
         self.name = name
@@ -414,9 +390,6 @@ class Plugin():
             self.run_on_conn_ready = find_hooks(self, module)
 
         self.tables = find_tables(module)
-        # TODO: Remove
-        self.hook2s = find_hook2s(module)
-        
 
     def create_tables(self, db_data):
 

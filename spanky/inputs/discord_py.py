@@ -23,6 +23,8 @@ logger.addHandler(handler)
 # Enable intents god damn it discord
 intents = discord.Intents.default()
 intents.members = True
+# Reduce noise
+intents.typing = False
 
 allowed_mentions = discord.AllowedMentions(everyone=False, users=True, roles=True)
 
@@ -1049,7 +1051,10 @@ async def on_ready():
 
 async def call_func(func, *args, **kwargs):
     try:
-        func(*args, **kwargs)
+        if asyncio.iscoroutinefunction(func):
+            await func(*args, **kwargs)
+        else:
+            func(*args, **kwargs)
     except:
         traceback.print_stack()
         traceback.print_exc()

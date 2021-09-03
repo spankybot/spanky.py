@@ -1,15 +1,16 @@
 # Delay checking for typing (TODO: remove when bot runs on python 3.10)
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
-from spanky.hook2.event import EventType
-from spanky.hook2.storage import Storage
+from spanky.hook2 import storage
+from .hooklet import Command, Periodic, Event, Middleware, MiddlewareType, MiddlewareResult
 import asyncio
 import time
 import random
-import inspect
-import threading
-from enum import Enum
+from typing import Any, Callable, Optional, TYPE_CHECKING
+from .event import EventType
+if TYPE_CHECKING:
+    from .actions import Action, ActionCommand, ActionPeriodic, ActionEvent, ActionOnReady 
+    MiddlewareFunc = Callable[[Action, Hooklet], Optional[MiddlewareResult]]
 
 # copy-paste from old plugin manager
 import logging
@@ -21,138 +22,6 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-
-def required_args(func) -> list[str]:
-    args = inspect.getfullargspec(func)[0]
-    if not args:
-        return []
-    return [arg for arg in args if not arg.startswith('_')]
-
-class Hooklet():
-    def __init__(self, hook: Hook, hooklet_id: str, func):
-        self.hook: Hook = hook
-        self.hooklet_id: str = hooklet_id
-        self.func = func
-        
-    def get_args(self, action: Action) -> Optional[list[Any]]:
-        args = []
-        for arg in required_args(self.func):
-            if hasattr(action, arg):
-                val = getattr(action, arg)
-                args.append(val)
-            elif hasattr(action._raw, arg):
-                val = getattr(action._raw, arg)
-                args.append(val)
-            elif arg == 'storage':
-                if not action.server_id:
-                    print(f"Hooklet {self.hooklet_id} asked for storage with an action with no server, cancelling execution. This might be a bug!")
-                    return None
-                storage = self.hook.server_storage(action.server_id)
-                args.append(storage)
-            elif arg == 'action':
-                args.append(action)
-            elif arg == 'event':
-                args.append(action._raw)
-            else:
-                print(f"Hooklet {self.hooklet_id} asked for invalid argument '{arg}', cancelling execution")
-                return None
-        return args
-
-    async def handle(self, action: Action):
-        try:
-            args = self.get_args(action)
-            if args is None:
-                return None
-            
-            if asyncio.iscoroutinefunction(self.func):
-                rez = await self.func(*args)
-            else:
-                rez = self.func(*args)
-
-            realRez = None
-            if type(rez) is str:
-                realRez = rez
-            elif type(rez) is list:
-                try:
-                    realRez = "\n".join(realRez)
-                except:
-                    pass
-            elif rez != None:
-                print(f"Unknown type {type(rez)} returned by hooklet {self.hooklet_id}")
-
-            if realRez != None:
-                replyFunc = None
-                if hasattr(action, 'reply'):
-                    replyFunc = action.reply
-                elif hasattr(action._raw, 'reply'):
-                    replyFunc = action._raw.reply
-
-                if replyFunc:
-                    replyFunc(rez) 
-                else:
-                    print(f"Missing reply function, but got output '{realRez!s}'")
-        except:
-            import traceback
-            traceback.print_exc()
-
-class Command(Hooklet):
-    # Creates a new Command hooklet. Note that, if kwargs has a "name", then it will use that name instead 
-    def __init__(self, hook: Hook, fname: str, func, **kwargs):
-        super().__init__(hook, f'{hook.hook_id}_{fname}', func)
-        self.args: dict[str, Any] = kwargs
-        self.name: str = self.args.pop("name", fname)
-        # TODO
-        #self.aliases: list[str] = self.args.pop("aliases", [])
-
-        self.can_pm: bool = self.args.pop("can_pm", False)
-        self.pm_only: bool = self.args.pop("pm_only", False)
-        if self.pm_only:
-            self.can_pm = True
-
-        if self.name == "":
-            self.name = func.__name__
-
-class Periodic(Hooklet):
-    def __init__(self, hook: Hook, func, interval: float):
-        super().__init__(hook, f'{hook.hook_id}_{func.__name__}', func)
-        self.interval: float = interval
-        self.last_time = time.time()
-
-class Event(Hooklet):
-    def __init__(self, hook: Hook, event_type: EventType, func):
-        super().__init__(hook, f'{hook.hook_id}_event_{func.__name__}', func)
-        self.event_type = event_type
-
-    def __str__(self):
-        return f"EventHooklet[{self.event_type=}]"
-
-class MiddlewareType(Enum):
-    LOCAL = 1
-    GLOBAL = 2
-
-class MiddlewareResult(Enum):
-    CONTINUE = 1
-    DENY = 2
-
-MiddlewareFunc = Callable[['Action', Hooklet], Optional[MiddlewareResult]]
-
-class Middleware(Hooklet):
-    def __init__(self, hook: Hook, func: MiddlewareFunc, m_type: MiddlewareType, priority: int):
-        super().__init__(hook, f'{hook.hook_id}_middleware_{func.__name__}', func)
-        self.m_type: MiddlewareType = m_type
-        # Redefine for typing support
-        self.func: MiddlewareFunc = func
-        self.priority: int = priority
-
-    async def handle(self, action: Action, hooklet: Hooklet) -> MiddlewareResult:
-        if asyncio.iscoroutinefunction(self.func):
-            rez = await self.func(action, hooklet)
-        else:
-            rez = self.func(action, hooklet)
-        if not rez:
-            rez = MiddlewareResult.CONTINUE
-        return rez
-
 class Hook():
     hash = random.randint(0, 2**31)
 
@@ -163,11 +32,11 @@ class Hook():
         self.commands: dict[str, Command] = {}
         self.periodics: dict[str, Periodic] = {}
         self.events: dict[str, Event] = {}
-        self.global_middleware: dict[str, Middleware] = {}
-        self.local_middleware: dict[str, Middleware] = {}
+        self.global_md: dict[str, Middleware] = {}
+        self.local_md: dict[str, Middleware] = {}
         
         # Storage object
-        self.storage: Storage = Storage(hook_id)
+        self.storage: storage.Storage = storage.Storage(hook_id)
 
         # Tree 
         self.parent_hook: Optional[Hook] = parent_hook 
@@ -239,39 +108,33 @@ class Hook():
     
     @property
     def all_global_middleware(self) -> dict[str, Middleware]:
-        global_md = self.global_middleware.copy()
+        global_md = self.global_md.copy()
         for child in self.children:
             global_md |= child.all_global_middleware
         return global_md
 
     @property
     def all_local_middleware(self) -> dict[str, Middleware]:
-        local_md = self.local_middleware.copy()
-        for child in self.children:
-            local_md = child.all_local_middleware
+        local_md = {}
+        root_hook = self
+        while root_hook.parent_hook:
+            local_md |= root_hook.local_md
+            root_hook = root_hook.parent_hook
         return local_md
     
-    # TODO: Do this nicer
-    async def run_middleware(self, action: Action, hooklet: Hooklet):
-        gmds: dict[str, Middleware] = dict(sorted(self.all_global_middleware.items(), key=lambda item: item[1].priority))
-        for md in gmds.values():
+    # self.all_middleware is shorthand for a sorted self.all_global_middleware | self.all_local_middleware
+    @property
+    def all_middleware(self) -> dict[str, Middleware]:
+        return dict(sorted((self.root.all_global_middleware | self.all_local_middleware).items(), key=lambda item: item[1].priority))
+    
+    async def run_middleware(self, action: ActionCommand, hooklet: Command):
+        mds = self.all_middleware
+        print(mds)
+        for md in mds.values():
             rez = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
-                reply = action.get_reply() 
-                if reply:
-                    reply("Event blocked by middleware")
-                else:
-                    print("Event blocked by middleware")
-                return
-        lmds: dict[str, Middleware] = dict(sorted(self.all_local_middleware.items(), key=lambda item: item[1].priority))
-        for md in lmds.values():
-            rez = await md.handle(action, hooklet)
-            if rez == MiddlewareResult.DENY:
-                reply = action.get_reply() 
-                if reply:
-                    reply("Event blocked by middleware")
-                else:
-                    print("Event blocked by middleware")
+                print("blocking", md.hooklet_id)
+                action.reply("Event blocked by middleware")
                 return
         await hooklet.handle(action)
     
@@ -305,6 +168,7 @@ class Hook():
             # Command trigger
             action: ActionCommand = action
             if action.triggered_command in self.commands.keys():
+                print("found command")
                 # Do with middleware
                 hooklet = self.commands[action.triggered_command]
                 coros.append(self.run_middleware(action, hooklet))
@@ -325,12 +189,11 @@ class Hook():
             coros.append(child.dispatch_action(action))
 
         # We use return_exceptions so that this function can't throw
-        await asyncio.gather(*coros, return_exceptions=True)
+        x = await asyncio.gather(*coros, return_exceptions=False)
 
     # Command Hooks
 
     def add_command(self, func, **kwargs):
-        print("DEBUG - Loaded Command FROM HOOK2 WOOO")
         self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
 
     #def remove_command(self, name: str):
@@ -352,22 +215,21 @@ class Hook():
 
     def add_middleware(self, func: MiddlewareFunc, priority: int, m_type: MiddlewareType):
         if m_type == MiddlewareType.LOCAL:
-            self.local_middleware[func.__name__] = Middleware(self, func, m_type, priority)
+            self.local_md[func.__name__] = Middleware(self, func, m_type, priority)
         else:
-            self.global_middleware[func.__name__] = Middleware(self, func, m_type, priority)
+            self.global_md[func.__name__] = Middleware(self, func, m_type, priority)
 
     # Server Storage
-    def server_storage(self, server):
-        # TODO
-        pass
+    def server_storage(self, server_id: str):
+        return self.storage.server_storage(server_id)
 
     @property
     def hook_storage(self):
-        # TODO
-        pass
+        return self.storage.hook_storage
     
     @property
     def global_storage(self):
+        return storage.global_storage
         # TODO
         pass
 
@@ -399,48 +261,3 @@ class Hook():
         if callable(priority):
             raise TypeError("Hook.local_middleware must be used as a function that returns a decorator.")
         return lambda func: self.add_middleware(func, priority, MiddlewareType.LOCAL)
-
-# TODO
-class Action:
-    """Action is the base class for an action"""
-    def __init__(self, event_type: EventType, bot, event):
-        self.bot = bot
-        self.event_type = event_type
-        self._raw = event
-        self.context = {}
-
-        self.server_id: Optional[str] = None
-        if hasattr(event, "server_id"):
-            self.server_id = event.server_id
-        if hasattr(event, "server"):
-            self.server_id = event.server.id
-
-    def __str__(self):
-        return f"Action[{self.event_type=!s} {self.server_id=}]"
-
-class ActionCommand(Action):
-    def __init__(self, bot, event, text: str, command: str):
-        super().__init__(EventType.command, bot, event)
-        print(f"Init command with text '{text}'")
-        self.text: str = text
-        self.triggered_command: str = command
-        print(event)
-
-    def reply(self, text):
-        self._raw.reply(text)
-        
-
-class ActionPeriodic(Action):
-    def __init__(self, bot, target):
-        super().__init__(EventType.periodic, bot, {})
-        self.target = target
-
-class ActionEvent(Action):
-    def __init__(self, bot, event, event_type):
-        super().__init__(event_type, bot, event)
-
-class ActionOnReady(Action):
-    def __init__(self, bot, server):
-        super().__init__(EventType.on_ready, bot, {})
-        self.server = server
-

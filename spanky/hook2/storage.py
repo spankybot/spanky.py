@@ -91,6 +91,11 @@ class dsdict(dstype, collections.UserDict):
         self.sync()
         return self.data
 
+# TODO: is this a good idea?
+global_storage = dsdict("all_storage", "global")
+
+def invalidate_global_storage():
+    global_storage = dsdict("all_storage", "global")
 
 class Storage():
     def __init__(self, hook_id: str):
@@ -98,7 +103,7 @@ class Storage():
         self.srv_stor_cache: dict[str, dsdict] = {}
         self.hook_stor_cache: Optional[dsdict] = None
 
-    def get_server(self, server_id: str):
+    def server_storage(self, server_id: str):
         if server_id not in self.srv_stor_cache:
             self.srv_stor_cache[server_id] = dsdict(server_id, self.hook_id)
         return self.srv_stor_cache[server_id]
@@ -106,7 +111,8 @@ class Storage():
     def invalidate_cache(self, server_id: str):
         del self.srv_stor_cache[server_id] 
 
-    def get_hook(self):
+    @property
+    def hook_storage(self):
         if not self.hook_stor_cache:
             self.hook_stor_cache = dsdict("global_hook", self.hook_id)
         return self.hook_stor_cache

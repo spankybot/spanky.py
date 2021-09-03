@@ -46,9 +46,10 @@ def reload_jokes():
 def load_jokes():
     load_joke_data()
 
-@hook.command()
+@hook.command(server_id='648937029433950218')
 def yomomma(text):
     """<nick> - tells a yo momma joke to <nick>"""
+    print("bruh")
     target = text.strip()
     return '{}, {}'.format(target, random.choice(yo_momma).lower())
 
@@ -62,6 +63,7 @@ def doit():
 @hook.command(autohelp=False)
 def pun():
     """- Come on everyone loves puns right?"""
+    print('wtf?????????')
     return random.choice(pun)
 
 
