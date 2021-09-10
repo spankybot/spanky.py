@@ -39,7 +39,7 @@ def userinfo(text, str_to_id, reply, server):
             return
 
         output += f"Join date: {rawMember.joined_at.strftime(dateString)}\n"
-        output += f"Avatar: {rawMember.avatar_url}\n"
+        output += f"Avatar: {rawMember.avatar.url}\n"
         output += f"ID: {id}\n"
 
         if rawMember.premium_since != None:
