@@ -2,12 +2,24 @@
     "discord_token": "",
     "plugin_paths": ["plugins", "plugins/legacy"],
     "api_keys" : {
-        "This is a dictionary":""
+        "cleverbot":"xxx",
+        "google_dev_key":"xxx",
+        "google_cx": "xxx",
+        "darksky":"xxx",
+        "giphy":"xxx"
     },
-    "db_name": "PSQL database name to connect to",
-    "db_user": "Username to use to connect to the DB",
-
+    "db_host": "PSQL Host ; eg: db",
+    "db_name": "PSQL database name to connect to; example: spanky_bot_db",
+    "db_user": "Username to use to connect to the DB; example: spanky_bot_user",
+    "db_pass": "PSQL database username password",
     "bot_owners": [
         "List of user IDs who have special bot owner rights"
-    ]
+    ],
+    "reddit_auth": {
+        "client_id": "xxx",
+        "client_secret": "xxx",
+        "username": "xxx",
+        "password": "xxx"
+    },
+    "command_prefix": "."
 }
