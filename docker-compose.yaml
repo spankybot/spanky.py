@@ -1,0 +1,26 @@
+# Please change your password and update in bot_config.json
+# Also the volume local path for Postgres DB (./postgres)
+
+version: '3.1'
+services:
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: spanky_bot_user
+      POSTGRES_PASSWORD: random_pass
+      POSTGRES_DB: spanky_bot_db
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  spanky_bot:
+    image: gcplp/spanky
+    volumes:
+      - .:/botsrc
+    command: /startup.sh
