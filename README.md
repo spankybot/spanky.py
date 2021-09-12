@@ -53,6 +53,9 @@ cp bot_config.json.sample bot_config.json
 git clone https://github.com/gc-plp/spanky.py.git && \
   cd spanky.py
 
+# Build container
+./Dockerfile/build.sh
+
 docker-compose up -d
 ```
 
