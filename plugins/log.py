@@ -20,13 +20,15 @@ db_conn = None
 def init_db(bot):
     global db_conn
 
+    db_host = bot.config.get("db_host", None)
     db_name = bot.config.get("db_name", None)
     db_user = bot.config.get("db_user", None)
+    db_pass = bot.config.get("db_pass", None)
 
     try:
         if db_name != None and db_user != None:
             db_conn = psycopg2.connect(
-                "dbname=%s user=%s" % (db_name, db_user))
+                "host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_user, db_pass))
     except:
         import traceback
         traceback.print_exc()

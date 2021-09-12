@@ -47,7 +47,16 @@ cp bot_config.json.sample bot_config.json
 ./Dockerfile/start.sh
 ```
 
-#### 2. Native (not recommended)
+#### 2. Docker Compose
+
+```
+git clone https://github.com/gc-plp/spanky.py.git && \
+  cd spanky.py
+
+docker-compose up -d
+```
+
+#### 3. Native (not recommended)
 
 There are a lot of system dependencies that need to be installed on the system where you are planning to run the bot.
 
