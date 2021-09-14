@@ -21,6 +21,9 @@ services:
 
   spanky_bot:
     image: gcplp/spanky
+    dns:
+      - 1.1.1.1
     volumes:
       - .:/botsrc
     command: /startup.sh
+

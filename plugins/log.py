@@ -15,7 +15,6 @@ base_formats = {
 
 db_conn = None
 
-
 @hook.on_start()
 def init_db(bot):
     global db_conn
@@ -144,7 +143,6 @@ def log(bot, event):
         print(e)
         init_db(bot)
 
-
 def file_log(event, args):
     text = format_event(event, args)
 
@@ -160,11 +158,47 @@ def console_log(bot, event, args):
     if text is not None:
         bot.logger.info(text)
 
+def db_check_table_exists():
+    cs = db_conn.cursor()
+    cs.execute("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_name = 'messages'
+        """)
+    db_conn.commit()
+    if cs.fetchone()[0] == 1:
+        print("Table already exist")
+    else:
+        print("The table is not exist, creating it")
+        cs = db_conn.cursor()
+        try:
+            cs.execute("""CREATE SEQUENCE messages_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647;
+            CREATE TABLE messages (
+            id numeric DEFAULT nextval('messages_id_seq') NOT NULL,
+            date timestamp,
+            author text,
+            author_id numeric,
+            msg text,
+            channel text,
+            channel_id numeric,
+            server text,
+            server_id numeric,
+            CONSTRAINT messages_pkey PRIMARY KEY (id)
+            ) WITH (oids = false);""",
+            )
+            db_conn.commit()
+        except:
+            import traceback
+            traceback.print_exc()
+            db_conn.rollback()
+            print("Error creating table")
+            return []
 
 def db_log(event, args):
     if not db_conn:
         return
-
+        
+    db_check_table_exists()
     cs = db_conn.cursor()
     cs.execute("""insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
             values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (
