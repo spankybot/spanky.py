@@ -3,6 +3,7 @@
 import discord
 import logging
 import asyncio
+import inspect
 import traceback
 import random
 import collections
@@ -236,8 +237,8 @@ class DiscordUtils(abc.ABC):
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(embed=em, target=target), bot.loop)
 
-    def reply(self, text, target=-1, timeout=0, allowed_mentions=allowed_mentions):
-        self.send_message("(%s) %s" % (self.author.name, text), target, timeout=timeout, allowed_mentions=allowed_mentions)
+    def reply(self, text, **kwargs):
+        self.send_message("(%s) %s" % (self.author.name, text), **kwargs)
 
     def send_file(self, file_path, target=-1, server=None):
         dfile = discord.File(file_path)
@@ -1047,11 +1048,11 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
-    bot.ready()
+    await bot.ready()
 
 async def call_func(func, *args, **kwargs):
     try:
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             await func(*args, **kwargs)
         else:
             func(*args, **kwargs)

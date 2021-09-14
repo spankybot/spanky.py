@@ -8,5 +8,5 @@ periodic              | periodic
 on_start              | event(EventType.on_start)
 on_ready              | event(EventType.on_ready)
 on_connection_ready   | event(EventType.on_conn_ready)
-storage 			  | TODO
+storage 			  | storage 
 db 					  | N/A?

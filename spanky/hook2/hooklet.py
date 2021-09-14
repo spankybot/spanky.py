@@ -7,7 +7,6 @@ if TYPE_CHECKING:
     from .event import EventType
 from enum import Enum
 import inspect
-import asyncio
 
 def required_args(func) -> list[str]:
     args = inspect.getfullargspec(func)[0]
@@ -44,14 +43,14 @@ class Hooklet():
                 print(f"Hooklet {self.hooklet_id} asked for invalid argument '{arg}', cancelling execution")
                 return None
         return args
-
+    
     async def handle(self, action: Action):
         try:
             args = self.get_args(action)
             if args is None:
                 return None
             
-            if asyncio.iscoroutinefunction(self.func):
+            if inspect.iscoroutinefunction(self.func):
                 rez = await self.func(*args)
             else:
                 rez = self.func(*args)
@@ -130,7 +129,7 @@ class Middleware(Hooklet):
         self.priority: int = priority
 
     async def handle(self, action: ActionCommand, hooklet: Command) -> MiddlewareResult:
-        if asyncio.iscoroutinefunction(self.func):
+        if inspect.iscoroutinefunction(self.func):
             rez = await self.func(action, hooklet)
         else:
             rez = self.func(action, hooklet)

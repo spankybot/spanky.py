@@ -22,9 +22,13 @@ class ActionCommand(Action):
         super().__init__(EventType.command, bot, event)
         self.text: str = text
         self.triggered_command: str = command
+        self.author = event.author
+        self.channel = event.channel
 
-    def reply(self, text):
-        self._raw.reply(text)
+        self.is_pm = event.is_pm
+
+    def reply(self, text, **kwargs):
+        self._raw.reply(text, **kwargs)
         
 
 class ActionPeriodic(Action):

@@ -162,7 +162,7 @@ class Hook():
         if self.hook_id == 'bot_hook':
             print(self.hook_id, action)
         
-        coros = []
+        tasks = []
 
         if action.event_type is EventType.command:
             # Command trigger
@@ -171,30 +171,31 @@ class Hook():
                 print("found command")
                 # Do with middleware
                 hooklet = self.commands[action.triggered_command]
-                coros.append(self.run_middleware(action, hooklet))
+                tasks.append(asyncio.create_task(self.run_middleware(action, hooklet), name=""))
         elif action.event_type is EventType.periodic:
             # Periodic trigger
             action: ActionPeriodic = action
             for periodic in self.periodics.values():
                 if periodic.hooklet_id == action.target:
-                    coros.append(periodic.handle(action))
+                    tasks.append(asyncio.create_task(periodic.handle(action)))
         
         # Gobble all matching event coroutines
         for event_hooklet in self.events.values():
             if event_hooklet.event_type == action.event_type:
-                coros.append(event_hooklet.handle(action))
+                tasks.append(asyncio.create_task(event_hooklet.handle(action)))
         
         # Gobble children dispatch coroutines
         for child in self.children:
-            coros.append(child.dispatch_action(action))
+            tasks.append(asyncio.create_task(child.dispatch_action(action)))
 
         # We use return_exceptions so that this function can't throw
-        x = await asyncio.gather(*coros, return_exceptions=False)
+        x = await asyncio.gather(*tasks, return_exceptions=False)
 
     # Command Hooks
 
-    def add_command(self, func, **kwargs):
-        self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
+    def add_command(self, name: str, cmd: Command):
+        self.commands[name] = cmd
+        #self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
 
     #def remove_command(self, name: str):
     #    if name not in self.commands:
@@ -230,8 +231,6 @@ class Hook():
     @property
     def global_storage(self):
         return storage.global_storage
-        # TODO
-        pass
 
     # Traditional function decorators
 
@@ -240,7 +239,7 @@ class Hook():
     def command(self, *args, **kwargs):
         if len(args) > 0:
             raise TypeError("Hook.command must be used as a function that returns a decorator.")
-        return lambda func: self.add_command(func, **kwargs)
+        return lambda func: self.add_command(func.__name__, Command(self, func.__name__, func, **kwargs))
 
     def periodic(self, period: float):
         if callable(period):

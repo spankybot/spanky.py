@@ -6,7 +6,6 @@ import importlib
 import time
 import asyncio
 
-from spanky.plugin.plugin_manager import PluginManager
 from spanky.plugin.event import EventType, TextEvent, TimeEvent, HookEvent, OnReadyEvent, OnConnReadyEvent
 from spanky.database.db import db_data
 from spanky.plugin.permissions import PermissionMgr
@@ -77,13 +76,13 @@ class Bot():
         # Run on connection ready hooks
         await self.dispatch_action(ActionEvent(self, {}, H2EventType.on_conn_ready))
 
-    def ready(self):
+    async def ready(self):
         # Initialize per server permissions
         self.server_permissions = {}
         for server in self.backend.get_servers():
             self.server_permissions[server.id] = PermissionMgr(server)
 
-        self.run_sync(self.run_on_ready_work())
+        await self.run_on_ready_work()
 
         self.is_ready = True
 
@@ -120,9 +119,6 @@ class Bot():
     def run_in_thread(self, target, args=()):
         thread = threading.Thread(target=target, args=args)
         thread.start()
-
-    def run_sync(self, coro):
-        asyncio.run_coroutine_threadsafe(coro, self.loop)
 
     async def dispatch_action(self, action: Action):
         await self.hook2.dispatch_action(action)
@@ -232,38 +228,36 @@ class Bot():
 
         command = cmd_split[0]
         logger.debug("Got command %s" % str(command))
+        if len(cmd_split) == 1:
+            cmd_split.append("")
 
         # Hook2
         if command in self.hook2.all_commands.keys():
             hooklet = self.hook2.all_commands[command]
+            # TODO: Move to middleware and make command-agnostic
             if event.is_pm and not hooklet.can_pm:
                 return
             if not event.is_pm and hooklet.pm_only:
                 return
 
-            if len(cmd_split) > 1:
-                event_text = cmd_split[1]
-            else:
-                event_text = ""
-                
-            await self.dispatch_action(ActionCommand(self, event, event_text, command))
+            await self.dispatch_action(ActionCommand(self, event, cmd_split[1], command))
 
-            if event.is_pm:
-                # Log audit data
-                audit.info("[%s][%s][%s] / <%s> %s" % (
-                    "pm",
-                    event.msg.id,
-                    "pm",
-                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                    event.text))
-            else:
-                # Log audit data
-                audit.info("[%s][%s][%s] / <%s> %s" % (
-                    event.server.name,
-                    event.msg.id,
-                    event.channel.name,
-                    event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                    event.text))
+        if event.is_pm:
+            # Log audit data
+            audit.info("[%s][%s][%s] / <%s> %s" % (
+                "pm",
+                event.msg.id,
+                "pm",
+                event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
+                event.text))
+        else:
+            # Log audit data
+            audit.info("[%s][%s][%s] / <%s> %s" % (
+                event.server.name,
+                event.msg.id,
+                event.channel.name,
+                event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
+                event.text))
 
     def on_periodic(self):
         if not self.is_ready:

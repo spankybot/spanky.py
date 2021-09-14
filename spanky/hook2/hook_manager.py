@@ -28,10 +28,10 @@ class HookManager():
             self.directories[path] = PluginDirectory(path, self)
 
     async def load(self):
-        coros = []
+        tasks = []
         for d in self.directories.values():
-            coros.append(d.load())
-        await asyncio.gather(*coros)
+            tasks.append(asyncio.create_task(d.load(), name="hook_mgr"))
+        await asyncio.gather(*tasks)
 
 class Plugin():
     def __init__(self, path: str, mgr: PluginManager, parent_hook: Hook):
@@ -72,18 +72,18 @@ class Plugin():
     
     # finalize_hooks fires on_start and (if the bot is already loaded) on_ready and on_conn_ready events to the hooks
     async def finalize_hooks(self):
-        coros = []
+        tasks = []
         for hook in self.hooks:
             print(hook.hook_id)
             self.plugin_hook.add_child(hook)
-            coros.append(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_start)))
+            tasks.append(asyncio.create_task(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_start))))
             
             # Run on ready work
             if self.mgr.bot.is_ready:
                 for server in self.mgr.bot.get_servers():
-                    coros.append(hook.dispatch_action(ActionOnReady(self.mgr.bot, server)))
-                coros.append(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready)))
-        await asyncio.gather(*coros)
+                    tasks.append(asyncio.create_task(hook.dispatch_action(ActionOnReady(self.mgr.bot, server))))
+                tasks.append(asyncio.create_task(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready))))
+        await asyncio.gather(*tasks)
 
     # unload removes the hooks from the master hook
     def unload(self):
@@ -175,8 +175,7 @@ class PluginDirectoryEventHandler:
             'modified': self.on_modified,
             'moved': self.on_moved,
         }[event.event_type]
-        print(event.event_type, func.__name__)
-        self.pd.mgr.bot.run_sync(func(event))
+        asyncio.run_coroutine_threadsafe(func(event), self.pd.mgr.bot.loop)
 
     async def on_created(self, event):
         print("create")

@@ -1,6 +1,5 @@
 import time
 import inspect
-import asyncio
 import sqlalchemy
 import logging
 from spanky.plugin.hook_parameters import extract_params
@@ -41,7 +40,7 @@ class Hook:
         # don't process args starting with "_"
         self.required_args = [arg for arg in self.required_args if not arg.startswith("_")]
 
-        if asyncio.iscoroutine(self.function) or asyncio.iscoroutinefunction(self.function):
+        if inspect.iscoroutine(self.function) or inspect.iscoroutinefunction(self.function):
             self.threaded = False
         else:
             self.threaded = True

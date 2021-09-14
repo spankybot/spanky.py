@@ -1,9 +1,9 @@
 import logging
-import asyncio
 import glob
 import os
 import importlib
 import asyncio
+import inspect
 
 from discord import File
 from spanky.plugin.reloader import PluginReloader
@@ -173,7 +173,7 @@ class PluginManager():
             except:
                 import traceback; traceback.print_exc()
 
-        if not asyncio.iscoroutinefunction(hook.function):
+        if not inspect.iscoroutinefunction(hook.function):
             return hook.function(*parameters)
         else:
             asyncio.run_coroutine_threadsafe(call_func(), self.bot.loop)
