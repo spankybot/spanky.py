@@ -126,7 +126,11 @@ async def ss(text, channel, reply, event, bot, storage):
     if len(text) == 1:
         text.append("")
 
-    messages = await channel.async_get_latest_messages(MAX_LEN)
+    replied_to = await event.msg.reference()
+    if replied_to:
+        messages = [replied_to]
+    else:
+        messages = await channel.async_get_latest_messages(MAX_LEN)
 
     try:
         regex = re2.compile(text[0])
