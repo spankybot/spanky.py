@@ -90,11 +90,6 @@ class Command(Hooklet):
         # TODO
         #self.aliases: list[str] = self.args.pop("aliases", [])
 
-        self.can_pm: bool = self.args.pop("can_pm", False)
-        self.pm_only: bool = self.args.pop("pm_only", False)
-        if self.pm_only:
-            self.can_pm = True
-
         if self.name == "":
             self.name = func.__name__
 

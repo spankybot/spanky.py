@@ -232,15 +232,15 @@ class Bot():
             cmd_split.append("")
 
         # Hook2
-        if command in self.hook2.all_commands.keys():
-            hooklet = self.hook2.all_commands[command]
+        #if command in self.hook2.all_commands.keys():
+            # hooklet = self.hook2.all_commands[command]
             # TODO: Move to middleware and make command-agnostic
-            if event.is_pm and not hooklet.can_pm:
-                return
-            if not event.is_pm and hooklet.pm_only:
-                return
+            #if event.is_pm and not hooklet.can_pm:
+            #    return
+            #if not event.is_pm and hooklet.pm_only:
+            #    return
 
-            await self.dispatch_action(ActionCommand(self, event, cmd_split[1], command))
+        await self.dispatch_action(ActionCommand(self, event, cmd_split[1], command))
 
         if event.is_pm:
             # Log audit data

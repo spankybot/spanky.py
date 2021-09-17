@@ -13,7 +13,8 @@ fh = logging.FileHandler("storage.log")
 fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
-DS_LOC = Path("hook2/storage_data/")
+#DS_LOC = Path("hook2/storage_data/")
+DS_LOC = Path("storage_data/")
 
 
 class dstype():
@@ -106,6 +107,7 @@ class Storage():
     def server_storage(self, server_id: str):
         if server_id not in self.srv_stor_cache:
             self.srv_stor_cache[server_id] = dsdict(server_id, self.hook_id)
+        print("Hey:", self.srv_stor_cache[server_id]["admins"])
         return self.srv_stor_cache[server_id]
 
     def invalidate_cache(self, server_id: str):

@@ -1,7 +1,7 @@
 from spanky.hook2 import Hook, ActionCommand, Command
 from spanky.hook2.hooklet import MiddlewareResult
 
-hook = Hook("permission_hook")
+hook = Hook("permission_hook", storage_name="plugins_admin.json")
 
 # Permission context creation and validation
 
@@ -11,7 +11,11 @@ def setup_perm_ctx(action: ActionCommand, hooklet: Command):
 
 @hook.global_middleware(priority=1000000)
 def finalize_perm_filter(action: ActionCommand, hooklet: Command):
-    perms = set(hooklet.args.get('permissions', []))
+    perms = hooklet.args.get('permissions', [])
+    if not isinstance(perms, list):
+        perms = [perms]
+    perms = set(perms)
+    print(action.context["perms"]["creds"], perms)
     if perms == set():
         return MiddlewareResult.CONTINUE
     if perms & set(action.context["perms"]["creds"]):
@@ -26,7 +30,8 @@ def perm_bot_owner(action: ActionCommand, hooklet: Command):
         action.context["perms"]["creds"].append("bot_owner")
 
 @hook.global_middleware(priority=10)
-def perm_admin(action: ActionCommand, hooklet: Command, storage):
+def perm_admin(action: ActionCommand, hooklet: Command):
+    storage = hooklet.hook.server_storage(action.server_id)
     if 'admin_roles' not in storage:
         if hooklet.args.get('permissions', None) != None:
             action.reply("Warning! Admin not set! Use .add_admin_role to set an administrator.", check_old=False)
@@ -36,6 +41,11 @@ def perm_admin(action: ActionCommand, hooklet: Command, storage):
         user_roles = set([i.id for i in action.author.roles])
         if user_roles & allowed_roles:
             action.context["perms"]["creds"].append("admin")
+
+@hook.command()
+def get_admin_storage(storage):
+    import json
+    return json.dumps(storage.data)
 
 @hook.command(permissions="admin")
 def migrate_admin_storage(storage):

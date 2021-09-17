@@ -25,7 +25,7 @@ logger.addHandler(ch)
 class Hook():
     hash = random.randint(0, 2**31)
 
-    def __init__(self, hook_id: str, *, parent_hook: Optional[Hook]=None):
+    def __init__(self, hook_id: str, *, storage_name: str="", parent_hook: Optional[Hook]=None):
         self.hook_id: str = hook_id
         
         # Hooklet dicts
@@ -36,7 +36,10 @@ class Hook():
         self.local_md: dict[str, Middleware] = {}
         
         # Storage object
-        self.storage: storage.Storage = storage.Storage(hook_id)
+        self.storage_name = hook_id
+        if storage_name != "":
+            self.storage_name = storage_name
+        self.storage: storage.Storage = storage.Storage(self.storage_name)
 
         # Tree 
         self.parent_hook: Optional[Hook] = parent_hook 
@@ -129,7 +132,6 @@ class Hook():
     
     async def run_middleware(self, action: ActionCommand, hooklet: Command):
         mds = self.all_middleware
-        print(mds)
         for md in mds.values():
             rez = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
