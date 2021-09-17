@@ -25,7 +25,7 @@ def toggle_correction_msg_del_ability(storage, event):
 def toggle_correction_msg_del(storage, event):
     """enable/disable automatic deletion of command when running .s/.ss"""
     if "disabled" not in storage:
-        storage["disabled"] = True 
+        storage["disabled"] = True
     if storage["disabled"]:
         return "Function disabled."
     if "prefs" not in storage:
@@ -37,7 +37,7 @@ def toggle_correction_msg_del(storage, event):
     newVal = not storage["prefs"][event.author.id]
     storage["prefs"][event.author.id] = newVal
     storage.sync()
-    
+
     if newVal:
         return "I will now auto-delete your commands"
     else:
@@ -56,41 +56,57 @@ def delete_if_needed(storage, event):
     if storage["prefs"][event.author.id]:
         event.msg.delete_message()
 
+
+def find_best_match(word_list, message):
+    """
+    Finds the largest element subset that's present in a message.
+    """
+
+    list_idx = 0
+    while " ".join(word_list[0:list_idx + 1]) in message:
+        list_idx += 1
+
+    return list_idx
+
+
 @hook.command()
 async def s(text, channel, reply, event, bot, storage):
     """<word replacement> - replace 'word' with replacement"""
 
     delete_if_needed(storage, event)
 
-    text = text.split(maxsplit=1)
-    if len(text) == 0 or len(text) > 2:
+    split_text = text.split()
+    if len(split_text) == 0:
         msg = "Invalid format"
         msg += ": " + "\n`" + "<word replacement> - replace 'word' with replacement`"
         msg += "\n`" + "if only one word is specified, it will be replaced with a blankspace`"
         reply(msg, timeout=15)
         return
 
-    if len(text) == 1:
-        text.append("")
+    if len(split_text) == 1:
+        split_text.append("")
 
-    messages = await channel.async_get_latest_messages(MAX_LEN)
+    replied_to = await event.msg.reference()
+    if replied_to:
+        messages = [replied_to]
+    else:
+        messages = await channel.async_get_latest_messages(MAX_LEN)
 
     for msg in messages:
         if msg.id == event.msg.id or msg.author.id == bot.get_own_id() or msg.text.startswith(".s"):
             continue
-        if text[0] in msg.text:
-            text_array = msg.text.split(" ")
 
-            for index, word in enumerate(text_array):
-                l_arrow = word.find("<")
-                r_arrow = word.find(">")
+        msg_index = find_best_match(split_text, msg.text)
 
-                if (l_arrow < 0 and r_arrow < 0) or (l_arrow > r_arrow):
-                    text_array[index] = word.replace(text[0], text[1])
+        if msg_index > 0:
+            final_text = msg.text.replace(
+                " ".join(split_text[0:msg_index]),
+                " ".join(split_text[msg_index:]))
 
-            msg = "<%s> %s" % (msg.author.name, " ".join(text_array))
+            msg = "<%s> %s" % (msg.author.name, final_text)
             reply(msg)
             return
+
 
 
 @hook.command()
