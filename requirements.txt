@@ -18,7 +18,7 @@ idna==2.9
 pillow
 numpy
 python-whois
-fb-re2
+google-re2
 google-api-python-client
 webull
 graphviz
