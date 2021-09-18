@@ -47,7 +47,7 @@ class Plugin():
     async def load(self) -> bool:
         
         # Load module
-        print(f"Loading {self.name}")
+        #print(f"Loading {self.name}")
         name = self.name.replace("/", ".").replace(".py", "")
 
         try:
@@ -62,7 +62,7 @@ class Plugin():
             return False
         
         # Load hooks
-        print(f"Found {len(self.hooks)} Hook2s in plugin {self.name}")
+        #print(f"Found {len(self.hooks)} Hook2s in plugin {self.name}")
         self.parent_hook.add_child(self.plugin_hook)
         await self.finalize_hooks()
 

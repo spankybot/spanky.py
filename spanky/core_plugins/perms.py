@@ -15,7 +15,6 @@ def finalize_perm_filter(action: ActionCommand, hooklet: Command):
     if not isinstance(perms, list):
         perms = [perms]
     perms = set(perms)
-    print(action.context["perms"]["creds"], perms)
     if perms == set():
         return MiddlewareResult.CONTINUE
     if perms & set(action.context["perms"]["creds"]):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from spanky.hook2 import storage
+from spanky.hook2.complex_cmd import ComplexCommand
 from .hooklet import Command, Periodic, Event, Middleware, MiddlewareType, MiddlewareResult
 import asyncio
 import time
@@ -130,15 +131,29 @@ class Hook():
     def all_middleware(self) -> dict[str, Middleware]:
         return dict(sorted((self.root.all_global_middleware | self.all_local_middleware).items(), key=lambda item: item[1].priority))
     
-    async def run_middleware(self, action: ActionCommand, hooklet: Command):
+    async def run_middleware(self, act: ActionCommand, hooklet: Command):
+        # copy action to avoid multiple usages
+        action = act.copy()
+        
         mds = self.all_middleware
         for md in mds.values():
             rez = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
-                print("blocking", md.hooklet_id)
+                print("blocking from", md.hooklet_id)
                 action.reply("Event blocked by middleware")
                 return
-        await hooklet.handle(action)
+        # Run middleware for the subcommand
+        if isinstance(hooklet, ComplexCommand):
+            cmd, action = hooklet.get_cmd(action)
+            for md in mds.values():
+                rez = await md.handle(action, cmd)
+                if rez == MiddlewareResult.DENY:
+                    print("blocking from ", md.hooklet_id)
+                    action.reply("Event blocked by middleware")
+                    return
+            await cmd.handle(action)
+        else:
+            await hooklet.handle(action)
     
     # has_child walks down the tree and says if the node has the specified hook as a descendant 
     def has_child(self, hook: Hook) -> bool:
@@ -170,7 +185,6 @@ class Hook():
             # Command trigger
             action: ActionCommand = action
             if action.triggered_command in self.commands.keys():
-                print("found command")
                 # Do with middleware
                 hooklet = self.commands[action.triggered_command]
                 tasks.append(asyncio.create_task(self.run_middleware(action, hooklet), name=""))
@@ -198,16 +212,6 @@ class Hook():
     def add_command(self, name: str, cmd: Command):
         self.commands[name] = cmd
         #self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
-
-    #def remove_command(self, name: str):
-    #    if name not in self.commands:
-    #        raise Exception("Stupid")
-    #    del self.commands[name]
-
-    #def get_command(self, name: str):
-    #    if name not in self.commands:
-    #        return None
-    #    return self.commands[name]
 
     # Periodic Hooks
     def add_periodic(self, func, periodic: float):

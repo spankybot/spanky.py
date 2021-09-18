@@ -6,7 +6,6 @@ class Action:
         self.bot = bot
         self.event_type = event_type
         self._raw = event
-        self.context = {}
 
         self.server_id: Optional[str] = None
         if hasattr(event, "server_id"):
@@ -24,12 +23,18 @@ class ActionCommand(Action):
         self.triggered_command: str = command
         self.author = event.author
         self.channel = event.channel
-
         self.is_pm = event.is_pm
+
+        self.context = {}
+
+    def copy(self) -> 'ActionCommand':
+        act = ActionCommand(self.bot, self._raw, self.text, self.triggered_command)
+        act.context = self.context.copy()
+        return act
 
     def reply(self, text, **kwargs):
         self._raw.reply(text, **kwargs)
-        
+     
 
 class ActionPeriodic(Action):
     def __init__(self, bot, target):

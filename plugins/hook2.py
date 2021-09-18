@@ -1,34 +1,39 @@
 from spanky.hook2 import hook2
 import time
 from spanky.hook2.event import EventType
+from spanky.hook2.complex_cmd import ComplexCommand, command
 
 hk2 = hook2.Hook(f"plugins_hook2_{int(time.time())}")
 
 print(hk2)
 
+class TestCmd(ComplexCommand):
+    def init(self):
+        self.subcommands = [self.subcmd, self.subcmd2, self.testtt_cmd]
+        #self.help_cmd = self.help
+
+    @command()
+    def subcmd(self):
+        return "Cf"
+
+    @command()
+    def subcmd2(self):
+        return "Subcomandă"
+
+    @command()
+    def testtt_cmd(self):
+        print(self)
+        return "bruh"
+
+    @command()
+    def help(self):
+        return "Help suprascris"
+
 @hk2.command()
 def test_hook2(reply):
     reply("COMMAND EXECUTED WITH HOOK2")
 
-from spanky.plugin import hook
-
-@hook.command()
-def get_commands(bot):
-    print(bot.hook2.children)
-
-@hk2.event(EventType.message_del)
-def msg_del_test():
-    print("Message deleted")
-
-@hk2.event(EventType.on_ready)
-def ready_test(server):
-    print("Pula pizda coaiele au inceput razboaiele")
-
 @hk2.event(EventType.on_start)
-def start_test():
+def start_test(hook):
+    hk2.add_command('test_cmd', TestCmd(hook, 'test_cmd'))
     print(f"Started beeeyoootch.")
-
-@hk2.event(EventType.on_conn_ready)
-def conn_ready_test(): 
-    print("Bot ready")
-    print("I will suck ur cock")

@@ -20,7 +20,7 @@ class Hooklet():
         self.hooklet_id: str = hooklet_id
         self.func = func
         
-    def get_args(self, action: Action) -> Optional[list[Any]]:
+    def __get_args(self, action: Action) -> Optional[list[Any]]:
         args = []
         for arg in required_args(self.func):
             if hasattr(action, arg):
@@ -39,6 +39,10 @@ class Hooklet():
                 args.append(action)
             elif arg == 'event':
                 args.append(action._raw)
+            elif arg == 'hook':
+                args.append(self.hook)
+            elif arg == 'self':
+                continue
             else:
                 print(f"Hooklet {self.hooklet_id} asked for invalid argument '{arg}', cancelling execution")
                 return None
@@ -46,7 +50,7 @@ class Hooklet():
     
     async def handle(self, action: Action):
         try:
-            args = self.get_args(action)
+            args = self.__get_args(action)
             if args is None:
                 return None
             

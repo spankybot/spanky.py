@@ -9,7 +9,7 @@ def handle_pm(action: ActionCommand, hooklet: Command):
     pm_only = hooklet.args.get('pm_only', False)
     if pm_only:
         can_pm = True
-    if action._raw.is_pm and not can_pm:
+    if action.is_pm and not can_pm:
         return MiddlewareResult.DENY
-    if not action._raw.is_pm and pm_only:
+    if not action.is_pm and pm_only:
         return MiddlewareResult.DENY
