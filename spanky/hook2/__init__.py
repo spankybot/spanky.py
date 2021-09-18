@@ -1,4 +1,3 @@
-
 from .hook2 import Hook
 from .event import EventType
 from .actions import Action, ActionCommand

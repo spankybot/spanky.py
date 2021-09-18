@@ -10,6 +10,7 @@ from types import ModuleType, CoroutineType
 import importlib
 import asyncio
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from spanky.bot import Bot
 
@@ -18,7 +19,8 @@ from watchdog.events import PatternMatchingEventHandler
 
 modules: list[ModuleType] = []
 
-class HookManager():
+
+class HookManager:
     def __init__(self, paths: list[str], bot: Bot):
         self.bot: Bot = bot
         self.paths: list[str] = paths
@@ -33,7 +35,8 @@ class HookManager():
             tasks.append(asyncio.create_task(d.load(), name="hook_mgr"))
         await asyncio.gather(*tasks)
 
-class Plugin():
+
+class Plugin:
     def __init__(self, path: str, mgr: PluginManager, parent_hook: Hook):
         self.name: str = path
         self.module: Optional[ModuleType] = None
@@ -45,9 +48,9 @@ class Plugin():
     # load actually imports the plugin and returns wether to continue with the module loading:
     # NOTE: This maybe can be done in a better way, try and find it.
     async def load(self) -> bool:
-        
+
         # Load module
-        #print(f"Loading {self.name}")
+        # print(f"Loading {self.name}")
         name = self.name.replace("/", ".").replace(".py", "")
 
         try:
@@ -57,32 +60,49 @@ class Plugin():
             modules.append(self.module)
         except Exception as e:
             import traceback
+
             print(f"Error loading plugin {self.name!s}\n\t{e!s}")
             traceback.print_exc()
             return False
-        
+
         # Load hooks
-        #print(f"Found {len(self.hooks)} Hook2s in plugin {self.name}")
+        # print(f"Found {len(self.hooks)} Hook2s in plugin {self.name}")
         self.parent_hook.add_child(self.plugin_hook)
         await self.finalize_hooks()
 
         self.loaded = True
 
         return True
-    
+
     # finalize_hooks fires on_start and (if the bot is already loaded) on_ready and on_conn_ready events to the hooks
     async def finalize_hooks(self):
         tasks = []
         for hook in self.hooks:
             print(hook.hook_id)
             self.plugin_hook.add_child(hook)
-            tasks.append(asyncio.create_task(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_start))))
-            
+            tasks.append(
+                asyncio.create_task(
+                    hook.dispatch_action(
+                        ActionEvent(self.mgr.bot, {}, EventType.on_start)
+                    )
+                )
+            )
+
             # Run on ready work
             if self.mgr.bot.is_ready:
                 for server in self.mgr.bot.get_servers():
-                    tasks.append(asyncio.create_task(hook.dispatch_action(ActionOnReady(self.mgr.bot, server))))
-                tasks.append(asyncio.create_task(hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready))))
+                    tasks.append(
+                        asyncio.create_task(
+                            hook.dispatch_action(ActionOnReady(self.mgr.bot, server))
+                        )
+                    )
+                tasks.append(
+                    asyncio.create_task(
+                        hook.dispatch_action(
+                            ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready)
+                        )
+                    )
+                )
         await asyncio.gather(*tasks)
 
     # unload removes the hooks from the master hook
@@ -112,7 +132,8 @@ class Plugin():
 
 # Watchdog event handler
 
-class PluginDirectory():
+
+class PluginDirectory:
     def __init__(self, path: str, mgr: HookManager):
         self.path: str = path
         self.mgr: PluginManager = mgr
@@ -121,16 +142,16 @@ class PluginDirectory():
         self.event_handler = PluginDirectoryEventHandler(self, patterns=["*.py"])
         self.observer.schedule(self.event_handler, path, recursive=False)
         self.observer.start()
-        
+
         self.hook = Hook(f"plugin_dir_{path}")
         self.mgr.hook.add_child(self.hook)
 
-        self.reloading = set() 
+        self.reloading = set()
 
     async def load(self):
-        for plugin_file in glob.iglob(os.path.join(self.path, '*.py')):
+        for plugin_file in glob.iglob(os.path.join(self.path, "*.py")):
             plugin = Plugin(plugin_file, self.mgr, self.hook)
-            if (await plugin.load()):
+            if await plugin.load():
                 self.plugins[plugin_file] = plugin
 
     def unload(self, path):
@@ -149,6 +170,7 @@ class PluginDirectory():
         await self.plugins[path].reload()
         self.reloading.remove(path)
 
+
 class PluginDirectoryEventHandler:
     def __init__(self, pd: PluginDirectory, *args, **kwargs):
         self.pd = pd
@@ -157,12 +179,12 @@ class PluginDirectoryEventHandler:
         if event.is_directory:
             return False
         paths = []
-        if hasattr(event, 'dest_path'):
+        if hasattr(event, "dest_path"):
             paths.append(os.fsdecode(event.dest_path))
         if event.src_path:
             paths.append(os.fsdecode(event.src_path))
         for p in paths:
-            if p.endswith('.py' if isinstance(p, str) else b".py"):
+            if p.endswith(".py" if isinstance(p, str) else b".py"):
                 return True
         return False
 
@@ -170,10 +192,10 @@ class PluginDirectoryEventHandler:
         if not self.valid_event(event):
             return
         func = {
-            'created': self.on_created,
-            'deleted': self.on_deleted,
-            'modified': self.on_modified,
-            'moved': self.on_moved,
+            "created": self.on_created,
+            "deleted": self.on_deleted,
+            "modified": self.on_modified,
+            "moved": self.on_moved,
         }[event.event_type]
         asyncio.run_coroutine_threadsafe(func(event), self.pd.mgr.bot.loop)
 
@@ -191,6 +213,8 @@ class PluginDirectoryEventHandler:
 
     async def on_moved(self, event):
         print("move")
-        if event.dest_path.endswith('.py' if isinstance(event.dest_path, str) else b".py"):
+        if event.dest_path.endswith(
+            ".py" if isinstance(event.dest_path, str) else b".py"
+        ):
             self.pd.unload(event.src_path)
             await self.pd.reload(event.dest_path)

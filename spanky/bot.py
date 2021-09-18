@@ -6,14 +6,27 @@ import importlib
 import time
 import asyncio
 
-from spanky.plugin.event import EventType, TextEvent, TimeEvent, HookEvent, OnReadyEvent, OnConnReadyEvent
+from spanky.plugin.event import (
+    EventType,
+    TextEvent,
+    TimeEvent,
+    HookEvent,
+    OnReadyEvent,
+    OnConnReadyEvent,
+)
 from spanky.database.db import db_data
 from spanky.plugin.permissions import PermissionMgr
 from spanky.plugin.hook_logic import OnStartHook
 from spanky.hook2 import hook2
 from spanky.hook2.event import EventType as H2EventType
 from spanky.hook2.hook_manager import HookManager
-from spanky.hook2.actions import Action, ActionCommand, ActionPeriodic, ActionEvent, ActionOnReady
+from spanky.hook2.actions import (
+    Action,
+    ActionCommand,
+    ActionPeriodic,
+    ActionEvent,
+    ActionOnReady,
+)
 
 logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
@@ -21,17 +34,19 @@ logger.setLevel(logging.DEBUG)
 audit = logging.getLogger("audit")
 audit.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('audit.log')
+fh = logging.FileHandler("audit.log")
 fh.setLevel(logging.DEBUG)
 audit.addHandler(fh)
+
 
 def print_hook_assocs(hook: hook2.Hook):
     out = ""
     for ch in hook.children:
         out += f'"{hook.hook_id}"-> "{ch.hook_id}"\n{print_hook_assocs(ch)}'
     return out
-    
-class Bot():
+
+
+class Bot:
     def __init__(self, input_type):
         self.user_agent = "spanky.py bot https://github.com/gc-plp/spanky.py"
         self.is_ready = False
@@ -39,17 +54,19 @@ class Bot():
         self.hook2 = hook2.Hook("bot_hook")
 
         # Open the bot config file
-        with open('bot_config.json') as data_file:
+        with open("bot_config.json") as data_file:
             self.config = json.load(data_file)
 
-        db_path = self.config.get('database', 'sqlite:///cloudbot.db')
+        db_path = self.config.get("database", "sqlite:///cloudbot.db")
         self.logger = logger
 
         # Open the database first
         self.db = db_data(db_path)
 
         # Create the plugin manager instance
-        self.hook_manager = HookManager(['spanky/core_plugins'] + self.config.get("plugin_paths", []), self)
+        self.hook_manager = HookManager(
+            ["spanky/core_plugins"] + self.config.get("plugin_paths", []), self
+        )
 
         self._prefix = self.config.get("command_prefix", ".")
 
@@ -60,6 +77,7 @@ class Bot():
         except:
             import traceback
             import sys
+
             print(traceback.format_exc())
             sys.exit(1)
 
@@ -102,8 +120,9 @@ class Bot():
                 server_list[server.id] = server
 
             if server_id in server_list.keys():
-                self.server_permissions[server_id] = \
-                    PermissionMgr(server_list[server_id])
+                self.server_permissions[server_id] = PermissionMgr(
+                    server_list[server_id]
+                )
 
         return self.server_permissions[server_id]
 
@@ -123,18 +142,18 @@ class Bot():
     async def dispatch_action(self, action: Action):
         await self.hook2.dispatch_action(action)
 
-# ---------------
-# Server events
-# ---------------
+    # ---------------
+    # Server events
+    # ---------------
     async def on_server_join(self, server):
         pass
 
     async def on_server_leave(self, server):
         pass
 
-# ----------------
-# Message events
-# ----------------
+    # ----------------
+    # Message events
+    # ----------------
 
     async def on_message_delete(self, message):
         """On message delete external hook"""
@@ -144,7 +163,9 @@ class Bot():
 
     async def on_bulk_message_delete(self, messages):
         """On message bulk delete external hook"""
-        evt = self.input.EventMessage(EventType.msg_bulk_del, messages[0], deleted=True, messages=messages)
+        evt = self.input.EventMessage(
+            EventType.msg_bulk_del, messages[0], deleted=True, messages=messages
+        )
 
         await self.do_text_event(evt)
 
@@ -160,11 +181,13 @@ class Bot():
 
         await self.do_text_event(evt)
 
-# ----------------
-# Member events
-# ----------------
+    # ----------------
+    # Member events
+    # ----------------
     async def on_member_update(self, before, after):
-        evt = self.input.EventMember(EventType.member_update, member=before, member_after=after)
+        evt = self.input.EventMember(
+            EventType.member_update, member=before, member_after=after
+        )
         await self.do_non_text_event(evt)
 
     async def on_member_join(self, member):
@@ -181,24 +204,29 @@ class Bot():
     async def on_member_unban(self, server, member):
         pass
 
-# ----------------
-# Reaction events
-# ----------------
+    # ----------------
+    # Reaction events
+    # ----------------
     async def on_reaction_add(self, reaction, user):
-        evt = self.input.EventReact(EventType.reaction_add, user=user, reaction=reaction)
+        evt = self.input.EventReact(
+            EventType.reaction_add, user=user, reaction=reaction
+        )
         await self.do_non_text_event(evt)
 
     async def on_reaction_remove(self, reaction, user):
-        evt = self.input.EventReact(EventType.reaction_remove, user=user, reaction=reaction)
+        evt = self.input.EventReact(
+            EventType.reaction_remove, user=user, reaction=reaction
+        )
         await self.do_non_text_event(evt)
-
 
     async def do_non_text_event(self, event):
         # Don't do anything if bot is not connected
         if not self.is_ready:
             return
 
-        await self.dispatch_action(ActionEvent(self, event, H2EventType(event.type.value)))
+        await self.dispatch_action(
+            ActionEvent(self, event, H2EventType(event.type.value))
+        )
 
     async def do_text_event(self, event):
         """Process a text event"""
@@ -206,11 +234,13 @@ class Bot():
         if not self.is_ready:
             return
 
-        await self.dispatch_action(ActionEvent(self, event, H2EventType(event.type.value)))
+        await self.dispatch_action(
+            ActionEvent(self, event, H2EventType(event.type.value))
+        )
 
         # Let's not
         # Ignore private messages
-        #if event.is_pm and event.msg.text.split(maxsplit=1)[0] != ".accept_invite":
+        # if event.is_pm and event.msg.text.split(maxsplit=1)[0] != ".accept_invite":
         #    return
 
         # Don't answer to own commands and don't trigger invalid events
@@ -232,32 +262,48 @@ class Bot():
             cmd_split.append("")
 
         # Hook2
-        #if command in self.hook2.all_commands.keys():
-            # hooklet = self.hook2.all_commands[command]
-            # TODO: Move to middleware and make command-agnostic
-            #if event.is_pm and not hooklet.can_pm:
-            #    return
-            #if not event.is_pm and hooklet.pm_only:
-            #    return
+        # if command in self.hook2.all_commands.keys():
+        # hooklet = self.hook2.all_commands[command]
+        # TODO: Move to middleware and make command-agnostic
+        # if event.is_pm and not hooklet.can_pm:
+        #    return
+        # if not event.is_pm and hooklet.pm_only:
+        #    return
 
         await self.dispatch_action(ActionCommand(self, event, cmd_split[1], command))
 
         if event.is_pm:
             # Log audit data
-            audit.info("[%s][%s][%s] / <%s> %s" % (
-                "pm",
-                event.msg.id,
-                "pm",
-                event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                event.text))
+            audit.info(
+                "[%s][%s][%s] / <%s> %s"
+                % (
+                    "pm",
+                    event.msg.id,
+                    "pm",
+                    event.author.name
+                    + "/"
+                    + str(event.author.id)
+                    + "/"
+                    + event.author.nick,
+                    event.text,
+                )
+            )
         else:
             # Log audit data
-            audit.info("[%s][%s][%s] / <%s> %s" % (
-                event.server.name,
-                event.msg.id,
-                event.channel.name,
-                event.author.name + "/" + str(event.author.id) + "/" + event.author.nick,
-                event.text))
+            audit.info(
+                "[%s][%s][%s] / <%s> %s"
+                % (
+                    event.server.name,
+                    event.msg.id,
+                    event.channel.name,
+                    event.author.name
+                    + "/"
+                    + str(event.author.id)
+                    + "/"
+                    + event.author.nick,
+                    event.text,
+                )
+            )
 
     def on_periodic(self):
         if not self.is_ready:

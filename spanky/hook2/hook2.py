@@ -3,47 +3,70 @@ from __future__ import annotations
 
 from spanky.hook2 import storage
 from spanky.hook2.complex_cmd import ComplexCommand
-from .hooklet import Command, Periodic, Event, Middleware, MiddlewareType, MiddlewareResult
+from .hooklet import (
+    Command,
+    Periodic,
+    Event,
+    Middleware,
+    MiddlewareType,
+    MiddlewareResult,
+)
 import asyncio
 import time
 import random
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from .event import EventType
+
 if TYPE_CHECKING:
-    from .actions import Action, ActionCommand, ActionPeriodic, ActionEvent, ActionOnReady 
+    from .actions import (
+        Action,
+        ActionCommand,
+        ActionPeriodic,
+        ActionEvent,
+        ActionOnReady,
+    )
+
     MiddlewareFunc = Callable[[Action, Hooklet], Optional[MiddlewareResult]]
 
 # copy-paste from old plugin manager
 import logging
-logger = logging.getLogger('spanky')
+
+logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-class Hook():
-    hash = random.randint(0, 2**31)
 
-    def __init__(self, hook_id: str, *, storage_name: str="", parent_hook: Optional[Hook]=None):
+class Hook:
+    hash = random.randint(0, 2 ** 31)
+
+    def __init__(
+        self,
+        hook_id: str,
+        *,
+        storage_name: str = "",
+        parent_hook: Optional[Hook] = None,
+    ):
         self.hook_id: str = hook_id
-        
+
         # Hooklet dicts
         self.commands: dict[str, Command] = {}
         self.periodics: dict[str, Periodic] = {}
         self.events: dict[str, Event] = {}
         self.global_md: dict[str, Middleware] = {}
         self.local_md: dict[str, Middleware] = {}
-        
+
         # Storage object
         self.storage_name = hook_id
         if storage_name != "":
             self.storage_name = storage_name
         self.storage: storage.Storage = storage.Storage(self.storage_name)
 
-        # Tree 
-        self.parent_hook: Optional[Hook] = parent_hook 
+        # Tree
+        self.parent_hook: Optional[Hook] = parent_hook
         self.children: list[Hook] = []
 
     def __del__(self):
@@ -58,7 +81,7 @@ class Hook():
 
     def __str__(self):
         return f"Hook[{self.hook_id=}{f', parent: {self.parent_hook.hook_id}' if self.parent_hook else ''}]"
-    
+
     def __repr__(self):
         return self.__str__()
 
@@ -109,7 +132,7 @@ class Hook():
         for child in self.children:
             events |= child.all_events
         return events
-    
+
     @property
     def all_global_middleware(self) -> dict[str, Middleware]:
         global_md = self.global_md.copy()
@@ -125,16 +148,21 @@ class Hook():
             local_md |= root_hook.local_md
             root_hook = root_hook.parent_hook
         return local_md
-    
+
     # self.all_middleware is shorthand for a sorted self.all_global_middleware | self.all_local_middleware
     @property
     def all_middleware(self) -> dict[str, Middleware]:
-        return dict(sorted((self.root.all_global_middleware | self.all_local_middleware).items(), key=lambda item: item[1].priority))
-    
+        return dict(
+            sorted(
+                (self.root.all_global_middleware | self.all_local_middleware).items(),
+                key=lambda item: item[1].priority,
+            )
+        )
+
     async def run_middleware(self, act: ActionCommand, hooklet: Command):
         # copy action to avoid multiple usages
         action = act.copy()
-        
+
         mds = self.all_middleware
         for md in mds.values():
             rez = await md.handle(action, hooklet)
@@ -154,8 +182,8 @@ class Hook():
             await cmd.handle(action)
         else:
             await hooklet.handle(action)
-    
-    # has_child walks down the tree and says if the node has the specified hook as a descendant 
+
+    # has_child walks down the tree and says if the node has the specified hook as a descendant
     def has_child(self, hook: Hook) -> bool:
         if self == hook:
             return True
@@ -166,7 +194,7 @@ class Hook():
                 return True
         return False
 
-    # remove_child removes a child hook if it is directly underneath the current node. 
+    # remove_child removes a child hook if it is directly underneath the current node.
     def remove_child(self, hook: Hook):
         try:
             self.children.remove(hook)
@@ -176,9 +204,9 @@ class Hook():
     # Event propagation
     # The return of this function marks the finalization of propagating across the entire subtree
     async def dispatch_action(self, action: Action):
-        if self.hook_id == 'bot_hook':
+        if self.hook_id == "bot_hook":
             print(self.hook_id, action)
-        
+
         tasks = []
 
         if action.event_type is EventType.command:
@@ -187,19 +215,21 @@ class Hook():
             if action.triggered_command in self.commands.keys():
                 # Do with middleware
                 hooklet = self.commands[action.triggered_command]
-                tasks.append(asyncio.create_task(self.run_middleware(action, hooklet), name=""))
+                tasks.append(
+                    asyncio.create_task(self.run_middleware(action, hooklet), name="")
+                )
         elif action.event_type is EventType.periodic:
             # Periodic trigger
             action: ActionPeriodic = action
             for periodic in self.periodics.values():
                 if periodic.hooklet_id == action.target:
                     tasks.append(asyncio.create_task(periodic.handle(action)))
-        
+
         # Gobble all matching event coroutines
         for event_hooklet in self.events.values():
             if event_hooklet.event_type == action.event_type:
                 tasks.append(asyncio.create_task(event_hooklet.handle(action)))
-        
+
         # Gobble children dispatch coroutines
         for child in self.children:
             tasks.append(asyncio.create_task(child.dispatch_action(action)))
@@ -211,7 +241,7 @@ class Hook():
 
     def add_command(self, name: str, cmd: Command):
         self.commands[name] = cmd
-        #self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
+        # self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
 
     # Periodic Hooks
     def add_periodic(self, func, periodic: float):
@@ -220,7 +250,9 @@ class Hook():
     def add_event(self, func, event_type: EventType):
         self.events[func.__name__] = Event(self, event_type, func)
 
-    def add_middleware(self, func: MiddlewareFunc, priority: int, m_type: MiddlewareType):
+    def add_middleware(
+        self, func: MiddlewareFunc, priority: int, m_type: MiddlewareType
+    ):
         if m_type == MiddlewareType.LOCAL:
             self.local_md[func.__name__] = Middleware(self, func, m_type, priority)
         else:
@@ -233,7 +265,7 @@ class Hook():
     @property
     def hook_storage(self):
         return self.storage.hook_storage
-    
+
     @property
     def global_storage(self):
         return storage.global_storage
@@ -244,25 +276,37 @@ class Hook():
     # Unlike the old decorator, it doesn't support having non-keyword args or being called directly, in order to simplify stuff
     def command(self, *args, **kwargs):
         if len(args) > 0:
-            raise TypeError("Hook.command must be used as a function that returns a decorator.")
-        return lambda func: self.add_command(func.__name__, Command(self, func.__name__, func, **kwargs))
+            raise TypeError(
+                "Hook.command must be used as a function that returns a decorator."
+            )
+        return lambda func: self.add_command(
+            func.__name__, Command(self, func.__name__, func, **kwargs)
+        )
 
     def periodic(self, period: float):
         if callable(period):
-            raise TypeError("Hook.periodic must be used as a function that returns a decorator.")
+            raise TypeError(
+                "Hook.periodic must be used as a function that returns a decorator."
+            )
         return lambda func: self.add_periodic(func, period)
 
     def event(self, event_type: EventType):
         if callable(event_type):
-            raise TypeError("Hook.event must be used as a function that returns a decorator.")
+            raise TypeError(
+                "Hook.event must be used as a function that returns a decorator."
+            )
         return lambda func: self.add_event(func, event_type)
 
     def global_middleware(self, priority: int):
         if callable(priority):
-            raise TypeError("Hook.global_middleware must be used as a function that returns a decorator.")
+            raise TypeError(
+                "Hook.global_middleware must be used as a function that returns a decorator."
+            )
         return lambda func: self.add_middleware(func, priority, MiddlewareType.GLOBAL)
 
     def local_middleware(self, priority: int):
         if callable(priority):
-            raise TypeError("Hook.local_middleware must be used as a function that returns a decorator.")
+            raise TypeError(
+                "Hook.local_middleware must be used as a function that returns a decorator."
+            )
         return lambda func: self.add_middleware(func, priority, MiddlewareType.LOCAL)

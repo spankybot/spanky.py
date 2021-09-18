@@ -13,12 +13,12 @@ fh = logging.FileHandler("storage.log")
 fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
-#DS_LOC = Path("hook2/storage_data/")
+# DS_LOC = Path("hook2/storage_data/")
 DS_LOC = Path("storage_data/")
 
 
-class dstype():
-    def __init__(self, parent, name, *, loc: Path=DS_LOC):
+class dstype:
+    def __init__(self, parent, name, *, loc: Path = DS_LOC):
         parent = Path(parent)
         logger.debug("Initializing %s, %s" % (parent, name))
         os.system("mkdir -p %s" % loc / parent / "backup")
@@ -79,6 +79,7 @@ class dstype():
                 logger.error("Could not load " + self.location)
                 return None
 
+
 class dsdict(dstype, collections.UserDict):
     def __init__(self, parent, name):
         collections.UserDict.__init__(self)
@@ -92,13 +93,16 @@ class dsdict(dstype, collections.UserDict):
         self.sync()
         return self.data
 
+
 # TODO: is this a good idea?
 global_storage = dsdict("all_storage", "global")
+
 
 def invalidate_global_storage():
     global_storage = dsdict("all_storage", "global")
 
-class Storage():
+
+class Storage:
     def __init__(self, hook_id: str):
         self.hook_id = hook_id
         self.srv_stor_cache: dict[str, dsdict] = {}
@@ -110,14 +114,14 @@ class Storage():
         return self.srv_stor_cache[server_id]
 
     def invalidate_cache(self, server_id: str):
-        del self.srv_stor_cache[server_id] 
+        del self.srv_stor_cache[server_id]
 
     @property
     def hook_storage(self):
         if not self.hook_stor_cache:
             self.hook_stor_cache = dsdict("global_hook", self.hook_id)
         return self.hook_stor_cache
-    
+
     def invalidate_hook_cache(self):
         self.srv_stor_cache = {}
         self.hook_stor_cache = None
