@@ -1,5 +1,16 @@
-from spanky.hook2 import Hook, ActionCommand, Command
-from spanky.hook2.hooklet import MiddlewareResult
+from spanky.hook2 import (
+    Hook,
+    ActionCommand,
+    Command,
+    ComplexCommand,
+    subcommand,
+    EventType,
+    MiddlewareResult,
+)
+from discord import AllowedMentions
+
+no_mention = AllowedMentions.none()
+
 
 hook = Hook("permission_hook", storage_name="plugins_admin.json")
 
@@ -36,12 +47,13 @@ def perm_bot_owner(action: ActionCommand, hooklet: Command):
 @hook.global_middleware(priority=10)
 def perm_admin(action: ActionCommand, hooklet: Command):
     storage = hooklet.hook.server_storage(action.server_id)
-    if "admin_roles" not in storage:
+    if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
         if hooklet.args.get("permissions", None) != None:
             action.reply(
-                "Warning! Admin not set! Use .add_admin_role to set an administrator.",
+                "Warning! Admin not set! Use .admin_role add to set an administrator.",
                 check_old=False,
             )
+            action.context["perms"]["creds"].append("admin")
     else:
         # TODO: command_owners (maybe in another middleware?)
         allowed_roles = set(storage["admin_roles"])
@@ -50,48 +62,51 @@ def perm_admin(action: ActionCommand, hooklet: Command):
             action.context["perms"]["creds"].append("admin")
 
 
-@hook.command()
-def get_admin_storage(storage):
-    import json
+class AdminCmd(ComplexCommand):
+    def init(self):
+        self.subcommands = [self.add, self.list, self.remove]
+        self.help_cmd = self.help
 
-    return json.dumps(storage.data)
+    @subcommand()
+    def add(self, str_to_id, text, storage):
+        if "admin_roles" not in storage:
+            storage["admin_roles"] = []
+            storage.sync()
+        text = str_to_id(text)
+        if text in storage["admin_roles"]:
+            return "Role is already an admin role!"
+        storage["admin_roles"].append(text)
+        storage.sync()
+        return "Role added."
+
+    @subcommand()
+    def list(self, reply, storage, id_to_role_name):
+        if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
+            return "No admin roles set."
+        reply(
+            ", ".join([id_to_role_name(id) for id in storage["admin_roles"]]),
+            allowed_mentions=no_mention,
+        )
+
+    @subcommand()
+    def remove(self, storage, text, str_to_id):
+        text = str_to_id(text)
+        if "admin_roles" not in storage:
+            storage["admin_roles"] = []
+            storage.sync()
+        if text not in storage["admin_roles"]:
+            return "Role is not an admin role!"
+
+        storage["admin_roles"].remove(text)
+        storage.sync()
+
+        return "Admin role removed."
+
+    @subcommand()
+    def help(self):
+        return "Usage: .admin_role <add|list|remove>"
 
 
-@hook.command(permissions="admin")
-def migrate_admin_storage(storage):
-    return "TODO"
-
-
-@hook.command(permissions="admin")
-def add_admin_role(storage):
-    return "TODO"
-
-
-@hook.command(permissions="admin")
-def get_admin_roles(storage):
-    return "TODO"
-
-
-@hook.command(permissions="admin")
-def remove_admin_role(storage):
-    return "TODO"
-
-
-@hook.global_middleware(priority=1)
-def check_server_id(action: ActionCommand, hooklet: Command):
-    good_server = True
-    server_id = hooklet.args.get("server_id", None)
-    if server_id == None:
-        return MiddlewareResult.CONTINUE
-    if isinstance(server_id, int):
-        server_id = str(server_id)
-    if type(server_id) == str:
-        good_server = action.server_id == server_id
-    elif type(server_id) == list:
-        good_server = action.server_id in server_id
-    else:
-        print(f"Unknown server_id type for hooklet {hooklet.hooklet_id}")
-        good_server = False
-    if not good_server:
-        return MiddlewareResult.DENY
-    return MiddlewareResult.CONTINUE
+@hook.event(EventType.on_start)
+def load_admin_role():
+    hook.add_command("admin_role", AdminCmd(hook, "admin_role", permissions="admin"))

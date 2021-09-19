@@ -11,7 +11,7 @@ import inspect
 from functools import wraps
 
 
-def command(**kwargs):
+def subcommand(**kwargs):
     def wrap(func):
         if hasattr(func, "__func__"):
             func = func.__func__
@@ -25,13 +25,13 @@ def command(**kwargs):
 
 def cmd_from(cmd: ComplexCommand, func):
     if "__spanky_wrapped" not in func.__dict__:
-        func = command()(func)
+        func = subcommand()(func)
     return Command(cmd.hook, func.__spanky_cmdname, func, **func.__spanky_kwargs)
 
 
 # ComplexCommand is a class, which must be inherited, that groups a set of subcommands under a common command name.
 # This might still be a bit buggy!
-# SubCommands must be wrapped with the @command decorator, its kwargs being passed to a hidden Command hooklet, and specified in the self.subcommands during init() (this is a technical python limitation, I don't think I can work around it) (TODO: Is there any way to work around it?)
+# SubCommands must be wrapped with the @subcommand decorator, its kwargs being passed to a hidden Command hooklet, and specified in the self.subcommands during init() (this is a technical python limitation, I don't think I can work around it) (TODO: Is there any way to work around it?)
 # An effective example will be located in spanky/core_plugins/perms.py
 # Please note that middleware is parsed separately for the command and the subcommand:
 # For example, if the ComplexCommand class has a permissions=["admin"] attribute, the command will be denied to non-admins.
@@ -64,7 +64,7 @@ class ComplexCommand(Command):
                         "Invalid subcommand name. This will be a help page someday :)"
                     )
 
-                self.help_cmd = command()(help)
+                self.help_cmd = subcommand()(help)
             self.help_cmd = cmd_from(self, self.help_cmd)
             self._sub_commands.append(self.help_cmd)
 
@@ -95,4 +95,4 @@ class ComplexCommand(Command):
         await cmd.handle(action)
 
 
-__all__ = [command, ComplexCommand]
+__all__ = [subcommand, ComplexCommand]
