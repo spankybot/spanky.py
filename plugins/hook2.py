@@ -23,21 +23,20 @@ test_cmd = ComplexCommand(hook, "test_cmd")
 
 
 @test_cmd.subcommand()
-def subcmd(self):
+def subcmd():
     return "Cf"
 
 
 @test_cmd.subcommand()
-def subcmd2(self):
+def subcmd2():
     return "Subcomandă"
 
 
 @test_cmd.subcommand()
-def testtt_cmd(self):
-    print(self)
+def testtt_cmd():
     return "bruh"
 
 
 @test_cmd.help()
-def help(self):
+def help():
     return "Help suprascris"
