@@ -78,7 +78,7 @@ class Plugin:
     async def finalize_hooks(self):
         tasks = []
         for hook in self.hooks:
-            print(hook.hook_id)
+            #print(hook.hook_id)
             self.plugin_hook.add_child(hook)
             tasks.append(
                 asyncio.create_task(

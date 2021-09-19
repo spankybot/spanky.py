@@ -143,11 +143,16 @@ class Middleware(Hooklet):
         self.func: MiddlewareFunc = func
         self.priority: int = priority
 
-    async def handle(self, action: ActionCommand, hooklet: Command) -> MiddlewareResult:
+    async def handle(self, action: ActionCommand, hooklet: Command) -> (MiddlewareResult, str):
         if inspect.iscoroutinefunction(self.func):
             rez = await self.func(action, hooklet)
         else:
             rez = self.func(action, hooklet)
         if not rez:
             rez = MiddlewareResult.CONTINUE
+        if not (isinstance(rez, list) or isinstance(rez, tuple)):
+            if rez == MiddlewareResult.CONTINUE:
+                rez = (rez, "")
+            else:
+                rez = (rez, "Event blocked by middleware")
         return rez

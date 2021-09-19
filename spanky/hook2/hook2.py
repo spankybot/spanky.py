@@ -165,19 +165,19 @@ class Hook:
 
         mds = self.all_middleware
         for md in mds.values():
-            rez = await md.handle(action, hooklet)
+            rez, msg = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
-                print("blocking from", md.hooklet_id)
-                action.reply("Event blocked by middleware")
+                print("blocking from", md.hooklet_id, "with reason",msg)
+                action.reply(msg)
                 return
         # Run middleware for the subcommand
         if isinstance(hooklet, ComplexCommand):
             cmd, action = hooklet.get_cmd(action)
             for md in mds.values():
-                rez = await md.handle(action, cmd)
+                rez, msg = await md.handle(action, cmd)
                 if rez == MiddlewareResult.DENY:
-                    print("blocking from ", md.hooklet_id)
-                    action.reply("Event blocked by middleware")
+                    print("blocking from ", md.hooklet_id, "with reason", msg)
+                    action.reply(msg)
                     return
             await cmd.handle(action)
         else:

@@ -27,6 +27,7 @@ class ActionCommand(Action):
         self.author = event.author
         self.channel = event.channel
         self.is_pm = event.is_pm
+        self.message = event.msg
 
         self.context = {}
 

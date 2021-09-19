@@ -99,11 +99,11 @@ class DiscordUtils(abc.ABC):
         try:
             iid_str = int(id_str)
         except ValueError:
-            return None
+            return id_str
 
         role = discord.utils.find(lambda m: m.id == iid_str, self.get_server()._raw.roles)
         if not role:
-            return None
+            return id_str
         return role.name
 
     def user_id_to_name(self, uid):

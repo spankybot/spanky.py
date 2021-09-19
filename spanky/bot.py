@@ -6,19 +6,11 @@ import importlib
 import time
 import asyncio
 
-from spanky.plugin.event import (
-    EventType,
-    TextEvent,
-    TimeEvent,
-    HookEvent,
-    OnReadyEvent,
-    OnConnReadyEvent,
-)
 from spanky.database.db import db_data
 from spanky.plugin.permissions import PermissionMgr
 from spanky.plugin.hook_logic import OnStartHook
 from spanky.hook2 import hook2
-from spanky.hook2.event import EventType as H2EventType
+from spanky.hook2.event import EventType
 from spanky.hook2.hook_manager import HookManager
 from spanky.hook2.actions import (
     Action,
@@ -92,7 +84,7 @@ class Bot:
             await self.dispatch_action(ActionOnReady(self, server))
 
         # Run on connection ready hooks
-        await self.dispatch_action(ActionEvent(self, {}, H2EventType.on_conn_ready))
+        await self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
 
     async def ready(self):
         # Initialize per server permissions
@@ -225,7 +217,7 @@ class Bot:
             return
 
         await self.dispatch_action(
-            ActionEvent(self, event, H2EventType(event.type.value))
+            ActionEvent(self, event, EventType(event.type.value))
         )
 
     async def do_text_event(self, event):
@@ -235,7 +227,7 @@ class Bot:
             return
 
         await self.dispatch_action(
-            ActionEvent(self, event, H2EventType(event.type.value))
+            ActionEvent(self, event, EventType(event.type.value))
         )
 
         # Let's not

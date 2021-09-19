@@ -2,131 +2,90 @@ import inspect
 import re
 import collections
 
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 
-valid_command_re = re.compile(r"^\w+$")
+# Replaced for the hook1 wrapper, TODO: finish the simple hook1 wrapper 
 
-class _Hook:
-    """
-    :type function: function
-    :type type: str
-    :type kwargs: dict[str, unknown]
-    """
+"""
+def command(**kwargs):
+    import inspect
 
-    def __init__(self, function, _type):
-        """
-        :type function: function
-        :type _type: str
-        """
-        self.function = function
-        self.type = _type
-        self.kwargs = {}
+    filename = inspect.stack()[1].filename
+    filename = filename[filename.find("plugins") :]
+    print(filename)
 
-    def _add_hook(self, kwargs):
-        """
-        :type kwargs: dict[str, unknown]
-        """
-        # update kwargs, overwriting duplicates
-        self.kwargs.update(kwargs)
+    def do_func(func):
+        pass
+
+    return do_func
 
 
-class _CommandHook(_Hook):
-    """
-    :type main_alias: str
-    :type aliases: set[str]
-    """
+def event(event_type, **kwargs):
+    import inspect
 
-    def __init__(self, function):
-        """
-        :type function: function
-        """
-        _Hook.__init__(self, function, "command")
-        self.aliases = set()
-        self.main_alias = None
+    filename = inspect.stack()[1].filename
+    filename = filename[filename.find("plugins") :]
+    print(filename)
 
-        if function.__doc__:
-            self.doc = function.__doc__.split('\n', 1)[0]
-        else:
-            self.doc = None
+    def do_func(func):
+        pass
 
-    def add_hook(self, alias_param, kwargs):
-        """
-        :type alias_param: list[str] | str
-        """
-        self._add_hook(kwargs)
-
-        if not alias_param:
-            alias_param = self.function.__name__
-        if isinstance(alias_param, str):
-            alias_param = [alias_param]
-        if not self.main_alias:
-            self.main_alias = alias_param[0]
-        for alias in alias_param:
-            if not valid_command_re.match(alias):
-                raise ValueError("Invalid command name {}".format(alias))
-        self.aliases.update(alias_param)
+    return do_func
 
 
-class _PeriodicHook(_Hook):
-    def __init__(self, function):
-        """
-        :type function: function
-        """
-        _Hook.__init__(self, function, "periodic")
-        self.interval = 60.0
+def periodic(period):
+    import inspect
 
-    def add_hook(self, interval, kwargs):
-        """
-        :type interval: int
-        :type kwargs: dict[str, unknown]
-        """
-        self._add_hook(kwargs)
+    filename = inspect.stack()[1].filename
+    filename = filename[filename.find("plugins") :]
+    print(filename)
 
-        if interval:
-            self.interval = interval
+    def do_func(func):
+        pass
+
+    return do_func
 
 
-class _EventHook(_Hook):
-    """
-    :type types: set[cloudbot.event.EventType]
-    """
+def on_start(**kwargs):
+    import inspect
 
-    def __init__(self, function):
-        """
-        :type function: function
-        """
-        _Hook.__init__(self, function, "event")
-        self.types = set()
+    filename = inspect.stack()[1].filename
+    filename = filename[filename.find("plugins") :]
+    print(filename)
 
-    def add_hook(self, trigger_param, kwargs):
-        """
-        :type trigger_param: cloudbot.event.EventType | list[cloudbot.event.EventType]
-        :type kwargs: dict[str, unknown]
-        """
-        self._add_hook(kwargs)
+    def do_func(func):
+        pass
 
-        if isinstance(trigger_param, EventType):
-            self.types.add(trigger_param)
-        else:
-            # it's a list
-            self.types.update(trigger_param)
+    return do_func
 
 
-def _add_hook(func, hook):
-    if not hasattr(func, "_cloudbot_hook"):
-        func._cloudbot_hook = {}
-    else:
-        assert hook.type not in func._cloudbot_hook  # in this case the hook should be using the add_hook method
-    func._cloudbot_hook[hook.type] = hook
+def on_ready(**kwargs):
+    import inspect
+
+    filename = inspect.stack()[1].filename
+    filename = filename[filename.find("plugins") :]
+    print(filename)
+
+    def do_func(func):
+        pass
+
+    return do_func
 
 
-def _get_hook(func, hook_type):
-    if hasattr(func, "_cloudbot_hook") and hook_type in func._cloudbot_hook:
-        return func._cloudbot_hook[hook_type]
+def on_connection_ready(**kwargs):
+    import inspect
 
-    return None
+    filename = inspect.stack()[1].filename
+    filename = filename[filename.find("plugins") :]
+    print(filename)
 
+    def do_func(func):
+        pass
 
+    return do_func
+"""
+
+'''
 def command(*args, **kwargs):
     """External command decorator. Can be used directly as a decorator, or with args to return a decorator.
     :type param: str | list[str] | function
@@ -261,3 +220,4 @@ def on_connection_ready(param=None, **kwargs):
         return _on_connection_ready_hook(param)
     else:
         return lambda func: _on_connection_ready_hook(func)
+'''

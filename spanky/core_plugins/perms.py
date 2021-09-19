@@ -3,8 +3,6 @@ from spanky.hook2 import (
     ActionCommand,
     Command,
     ComplexCommand,
-    subcommand,
-    EventType,
     MiddlewareResult,
 )
 from discord import AllowedMentions
@@ -22,7 +20,7 @@ def setup_perm_ctx(action: ActionCommand, hooklet: Command):
     action.context["perms"] = {"creds": []}
 
 
-@hook.global_middleware(priority=1000000)
+@hook.global_middleware(priority=100)
 def finalize_perm_filter(action: ActionCommand, hooklet: Command):
     perms = hooklet.args.get("permissions", [])
     if not isinstance(perms, list):
@@ -62,51 +60,48 @@ def perm_admin(action: ActionCommand, hooklet: Command):
             action.context["perms"]["creds"].append("admin")
 
 
-class AdminCmd(ComplexCommand):
-    def init(self):
-        self.subcommands = [self.add, self.list, self.remove]
-        self.help_cmd = self.help
+admin_cmd = ComplexCommand(hook, "admin_role", permissions="admin")
 
-    @subcommand()
-    def add(self, str_to_id, text, storage):
-        if "admin_roles" not in storage:
-            storage["admin_roles"] = []
-            storage.sync()
-        text = str_to_id(text)
-        if text in storage["admin_roles"]:
-            return "Role is already an admin role!"
-        storage["admin_roles"].append(text)
+
+@admin_cmd.subcommand()
+def add(str_to_id, text, storage):
+    if "admin_roles" not in storage:
+        storage["admin_roles"] = []
         storage.sync()
-        return "Role added."
+    text = str_to_id(text)
+    if text in storage["admin_roles"]:
+        return "Role is already an admin role!"
+    storage["admin_roles"].append(text)
+    storage.sync()
+    return "Role added."
 
-    @subcommand()
-    def list(self, reply, storage, id_to_role_name):
-        if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
-            return "No admin roles set."
-        reply(
-            ", ".join([id_to_role_name(id) for id in storage["admin_roles"]]),
-            allowed_mentions=no_mention,
-        )
 
-    @subcommand()
-    def remove(self, storage, text, str_to_id):
-        text = str_to_id(text)
-        if "admin_roles" not in storage:
-            storage["admin_roles"] = []
-            storage.sync()
-        if text not in storage["admin_roles"]:
-            return "Role is not an admin role!"
+# am schimbat din list in list_roles pentru a nu suprascrie tipul
+@admin_cmd.subcommand(name="list")
+def list_roles(reply, storage, id_to_role_name):
+    if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
+        return "No admin roles set."
+    reply(
+        ", ".join([id_to_role_name(id) for id in storage["admin_roles"]]),
+        allowed_mentions=no_mention,
+    )
 
-        storage["admin_roles"].remove(text)
+
+@admin_cmd.subcommand()
+def remove(storage, text, str_to_id):
+    text = str_to_id(text)
+    if "admin_roles" not in storage:
+        storage["admin_roles"] = []
         storage.sync()
+    if text not in storage["admin_roles"]:
+        return "Role is not an admin role!"
 
-        return "Admin role removed."
+    storage["admin_roles"].remove(text)
+    storage.sync()
 
-    @subcommand()
-    def help(self):
-        return "Usage: .admin_role <add|list|remove>"
+    return "Admin role removed."
 
 
-@hook.event(EventType.on_start)
-def load_admin_role():
-    hook.add_command("admin_role", AdminCmd(hook, "admin_role", permissions="admin"))
+@admin_cmd.help()
+def help():
+    return "Usage: .admin_role <add|list|remove>"

@@ -2,7 +2,7 @@ from .hook2 import Hook
 from .event import EventType
 from .actions import Action, ActionCommand
 from .hooklet import Hooklet, Command, MiddlewareResult
-from .complex_cmd import ComplexCommand, subcommand
+from .complex_cmd import ComplexCommand
 
 __all__ = (
     Hook,
@@ -12,6 +12,5 @@ __all__ = (
     Hooklet,
     Command,
     ComplexCommand,
-    subcommand,
     MiddlewareResult,
 )

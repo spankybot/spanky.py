@@ -11,27 +11,12 @@ import inspect
 from functools import wraps
 
 
-def subcommand(**kwargs):
-    def wrap(func):
-        if hasattr(func, "__func__"):
-            func = func.__func__
-        func.__spanky_wrapped = True
-        func.__spanky_kwargs = kwargs
-        func.__spanky_cmdname = kwargs.get("name", func.__name__)
-        return func
-
-    return wrap
-
-
-def cmd_from(cmd: ComplexCommand, func):
-    if "__spanky_wrapped" not in func.__dict__:
-        func = subcommand()(func)
-    return Command(cmd.hook, func.__spanky_cmdname, func, **func.__spanky_kwargs)
+def default_help():
+    return "Invalid subcommand name. This will be a help page someday :)"
 
 
 # ComplexCommand is a class, which must be inherited, that groups a set of subcommands under a common command name.
 # This might still be a bit buggy!
-# SubCommands must be wrapped with the @subcommand decorator, its kwargs being passed to a hidden Command hooklet, and specified in the self.subcommands during init() (this is a technical python limitation, I don't think I can work around it) (TODO: Is there any way to work around it?)
 # An effective example will be located in spanky/core_plugins/perms.py
 # Please note that middleware is parsed separately for the command and the subcommand:
 # For example, if the ComplexCommand class has a permissions=["admin"] attribute, the command will be denied to non-admins.
@@ -43,33 +28,28 @@ class ComplexCommand(Command):
         super().__init__(hook, name, self.run_cmd, **kwargs)
         self.subcommands: list[Any] = []
         self._sub_commands: list[Command] = []
-        self.help_cmd = None
 
-        # Child-provided init
-        self.init()
+        self.help_cmd = Command(self.hook, "help", default_help)
 
-        # Based on the child-provided init, generate subcommands
-        self._gen_commands()
+        self.hook.add_command(self.name, self)
 
-    def init(self):
-        raise Exception("init() not defined for Complex Command")
+    def subcommand(self, **kwargs):
+        def make_cmd(func):
+            self._sub_commands.append(
+                Command(self.hook, kwargs.get("name", func.__name__), func, **kwargs)
+            )
+            return func
 
-    def _gen_commands(self):
-        # Help command that is the default if subcommand is not found
-        if not isinstance(self.help_cmd, Command):
-            if self.help_cmd == None:
+        return make_cmd
 
-                def help():
-                    return (
-                        "Invalid subcommand name. This will be a help page someday :)"
-                    )
+    def help(self, **kwargs):
+        def make_cmd(func):
+            cmd = Command(self.hook, "help", func, **kwargs)
+            self._sub_commands.append(cmd)
+            self.help_cmd = cmd
+            return func
 
-                self.help_cmd = subcommand()(help)
-            self.help_cmd = cmd_from(self, self.help_cmd)
-            self._sub_commands.append(self.help_cmd)
-
-        for cmd in self.subcommands:
-            self._sub_commands.append(cmd_from(self, cmd))
+        return make_cmd
 
     def get_cmd(self, action: ActionCommand) -> tuple[Command, ActionCommand]:
         cmd_split = action.text.split(maxsplit=1)
@@ -93,6 +73,3 @@ class ComplexCommand(Command):
         cmd, action = self.get_cmd(action)
         print(cmd.name)
         await cmd.handle(action)
-
-
-__all__ = [subcommand, ComplexCommand]
