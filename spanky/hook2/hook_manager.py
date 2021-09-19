@@ -50,7 +50,7 @@ class Plugin:
     async def load(self) -> bool:
 
         # Load module
-        # print(f"Loading {self.name}")
+        print(f"Loading {self.name}")
         name = self.name.replace("/", ".").replace(".py", "")
 
         try:
@@ -78,7 +78,7 @@ class Plugin:
     async def finalize_hooks(self):
         tasks = []
         for hook in self.hooks:
-            #print(hook.hook_id)
+            # print(hook.hook_id)
             self.plugin_hook.add_child(hook)
             tasks.append(
                 asyncio.create_task(

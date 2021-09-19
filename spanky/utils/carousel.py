@@ -52,7 +52,7 @@ SITEMS = [
 
 
 class Selector:
-    POSTED_MESSAGES = deque(maxlen=250) # class variable holding posted selectors
+    POSTED_MESSAGES = deque(maxlen=250)  # class variable holding posted selectors
 
     def __init__(self, title, footer, call_dict, max_rows=10):
         self.shown_page = 0
@@ -191,7 +191,10 @@ class Selector:
     async def is_spam(self, event):
         # Check role assign spam
         now = tutils.tnow()
-        if (event.author.id in last_user_assign and now - last_user_assign[event.author.id] < MIN_SEC):
+        if (
+            event.author.id in last_user_assign
+            and now - last_user_assign[event.author.id] < MIN_SEC
+        ):
             last_user_assign[event.author.id] = now
             event.author.send_pm(
                 "You're assigning roles too quickly. You need to wait %d seconds between assignments"
@@ -248,7 +251,8 @@ class RoleSelector(Selector):
         super().__init__(
             title=title,
             footer=f"Max selectable: {max_selectable if max_selectable > 0 else 'Unlimited' }",
-            call_dict={})
+            call_dict={},
+        )
 
         self.server = server
         self.roles = roles
@@ -353,10 +357,8 @@ class RoleSelector(Selector):
 
         # Create the selector
         selector = RoleSelector(
-            server,
-            data["role_ids"],
-            data["title"],
-            data["max_selectable"])
+            server, data["role_ids"], data["title"], data["max_selectable"]
+        )
 
         # Set selector page
         selector.shown_page = data["shown_page"]
@@ -376,9 +378,12 @@ class RoleSelector(Selector):
 
         return selector
 
+
 class RoleSelectorInterval(RoleSelector):
     def __init__(self, server, channel, first_role, last_role, title, max_selectable):
-        super(RoleSelector, self).__init__(title=title, footer="Max selectable: %d" % max_selectable, call_dict={})
+        super(RoleSelector, self).__init__(
+            title=title, footer="Max selectable: %d" % max_selectable, call_dict={}
+        )
 
         self.server = server
         self.channel = channel
@@ -394,17 +399,18 @@ class RoleSelectorInterval(RoleSelector):
         if tutils.tnow() - self.last_role_update > RoleSelector.ROLE_UPDATE_INTERVAL:
             # Get the roles
             roles = dutils.get_roles_between(
-                self.first_role,
-                self.last_role,
-                self.server)
+                self.first_role, self.last_role, self.server
+            )
 
-            self.name_to_role = {}      # Map names to roles for quick lookup
-            role_list = OrderedDict()   # Role list to pass to the selector
+            self.name_to_role = {}  # Map names to roles for quick lookup
+            role_list = OrderedDict()  # Role list to pass to the selector
             for role in roles:
                 self.name_to_role[role.name] = role
                 role_list[role.name] = self.do_stuff
 
-            role_list = OrderedDict(sorted(role_list.items(), key=lambda m: str.casefold(m[0])))
+            role_list = OrderedDict(
+                sorted(role_list.items(), key=lambda m: str.casefold(m[0]))
+            )
 
             # Mark last role update time
             self.last_role_update = tutils.tnow()
@@ -449,11 +455,17 @@ class RoleSelectorInterval(RoleSelector):
         last_role = dutils.get_role_by_id(server, data["last_role_id"])
 
         if not first_role:
-            print("Could not find frole id %s/%s" % data["server_id"], data["first_role_id"])
+            print(
+                "Could not find frole id %s/%s" % data["server_id"],
+                data["first_role_id"],
+            )
             return None
 
         if not last_role:
-            print("Could not find lrole id %s/%s" % data["server_id"], data["last_role_id"])
+            print(
+                "Could not find lrole id %s/%s" % data["server_id"],
+                data["last_role_id"],
+            )
             return None
 
         # Get the channel
@@ -466,7 +478,8 @@ class RoleSelectorInterval(RoleSelector):
             first_role.name,
             last_role.name,
             data["title"],
-            data["max_selectable"])
+            data["max_selectable"],
+        )
 
         # Set selector page
         selector.shown_page = data["shown_page"]

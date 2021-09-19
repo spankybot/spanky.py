@@ -1,12 +1,13 @@
 import datetime
 
-time_tokens = ['s', 'm', 'h', 'd']
+time_tokens = ["s", "m", "h", "d"]
 SEC_IN_MIN = 60
 SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
-SEC_IN_YEAR = SEC_IN_HOUR * 24 * 365 # yeah, maybe there aren't 365 days in one year
+SEC_IN_YEAR = SEC_IN_HOUR * 24 * 365  # yeah, maybe there aren't 365 days in one year
 
-interval_units = [(60, 'minute'), (60, 'hour'), (24, 'day'), (365, 'year')]
+interval_units = [(60, "minute"), (60, "hour"), (24, "day"), (365, "year")]
+
 
 def tnow():
     """
@@ -14,11 +15,13 @@ def tnow():
     """
     return datetime.datetime.now().timestamp()
 
+
 def time_to_date(time_param: float):
     """
     Convert a floating time to formatted date.
     """
     return datetime.datetime.utcfromtimestamp(time_param)
+
 
 def timeout_to_sec(stime):
     """
@@ -30,20 +33,21 @@ def timeout_to_sec(stime):
     for pos, char in enumerate(stime):
         if char in time_tokens:
             value = int(stime[last_start:pos])
-            if char == 's':
+            if char == "s":
                 total_seconds += value
-            elif char == 'm':
+            elif char == "m":
                 total_seconds += value * SEC_IN_MIN
-            elif char == 'h':
+            elif char == "h":
                 total_seconds += value * SEC_IN_HOUR
-            elif char == 'd':
+            elif char == "d":
                 total_seconds += value * SEC_IN_DAY
-            elif char == 'y':
+            elif char == "y":
                 total_seconds += value * SEC_IN_YEAR
 
             last_start = pos + 1
 
     return total_seconds
+
 
 def sec_to_human(sec):
     """
@@ -52,14 +56,14 @@ def sec_to_human(sec):
     if sec == 0:
         return "0 seconds"
 
-    parts = [[int(sec), 'second']]
+    parts = [[int(sec), "second"]]
     for (dur, unit) in interval_units:
         last = parts[-1]
         if last[0] == 0:
             break
 
         val = last[0] // dur
-        parts[-1][0] -= (val * dur)
+        parts[-1][0] -= val * dur
 
         parts.append([val, unit])
 
@@ -75,9 +79,9 @@ def sec_to_human(sec):
             continue
 
         if val > 1:
-            unit += 's'
+            unit += "s"
 
-        part_fmt = '%d %s' % (val, unit)
+        part_fmt = "%d %s" % (val, unit)
         res.append(part_fmt)
 
-    return ', '.join(res)
+    return ", ".join(res)

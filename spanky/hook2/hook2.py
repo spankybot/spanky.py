@@ -167,7 +167,7 @@ class Hook:
         for md in mds.values():
             rez, msg = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
-                print("blocking from", md.hooklet_id, "with reason",msg)
+                print("blocking from", md.hooklet_id, "with reason", msg)
                 action.reply(msg)
                 return
         # Run middleware for the subcommand

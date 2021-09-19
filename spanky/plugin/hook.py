@@ -4,7 +4,7 @@ import collections
 
 from spanky.hook2.event import EventType
 
-# Replaced for the hook1 wrapper, TODO: finish the simple hook1 wrapper 
+# Replaced for the hook1 wrapper, TODO: finish the simple hook1 wrapper
 
 """
 def command(**kwargs):

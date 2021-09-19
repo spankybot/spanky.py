@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import discord
 import logging
@@ -15,10 +15,12 @@ from spanky.utils.image import Image
 from spanky.utils import time_utils
 from spanky.utils import discord_utils as dutils
 
-logger = logging.getLogger('discord')
+logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
+handler.setFormatter(
+    logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+)
 logger.addHandler(handler)
 
 # Enable intents god damn it discord
@@ -35,9 +37,10 @@ bot_replies = {}
 to_delete = {}
 with open("plugin_data/twemoji_800x800.json") as f:
     emojis = json.load(f)
-raw_msg_cache = {} # message cache that we use to map msg_id to msg
+raw_msg_cache = {}  # message cache that we use to map msg_id to msg
 
-class Init():
+
+class Init:
     def __init__(self, bot_inst):
         global client
         global bot
@@ -72,6 +75,7 @@ class Init():
     def add_msg_to_cache(self, msg):
         raw_msg_cache[msg.id] = msg
 
+
 class DiscordUtils(abc.ABC):
     @abc.abstractmethod
     def get_server(self):
@@ -86,7 +90,16 @@ class DiscordUtils(abc.ABC):
         return False
 
     def str_to_id(self, string):
-        return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
+        return (
+            string.strip()
+            .replace("@", "")
+            .replace("<", "")
+            .replace(">", "")
+            .replace("!", "")
+            .replace("#", "")
+            .replace("&", "")
+            .replace(":", " ")
+        )
 
     def id_to_user(self, id_str):
         return "<@%s>" % id_str
@@ -101,7 +114,9 @@ class DiscordUtils(abc.ABC):
         except ValueError:
             return id_str
 
-        role = discord.utils.find(lambda m: m.id == iid_str, self.get_server()._raw.roles)
+        role = discord.utils.find(
+            lambda m: m.id == iid_str, self.get_server()._raw.roles
+        )
         if not role:
             return id_str
         return role.name
@@ -113,7 +128,9 @@ class DiscordUtils(abc.ABC):
         except ValueError:
             return uid
 
-        user = discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members)
+        user = discord.utils.find(
+            lambda m: m.id == iuid, self.get_server()._raw.members
+        )
         if not user:
             return uid
         return user.name
@@ -125,7 +142,9 @@ class DiscordUtils(abc.ABC):
         except ValueError:
             return None
 
-        user = discord.utils.find(lambda m: m.id == iuid, self.get_server()._raw.members)
+        user = discord.utils.find(
+            lambda m: m.id == iuid, self.get_server()._raw.members
+        )
         if user:
             return User(user)
         else:
@@ -155,15 +174,23 @@ class DiscordUtils(abc.ABC):
                 target = self.source.id
             elif target[0] == "#":
                 target = target[1:]
-                return discord.utils.find(lambda m: m.name == target, target_server.channels)
+                return discord.utils.find(
+                    lambda m: m.name == target, target_server.channels
+                )
 
         if not self.in_thread:
-            return discord.utils.find(lambda m: m.id == int(target), target_server.channels)
+            return discord.utils.find(
+                lambda m: m.id == int(target), target_server.channels
+            )
         else:
-            return discord.utils.find(lambda m: m.id == int(target), target_server.threads)
+            return discord.utils.find(
+                lambda m: m.id == int(target), target_server.threads
+            )
 
     def get_channel_name(self, chan_id):
-        chan = discord.utils.find(lambda m: m.id == int(chan_id), self.get_server()._raw.channels)
+        chan = discord.utils.find(
+            lambda m: m.id == int(chan_id), self.get_server()._raw.channels
+        )
         return chan.name
 
     async def async_edit_message(self, msg, text=None, embed=None):
@@ -175,7 +202,16 @@ class DiscordUtils(abc.ABC):
         elif embed:
             await msg._raw.edit(embed=embed)
 
-    async def async_send_message(self, text=None, embed=None, target=-1, server=None, timeout=0, check_old=True, allowed_mentions=allowed_mentions):
+    async def async_send_message(
+        self,
+        text=None,
+        embed=None,
+        target=-1,
+        server=None,
+        timeout=0,
+        check_old=True,
+        allowed_mentions=allowed_mentions,
+    ):
         # Get target, if given
         channel = self.get_channel(target, server)
 
@@ -187,28 +223,43 @@ class DiscordUtils(abc.ABC):
                 # Find if this message has been replied to before
                 old_reply = None
                 if type(self) is EventMessage and self.get_server().id in bot_replies:
-                    old_reply = bot_replies[self.get_server().id].get_old_reply(self.msg)
+                    old_reply = bot_replies[self.get_server().id].get_old_reply(
+                        self.msg
+                    )
 
                 if type(self) is EventReact and self.get_server().id in bot_replies:
-                    old_reply = bot_replies[self.get_server().id].get_bot_message(self.msg)
+                    old_reply = bot_replies[self.get_server().id].get_bot_message(
+                        self.msg
+                    )
 
                 # If it was replied within the same channel (no chances of this not being true)
                 if old_reply and old_reply._raw.channel.id == channel.id:
                     # Send the message
                     if text != None:
-                        await old_reply._raw.edit(content=text, allowed_mentions=allowed_mentions)
+                        await old_reply._raw.edit(
+                            content=text, allowed_mentions=allowed_mentions
+                        )
                     elif embed != None:
-                        await old_reply._raw.edit(embed=embed, allowed_mentions=allowed_mentions)
+                        await old_reply._raw.edit(
+                            embed=embed, allowed_mentions=allowed_mentions
+                        )
                     # Register the bot reply
-                    #add_bot_reply(self.get_server().id, self.msg, msg)
+                    # add_bot_reply(self.get_server().id, self.msg, msg)
 
                     return Message(old_reply._raw)
 
             # Send anything that we should send
             if text != None:
-                msg = Message(await channel.send(text, allowed_mentions=allowed_mentions), timeout)
+                msg = Message(
+                    await channel.send(text, allowed_mentions=allowed_mentions), timeout
+                )
             elif embed != None:
-                msg = Message(await channel.send(text, embed=embed, allowed_mentions=allowed_mentions), timeout)
+                msg = Message(
+                    await channel.send(
+                        text, embed=embed, allowed_mentions=allowed_mentions
+                    ),
+                    timeout,
+                )
 
             # Add the bot reply
             if msg:
@@ -223,23 +274,52 @@ class DiscordUtils(abc.ABC):
         except:
             print(traceback.format_exc())
 
-    def send_message(self, text, target=-1, server=None, timeout=0, check_old=True, allowed_mentions=allowed_mentions):
+    def send_message(
+        self,
+        text,
+        target=-1,
+        server=None,
+        timeout=0,
+        check_old=True,
+        allowed_mentions=allowed_mentions,
+    ):
         asyncio.run_coroutine_threadsafe(
-            self.async_send_message(text=text, target=target, server=server, timeout=timeout, check_old=check_old, allowed_mentions=allowed_mentions),
-            bot.loop)
+            self.async_send_message(
+                text=text,
+                target=target,
+                server=server,
+                timeout=timeout,
+                check_old=check_old,
+                allowed_mentions=allowed_mentions,
+            ),
+            bot.loop,
+        )
 
     async def async_send_pm(self, text, user):
         await user._raw.send(text)
 
     def send_pm(self, text, user):
         asyncio.run_coroutine_threadsafe(
-            self.async_send_pm(text=text, user=user), bot.loop)
+            self.async_send_pm(text=text, user=user), bot.loop
+        )
 
-    def send_embed(self, title, description=None, fields=None, inline_fields=True, image_url=None, footer_txt=None, target=-1):
-        em = dutils.prepare_embed(title, description, fields, inline_fields, image_url, footer_txt)
+    def send_embed(
+        self,
+        title,
+        description=None,
+        fields=None,
+        inline_fields=True,
+        image_url=None,
+        footer_txt=None,
+        target=-1,
+    ):
+        em = dutils.prepare_embed(
+            title, description, fields, inline_fields, image_url, footer_txt
+        )
 
         asyncio.run_coroutine_threadsafe(
-            self.async_send_message(embed=em, target=target), bot.loop)
+            self.async_send_message(embed=em, target=target), bot.loop
+        )
 
     def reply(self, text, **kwargs):
         self.send_message("(%s) %s" % (self.author.name, text), **kwargs)
@@ -268,7 +348,9 @@ class DiscordUtils(abc.ABC):
             add_bot_reply(self.get_server().id, self.msg._raw, msg)
             return msg
 
-        asyncio.run_coroutine_threadsafe(send_file(self.get_channel(target, server), dfile), bot.loop)
+        asyncio.run_coroutine_threadsafe(
+            send_file(self.get_channel(target, server), dfile), bot.loop
+        )
 
     async def async_send_file(self, file, target=-1):
         try:
@@ -279,6 +361,7 @@ class DiscordUtils(abc.ABC):
     async def async_set_avatar(self, image):
         await client.edit_profile(avatar=image)
 
+
 class EventPeriodic(DiscordUtils):
     def __init__(self):
         pass
@@ -288,6 +371,7 @@ class EventPeriodic(DiscordUtils):
 
     def get_msg(self):
         return None
+
 
 class EventReact(DiscordUtils):
     def __init__(self, event_type, user, reaction):
@@ -310,6 +394,7 @@ class EventReact(DiscordUtils):
     def get_msg(self):
         return self.msg
 
+
 class EventMember(DiscordUtils):
     def __init__(self, event_type, member, member_after=None):
         self.type = event_type
@@ -325,6 +410,7 @@ class EventMember(DiscordUtils):
 
     def get_msg(self):
         return None
+
 
 class EventMessage(DiscordUtils):
     def __init__(self, event_type, message, before=None, deleted=False, messages=[]):
@@ -375,7 +461,7 @@ class EventMessage(DiscordUtils):
         return self.msg.in_thread
 
     def get_server(self):
-        if self.is_pm: # Shitty workaround
+        if self.is_pm:  # Shitty workaround
             return self.channel
         return self.server
 
@@ -428,11 +514,21 @@ class EventMessage(DiscordUtils):
             yield emojis[format(ord(stripped), "x")]
             return
 
-        elif requests.get("https://cdn.discordapp.com/emojis/%s.gif" % stripped).status_code == 200:
+        elif (
+            requests.get(
+                "https://cdn.discordapp.com/emojis/%s.gif" % stripped
+            ).status_code
+            == 200
+        ):
             yield "https://cdn.discordapp.com/emojis/%s.gif" % stripped
             return
 
-        elif requests.get("https://cdn.discordapp.com/emojis/%s.png" % stripped).status_code == 200:
+        elif (
+            requests.get(
+                "https://cdn.discordapp.com/emojis/%s.png" % stripped
+            ).status_code
+            == 200
+        ):
             yield "https://cdn.discordapp.com/emojis/%s.png" % stripped
             return
 
@@ -460,7 +556,8 @@ class EventMessage(DiscordUtils):
                     yield strip_url(reply.text.split()[-1])
                     return
 
-class Message():
+
+class Message:
     def __init__(self, obj, timeout=0):
         self.text = obj.content
         self.id = str(obj.id)
@@ -514,12 +611,14 @@ class Message():
     def delete_message(self):
         async def delete_message(message):
             await self._raw.delete()
+
         asyncio.run_coroutine_threadsafe(delete_message(self._raw), bot.loop)
 
     async def clear_reactions(self):
         await self._raw.clear_reactions()
 
-class User():
+
+class User:
     def __init__(self, obj):
         self.nick = obj.display_name
         self.name = obj.name
@@ -531,7 +630,7 @@ class User():
         self.roles = []
         if hasattr(obj, "roles"):
             for role in obj.roles:
-                if role.name == '@everyone':
+                if role.name == "@everyone":
                     continue
                 self.roles.append(Role(role))
 
@@ -619,10 +718,10 @@ class User():
         async def async_send_pm(text):
             await self._raw.send(text)
 
-        asyncio.run_coroutine_threadsafe(
-            async_send_pm(text=text), bot.loop)
+        asyncio.run_coroutine_threadsafe(async_send_pm(text=text), bot.loop)
 
-class Channel():
+
+class Channel:
     def __init__(self, obj):
         self.name = None
         if hasattr(obj, "name"):
@@ -716,24 +815,21 @@ class Channel():
                 yield User(thing), PermOverwrite(overwrite)
 
     async def set_user_overwrite(self, user, **perms):
-        await self._raw.set_permissions(
-            user._raw,
-            **perms)
+        await self._raw.set_permissions(user._raw, **perms)
 
     async def remove_user_overwrite(self, user):
-        await self._raw.set_permissions(
-            user._raw, overwrite=None)
+        await self._raw.set_permissions(user._raw, overwrite=None)
 
     def typing(self):
         return self._raw.typing()
 
-class PermOverwrite():
+
+class PermOverwrite:
     def __init__(self, obj):
         self._raw = obj
 
 
-
-class Category():
+class Category:
     def __repr__(self):
         return self.name
 
@@ -747,7 +843,8 @@ class Category():
         for chan in self._raw.channels:
             yield Channel(chan)
 
-class Server():
+
+class Server:
     def __init__(self, obj):
         self.name = obj.name
         self.id = str(obj.id)
@@ -867,9 +964,7 @@ class Server():
 
         created = None
         if not existing:
-            created = await self._raw.create_role(
-                name=name,
-                mentionable=mentionable)
+            created = await self._raw.create_role(name=name, mentionable=mentionable)
         else:
             created = existing._raw
             await created.edit(mentionable=mentionable)
@@ -908,10 +1003,12 @@ class Server():
         return None
 
     async def add_emoji(self, fp, name, reason=None):
-        return Emoji(await self._raw.create_custom_emoji(name=name, image=fp, reason=reason))
+        return Emoji(
+            await self._raw.create_custom_emoji(name=name, image=fp, reason=reason)
+        )
 
 
-class Role():
+class Role:
     hash = random.randint(0, 2 ** 31)
 
     def __hash__(self):
@@ -944,17 +1041,20 @@ class Role():
 
         asyncio.run_coroutine_threadsafe(set_name(name), bot.loop)
 
-class Attachment():
+
+class Attachment:
     def __init__(self, obj):
         self.url = obj.url
         self._raw = obj
 
-class Embed():
+
+class Embed:
     def __init__(self, obj):
         self.url = obj.url
         self._raw = obj
 
-class Reaction():
+
+class Reaction:
     def __init__(self, obj):
         self.emoji = Emoji(obj.emoji)
 
@@ -971,7 +1071,8 @@ class Reaction():
     async def remove(self, user):
         await self._raw.remove(user._raw)
 
-class Emoji():
+
+class Emoji:
     def __init__(self, obj):
         if isinstance(obj, str):
             self.name = obj
@@ -987,7 +1088,8 @@ class Emoji():
     async def delete(self, reason=None):
         await self._raw.delete(reason=None)
 
-class DictQueue():
+
+class DictQueue:
     def __init__(self, size):
         self.queue = collections.deque(maxlen=size)
 
@@ -1025,9 +1127,11 @@ class DictQueue():
         for elem in reversed(self.queue):
             yield elem[1]
 
+
 def add_temporary_reply(reply):
     if reply.timeout != 0:
         to_delete[time_utils.tnow() + reply.timeout] = reply
+
 
 def add_bot_reply(server_id, source, reply):
     if server_id not in bot_replies:
@@ -1040,19 +1144,23 @@ def add_bot_reply(server_id, source, reply):
 
     print("%s -> %s" % (source.id, reply.id))
 
+
 def check_to_delete():
     for key in list(to_delete.keys()):
         if key < time_utils.tnow():
             to_delete[key].delete_message()
             del to_delete[key]
 
+
 @client.event
 async def on_ready():
-    print('Logged in as')
+    print("------")
+    print("Logged in as")
     print(client.user.name)
     print(client.user.id)
-    print('------')
+    print("------")
     await bot.ready()
+
 
 async def call_func(func, *args, **kwargs):
     try:
@@ -1064,22 +1172,28 @@ async def call_func(func, *args, **kwargs):
         traceback.print_stack()
         traceback.print_exc()
 
+
 ### Messages
 @client.event
 async def on_message_edit(before, after):
     await call_func(bot.on_message_edit, before, after)
 
+
 @client.event
 async def on_message_delete(message):
     await call_func(bot.on_message_delete, message)
 
+
 @client.event
 async def on_bulk_message_delete(messages):
-	await call_func(bot.on_bulk_message_delete, messages)
+    await call_func(bot.on_bulk_message_delete, messages)
+
 
 @client.event
 async def on_message(message):
     await call_func(bot.on_message, message)
+
+
 ###
 
 ### Members
@@ -1087,21 +1201,27 @@ async def on_message(message):
 async def on_member_join(member):
     await call_func(bot.on_member_join, member)
 
+
 @client.event
 async def on_member_remove(member):
     await call_func(bot.on_member_remove, member)
+
 
 @client.event
 async def on_member_update(before, after):
     await call_func(bot.on_member_update, before, after)
 
+
 @client.event
 async def on_member_ban(server, member):
     await call_func(bot.on_member_ban, server, member)
 
+
 @client.event
 async def on_member_unban(server, user):
     await call_func(bot.on_member_unban, server, user)
+
+
 ###
 
 ### Reactions
@@ -1110,9 +1230,11 @@ async def on_reaction_add(reaction, user):
     if user.id != client.user.id:
         await call_func(bot.on_reaction_add, reaction, user)
 
+
 async def on_reaction_remove(reaction, user):
     if user.id != client.user.id:
         await call_func(bot.on_reaction_remove, reaction, user)
+
 
 @client.event
 async def on_raw_reaction_add(reaction):
@@ -1130,6 +1252,8 @@ async def on_raw_reaction_add(reaction):
         reaction.channel = raw_msg_cache[msg_id]._raw.channel
 
         await call_func(bot.on_reaction_add, reaction, reaction.member)
+
+
 ###
 
 ### Server
@@ -1137,10 +1261,13 @@ async def on_raw_reaction_add(reaction):
 async def on_server_join(server):
     await call_func(bot.on_server_join, server)
 
+
 async def on_server_remove(server):
     await call_func(bot.on_server_leave, server)
 
+
 ###
+
 
 async def periodic_task():
     await client.wait_until_ready()
@@ -1153,5 +1280,6 @@ async def periodic_task():
         except Exception:
             traceback.print_stack()
             traceback.print_exc()
+
 
 client.loop.create_task(periodic_task())

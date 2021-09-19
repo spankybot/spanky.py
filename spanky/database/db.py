@@ -6,9 +6,12 @@ from sqlalchemy.pool import StaticPool
 
 from spanky import database
 
-class db_data():
+
+class db_data:
     def __init__(self, db_path):
-        self.db_engine = create_engine(db_path, connect_args={'check_same_thread':False}, poolclass=StaticPool)
+        self.db_engine = create_engine(
+            db_path, connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
         self.db_factory = sessionmaker(bind=self.db_engine)
         self.db_session = scoped_session(self.db_factory)
         self.db_metadata = MetaData()

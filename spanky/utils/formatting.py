@@ -49,12 +49,15 @@ import re
 import html.entities
 
 from html.parser import HTMLParser
+
 # Classes
+
 
 class HTMLTextExtractor(HTMLParser):
     """
     Takes HTML and provides cleaned and stripped text.
     """
+
     def __init__(self):
         HTMLParser.__init__(self)
         self.result = []
@@ -63,7 +66,7 @@ class HTMLTextExtractor(HTMLParser):
         self.result.append(d)
 
     def handle_charref(self, number):
-        codepoint = int(number[1:], 16) if number[0] in ('x', 'X') else int(number)
+        codepoint = int(number[1:], 16) if number[0] in ("x", "X") else int(number)
         self.result.append(chr(codepoint))
 
     def handle_entityref(self, name):
@@ -71,10 +74,11 @@ class HTMLTextExtractor(HTMLParser):
         self.result.append(chr(codepoint))
 
     def get_text(self):
-        return ''.join(self.result)
+        return "".join(self.result)
 
 
 # Functions
+
 
 def strip_html(to_strip):
     """
@@ -84,6 +88,7 @@ def strip_html(to_strip):
     s = HTMLTextExtractor()
     s.feed(to_strip)
     return s.get_text()
+
 
 def ireplace(text, old, new, count=None):
     """
@@ -105,18 +110,19 @@ def multi_replace(text, word_dic):
     then returns the changed text
     :rtype str
     """
-    rc = re.compile('|'.join(map(re.escape, word_dic)))
+    rc = re.compile("|".join(map(re.escape, word_dic)))
 
     def translate(match):
         return word_dic[match.group(0)]
 
     return rc.sub(translate, text)
 
+
 # compatibility
 multiword_replace = multi_replace
 
 
-def truncate_words(content, length=10, suffix='...'):
+def truncate_words(content, length=10, suffix="..."):
     """
     Truncates a string after a certain number of words.
     :rtype str
@@ -128,7 +134,7 @@ def truncate_words(content, length=10, suffix='...'):
         return " ".join(split[:length]) + suffix
 
 
-def truncate(content, length=100, suffix='...'):
+def truncate(content, length=100, suffix="..."):
     """
     Truncates a string after a certain number of characters.
     Function always tries to truncate on a word boundary.
@@ -137,27 +143,31 @@ def truncate(content, length=100, suffix='...'):
     if len(content) <= length:
         return content
     else:
-        return content[:length].rsplit(' ', 1)[0] + suffix
+        return content[:length].rsplit(" ", 1)[0] + suffix
+
 
 def chunk_str(content, length=420):
     """
     Chunks a string into smaller strings of given length. Returns chunks.
     :rtype list
     """
+
     def chunk(c, l):
         while c:
-            out = (c+' ')[:l].rsplit(' ', 1)[0]
-            c = c[len(out):].strip()
+            out = (c + " ")[:l].rsplit(" ", 1)[0]
+            c = c[len(out) :].strip()
             yield out
+
     return list(chunk(content, length))
 
 
-def pluralize(num=0, text=''):
+def pluralize(num=0, text=""):
     """
     Takes a number and a string, and pluralizes that string using the number and combines the results.
     :rtype: str
     """
-    return "{:,} {}{}".format(num, text, "s"[num == 1:])
+    return "{:,} {}{}".format(num, text, "s"[num == 1 :])
+
 
 # alternate form
 pluralise = pluralize
@@ -175,7 +185,7 @@ def dict_format(args, formats):
             # Check if values can be mapped
             m = f.format(**args)
             # Insert match and number of matched values (max matched values if already in dict)
-            matches[m] = max([matches.get(m, 0), len(re.findall(r'(\{.*?\})', f))])
+            matches[m] = max([matches.get(m, 0), len(re.findall(r"(\{.*?\})", f))])
         except Exception:
             continue
 
@@ -188,8 +198,11 @@ def dict_format(args, formats):
 
 # DJANGO LICENCE
 
-split_re = re.compile(r"""((?:[^\s'"]*(?:(?:"(?:[^"\\]|\\.)*" | '(?:["""
-                      r"""^'\\]|\\.)*')[^\s'"]*)+) | \S+)""", re.VERBOSE)
+split_re = re.compile(
+    r"""((?:[^\s'"]*(?:(?:"(?:[^"\\]|\\.)*" | '(?:["""
+    r"""^'\\]|\\.)*')[^\s'"]*)+) | \S+)""",
+    re.VERBOSE,
+)
 
 
 def smart_split(text):
@@ -211,7 +224,7 @@ def smart_split(text):
         yield bit.group(0)
 
 
-def get_text_list(list_, last_word='or'):
+def get_text_list(list_, last_word="or"):
     """
     >> get_text_list(['a', 'b', 'c', 'd'])
     'a, b, c or d'
@@ -225,10 +238,12 @@ def get_text_list(list_, last_word='or'):
     ''
     """
     if len(list_) == 0:
-        return ''
+        return ""
     if len(list_) == 1:
         return list_[0]
-    return '%s %s %s' % (
+    return "%s %s %s" % (
         # Translators: This string is used as a separator between list elements
-        ', '.join([i for i in list_][:-1]),
-        last_word, list_[-1])
+        ", ".join([i for i in list_][:-1]),
+        last_word,
+        list_[-1],
+    )

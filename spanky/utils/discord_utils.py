@@ -1,8 +1,10 @@
 import discord
 import io
 
+
 def get_user_by_id(server, uid):
     return server.get_user(uid)
+
 
 def get_user_by_name(server, name):
     for u in server.get_users():
@@ -10,8 +12,10 @@ def get_user_by_name(server, name):
             return u
     return None
 
+
 def get_role_by_id(server, rid):
     return server.get_role(rid)
+
 
 def get_role_by_name(server, rname):
     for r in server.get_roles():
@@ -20,15 +24,27 @@ def get_role_by_name(server, rname):
 
     return None
 
+
 def get_channel_by_id(server, cid):
     return server.get_chan(cid)
 
+
 def str_to_id(string):
-    return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
+    return (
+        string.strip()
+        .replace("@", "")
+        .replace("<", "")
+        .replace(">", "")
+        .replace("!", "")
+        .replace("#", "")
+        .replace("&", "")
+        .replace(":", " ")
+    )
 
 
 def code_block(msg):
     return "```\n%s\n```" % msg
+
 
 def get_roles_from_ids(ids, server):
     roles = {}
@@ -36,6 +52,7 @@ def get_roles_from_ids(ids, server):
         if srole.id in ids:
             roles[srole.name] = srole
     return roles
+
 
 def get_role_names_between(start_role, end_role, server):
     list_roles = {}
@@ -53,6 +70,7 @@ def get_role_names_between(start_role, end_role, server):
 
     return list_roles
 
+
 def get_roles_between(start_role, end_role, server):
     list_roles = []
     # Get starting and ending positions of listed roles
@@ -69,6 +87,7 @@ def get_roles_between(start_role, end_role, server):
 
     return sorted(list_roles, key=lambda m: m.name)
 
+
 def get_roles_between_including(start_role, end_role, server):
     list_roles = []
     # Get starting and ending positions of listed roles
@@ -84,6 +103,7 @@ def get_roles_between_including(start_role, end_role, server):
             list_roles.append(i)
 
     return sorted(list_roles, key=lambda m: m.name)
+
 
 def user_roles_from_list(user, rlist):
     """
@@ -103,6 +123,7 @@ def user_roles_from_list(user, rlist):
 
     return common
 
+
 def user_has_role_name(user, rname):
     """
     Given a role name return True if user has the role, False otherwise
@@ -113,6 +134,7 @@ def user_has_role_name(user, rname):
             return True
 
     return False
+
 
 def remove_role_from_list(start_role, end_role, server, event, send_message):
     roles = get_role_names_between(start_role, end_role, server)
@@ -128,7 +150,10 @@ def remove_role_from_list(start_role, end_role, server, event, send_message):
     else:
         send_message("You don't have any of the roles.")
 
-def remove_given_role_from_list(start_role, end_role, server, event, send_message, text):
+
+def remove_given_role_from_list(
+    start_role, end_role, server, event, send_message, text
+):
     roles = get_roles_between(start_role, end_role, server)
     text = text.lower()
 
@@ -138,26 +163,44 @@ def remove_given_role_from_list(start_role, end_role, server, event, send_messag
             send_message("Done!")
             return
 
-    uroles = set.intersection(set([i.name.lower() for i in event.author.roles]), set([i.name.lower() for i in roles]))
+    uroles = set.intersection(
+        set([i.name.lower() for i in event.author.roles]),
+        set([i.name.lower() for i in roles]),
+    )
     if text != "":
-        send_message("%s is not a role. Try with: %s" % (text, ", ".join("`" + i + "`" for i in uroles)))
+        send_message(
+            "%s is not a role. Try with: %s"
+            % (text, ", ".join("`" + i + "`" for i in uroles))
+        )
     else:
-        send_message("You need to specify one of your roles. Try with: %s" % (", ".join("`" + i + "`" for i in uroles)))
+        send_message(
+            "You need to specify one of your roles. Try with: %s"
+            % (", ".join("`" + i + "`" for i in uroles))
+        )
 
-def add_role_from_list(start_role, end_role, server, event, send_message, text, max_assignable=1000):
+
+def add_role_from_list(
+    start_role, end_role, server, event, send_message, text, max_assignable=1000
+):
     roles = get_roles_between(start_role, end_role, server)
     text = text.lower().strip()
 
-    uroles = set.intersection(set([i.name.lower() for i in event.author.roles]), set(
-        [i.name.lower() for i in roles]))
+    uroles = set.intersection(
+        set([i.name.lower() for i in event.author.roles]),
+        set([i.name.lower() for i in roles]),
+    )
     if len(uroles) >= max_assignable:
         send_message(
-            "You can assign a maximum %d roles. Try removing one of your roles before assigning a new one." % max_assignable)
+            "You can assign a maximum %d roles. Try removing one of your roles before assigning a new one."
+            % max_assignable
+        )
         return
 
     if text == "":
-        send_message("You need to give me a role name. Try: %s" %
-                     (", ".join("`" + i.name.lower() + "`" for i in roles)))
+        send_message(
+            "You need to give me a role name. Try: %s"
+            % (", ".join("`" + i.name.lower() + "`" for i in roles))
+        )
         return
 
     for role in roles:
@@ -166,10 +209,15 @@ def add_role_from_list(start_role, end_role, server, event, send_message, text, 
             send_message("Done!")
             return
 
-    send_message("%s is not a role. Try with: %s" % (
-        text, ", ".join("`" + i.name.lower() + "`" for i in roles)))
+    send_message(
+        "%s is not a role. Try with: %s"
+        % (text, ", ".join("`" + i.name.lower() + "`" for i in roles))
+    )
 
-def roles_from_list(start_role, end_role, remove_text, send_message, server, event, bot, text):
+
+def roles_from_list(
+    start_role, end_role, remove_text, send_message, server, event, bot, text
+):
     use_slow_mode = False
     text = text.lower()
 
@@ -196,11 +244,16 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
         if bot_max < user_roles[i].position:
             use_slow_mode = True
 
-    list_colors = dict(**list_colors, **get_role_names_between(start_role, end_role, server))
+    list_colors = dict(
+        **list_colors, **get_role_names_between(start_role, end_role, server)
+    )
 
     # If no role was specified, just print them
     if text == "":
-        send_message("Use the command with one of: `%s`" % (", ".join(i for i in sorted(list_colors))))
+        send_message(
+            "Use the command with one of: `%s`"
+            % (", ".join(i for i in sorted(list_colors)))
+        )
         return
 
     split = text.split()
@@ -208,7 +261,10 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
 
     # Check if the requested role exists
     if role not in list_colors:
-        send_message("%s is not a role. Use the command with one of: `%s`" % (role, ", ".join(i for i in sorted(list_colors))))
+        send_message(
+            "%s is not a role. Use the command with one of: `%s`"
+            % (role, ", ".join(i for i in sorted(list_colors)))
+        )
         return
 
     # If the user wants the role removed
@@ -245,7 +301,15 @@ def roles_from_list(start_role, end_role, remove_text, send_message, server, eve
         return "Your user rights are higher than what the bot has. Please check if role assignation worked."
 
 
-def prepare_embed(title, description=None, fields=None, inline_fields=True, image_url=None, footer_txt=None, thumbnail_url=None):
+def prepare_embed(
+    title,
+    description=None,
+    fields=None,
+    inline_fields=True,
+    image_url=None,
+    footer_txt=None,
+    thumbnail_url=None,
+):
     """
     Prepare an embed object
     """
@@ -271,19 +335,22 @@ def prepare_embed(title, description=None, fields=None, inline_fields=True, imag
 
     return em
 
+
 def parse_message_link(msglink):
     """
     Parses a message link:
     https://discordapp.com/channels/server_id/chan_id/msg_id"
     """
 
-    if msglink.startswith("https://discordapp.com/channels/") or \
-        msglink.startswith("https://discord.com/channels/"):
+    if msglink.startswith("https://discordapp.com/channels/") or msglink.startswith(
+        "https://discord.com/channels/"
+    ):
         data = msglink.split("/")
 
         return data[-3], data[-2], data[-1]
     else:
         return None, None, None
+
 
 def return_message_link(server_id, channel_id, msg_id):
     """
@@ -293,16 +360,19 @@ def return_message_link(server_id, channel_id, msg_id):
 
     return "https://discordapp.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)
 
+
 def pil_to_dfile(image, name="unnamed.png"):
     bio = io.BytesIO()
-    image.save(bio, 'PNG')
+    image.save(bio, "PNG")
     bio.seek(0)
     return discord.File(bio, name)
 
+
 def pil_to_bytes(image):
     bio = io.BytesIO()
-    image.save(bio, 'PNG')
+    image.save(bio, "PNG")
     return bio.getvalue()
+
 
 async def banner_from_pil(server, pil_picture):
     """

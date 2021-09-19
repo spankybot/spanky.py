@@ -20,12 +20,12 @@ import requests
 
 # Constants
 
-DEFAULT_SHORTENER = 'is.gd'
-DEFAULT_PASTEBIN = 'hastebin'
+DEFAULT_SHORTENER = "is.gd"
+DEFAULT_PASTEBIN = "hastebin"
 
-HASTEBIN_SERVER = 'https://hastebin.com'
+HASTEBIN_SERVER = "https://hastebin.com"
 
-SNOONET_PASTE = 'https://paste.snoonet.org'
+SNOONET_PASTE = "https://paste.snoonet.org"
 
 
 # Shortening / pasting
@@ -59,7 +59,7 @@ def expand(url, service=None):
     return impl.expand(url)
 
 
-def paste(data, ext='txt', service=DEFAULT_PASTEBIN):
+def paste(data, ext="txt", service=DEFAULT_PASTEBIN):
     impl = pastebins[service]
     return impl.paste(data, ext)
 
@@ -70,7 +70,7 @@ class ServiceError(Exception):
         self.request = request
 
     def __str__(self):
-        return '[HTTP {}] {}'.format(self.request.status_code, self.message)
+        return "[HTTP {}] {}".format(self.request.status_code, self.message)
 
 
 class Shortener:
@@ -89,10 +89,10 @@ class Shortener:
     def expand(self, url):
         r = requests.get(url, allow_redirects=False)
 
-        if 'location' in r.headers:
-            return r.headers['location']
+        if "location" in r.headers:
+            return r.headers["location"]
         else:
-            raise ServiceError('That URL does not exist', r)
+            raise ServiceError("That URL does not exist", r)
 
 
 class Pastebin:
@@ -101,6 +101,7 @@ class Pastebin:
 
     def paste(self, data, ext):
         raise NotImplementedError
+
 
 # Internal Implementations
 
@@ -122,50 +123,49 @@ def _pastebin(name):
     return _decorate
 
 
-@_shortener('is.gd')
+@_shortener("is.gd")
 class Isgd(Shortener):
     def shorten(self, url, custom=None):
-        p = {'url': url, 'shorturl': custom, 'format': 'json'}
-        r = requests.get('http://is.gd/create.php', params=p)
+        p = {"url": url, "shorturl": custom, "format": "json"}
+        r = requests.get("http://is.gd/create.php", params=p)
         j = r.json()
 
-        if 'shorturl' in j:
-            return j['shorturl']
+        if "shorturl" in j:
+            return j["shorturl"]
         else:
-            raise ServiceError(j['errormessage'], r)
+            raise ServiceError(j["errormessage"], r)
 
     def expand(self, url):
-        p = {'shorturl': url, 'format': 'json'}
-        r = requests.get('http://is.gd/forward.php', params=p)
+        p = {"shorturl": url, "format": "json"}
+        r = requests.get("http://is.gd/forward.php", params=p)
         j = r.json()
 
-        if 'url' in j:
-            return j['url']
+        if "url" in j:
+            return j["url"]
         else:
-            raise ServiceError(j['errormessage'], r)
+            raise ServiceError(j["errormessage"], r)
 
-@_pastebin('hastebin')
+
+@_pastebin("hastebin")
 class Hastebin(Pastebin):
     def paste(self, data, ext):
-        r = requests.post(HASTEBIN_SERVER + '/documents', data=data)
+        r = requests.post(HASTEBIN_SERVER + "/documents", data=data)
         j = r.json()
 
         if r.status_code is requests.codes.ok:
-            return '{}/{}.{}'.format(HASTEBIN_SERVER, j['key'], ext)
+            return "{}/{}.{}".format(HASTEBIN_SERVER, j["key"], ext)
         else:
-            raise ServiceError(j['message'], r)
+            raise ServiceError(j["message"], r)
 
-@_pastebin('snoonet')
+
+@_pastebin("snoonet")
 class SnoonetPaste(Pastebin):
     def paste(self, data, ext):
 
-        params={
-            'text':data,
-            'expire':'1d'
-        }
-        r = requests.post(SNOONET_PASTE + '/paste/new', params=params)
-        return '{}'.format(r.url)
+        params = {"text": data, "expire": "1d"}
+        r = requests.post(SNOONET_PASTE + "/paste/new", params=params)
+        return "{}".format(r.url)
         if r.status_code is requests.codes.ok:
-            return '{}'.format(r.url)
+            return "{}".format(r.url)
         else:
             return ServiceError(r.status_code, r)

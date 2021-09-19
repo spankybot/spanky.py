@@ -143,7 +143,9 @@ class Middleware(Hooklet):
         self.func: MiddlewareFunc = func
         self.priority: int = priority
 
-    async def handle(self, action: ActionCommand, hooklet: Command) -> (MiddlewareResult, str):
+    async def handle(
+        self, action: ActionCommand, hooklet: Command
+    ) -> (MiddlewareResult, str):
         if inspect.iscoroutinefunction(self.func):
             rez = await self.func(action, hooklet)
         else:

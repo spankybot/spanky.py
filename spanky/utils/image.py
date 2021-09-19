@@ -20,7 +20,8 @@ from PIL import GifImagePlugin
 MAX_IMG_SIZE = 10 * 1024 * 1024
 MAX_RES_SIZE = 1024 * 1024 * 1024
 
-class Image():
+
+class Image:
     def __init__(self, url=None, raw_data=None):
         """
         Creates an object that holds raw data and can create a wand or PIL image
@@ -154,11 +155,13 @@ class Image():
             return starturl
 
         finishedurl = []
-        regex = r"href\=\"https://i\.imgur\.com\/([\d\w]*)(\.jpg|\.png|\.gif|\.mp4|\.gifv)"
+        regex = (
+            r"href\=\"https://i\.imgur\.com\/([\d\w]*)(\.jpg|\.png|\.gif|\.mp4|\.gifv)"
+        )
         try:
             imgurHTML = requests.get(starturl)
         except:
-            raise Exception('Something failed with the download')
+            raise Exception("Something failed with the download")
 
         # Try finding all the embedded imgur links
         imgurhash = re.findall(regex, imgurHTML.text)
@@ -167,10 +170,12 @@ class Image():
         if len(imgurhash) == 0:
             return starturl
 
-        finishedurl.append('https://i.imgur.com/{0}{1}'.format(imgurhash[0][0], imgurhash[0][1]))
+        finishedurl.append(
+            "https://i.imgur.com/{0}{1}".format(imgurhash[0][0], imgurhash[0][1])
+        )
         return finishedurl
 
-    def fetch_url(self, timeout_sec=60, max_size=1024*1024*20):
+    def fetch_url(self, timeout_sec=60, max_size=1024 * 1024 * 20):
         """
         Fetch the class set url
         """
@@ -204,14 +209,14 @@ class Image():
         """
         Print memory usage, based on the information given by the wand module
         """
-        memory_mb = int(limits.resource('memory')) / 1024 / 1024
+        memory_mb = int(limits.resource("memory")) / 1024 / 1024
         print("[%s] Using %d" % (text, memory_mb))
 
     def fname_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
         """
         Generate a random string containing uppercase ascii and digits
         """
-        return ''.join(random.choice(chars) for _ in range(size))
+        return "".join(random.choice(chars) for _ in range(size))
 
     def send_img_reply(self, send_file):
         """
@@ -241,11 +246,14 @@ class Image():
 
         # If estimated size is larger than the maximum image size, then raise
         if self.get_first_frame_sz() * frame_count > MAX_IMG_SIZE:
-            print("Abort because frame size is %d and frame count is %d" % (self.get_first_frame_sz(), frame_count))
+            print(
+                "Abort because frame size is %d and frame count is %d"
+                % (self.get_first_frame_sz(), frame_count)
+            )
             raise
 
         # If memory consumption for the wand module is too large, exit
-        if limits.resource('memory') > MAX_RES_SIZE:
+        if limits.resource("memory") > MAX_RES_SIZE:
             raise
 
     def proc_each_wand_frame(self, func, send_file, send_msg, args={}):
@@ -287,6 +295,7 @@ class Image():
             new_img.send_img_reply(send_file)
         except:
             import traceback
+
             traceback.print_exc()
             send_msg("Something didn't work.")
         finally:
@@ -327,6 +336,7 @@ class Image():
                 send_msg("No frames changed. Not returning anything")
         except:
             import traceback
+
             traceback.print_exc()
             send_msg("Something didn't work.")
         finally:

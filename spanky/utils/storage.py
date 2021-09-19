@@ -16,7 +16,7 @@ logger.addHandler(fh)
 DS_LOC = Path("storage_data/")
 
 
-class dstype():
+class dstype:
     def __init__(self, parent, name):
         parent = Path(parent)
         logger.debug("Initializing %s, %s" % (parent, name))
@@ -78,6 +78,7 @@ class dstype():
             except:
                 logger.error("Could not load " + self.location)
                 return None
+
 
 class dsdict(dstype, collections.UserDict):
     def __init__(self, parent, name):

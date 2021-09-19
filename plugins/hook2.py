@@ -1,42 +1,43 @@
-from spanky.hook2 import hook2
-import time
-from spanky.hook2.event import EventType
-from spanky.hook2.complex_cmd import ComplexCommand, subcommand
+from spanky.hook2 import Hook, EventType, ComplexCommand
 
-hk2 = hook2.Hook(f"plugins_hook2_{int(time.time())}")
-
-print(hk2)
+# Așa creem un hook pentru acest plugin
+hook = Hook("hook2_example_plugin")
 
 
-class TestCmd(ComplexCommand):
-    def init(self):
-        self.subcommands = [self.subcmd, self.subcmd2, self.testtt_cmd]
-        # self.help_cmd = self.help
+"""
+Un mic ghid pentru schimbarile mai mari:
 
-    @subcommand()
-    def subcmd(self):
-        return "Cf"
-
-    @subcommand()
-    def subcmd2(self):
-        return "Subcomandă"
-
-    @subcommand()
-    def testtt_cmd(self):
-        print(self)
-        return "bruh"
-
-    @subcommand()
-    def help(self):
-        return "Help suprascris"
+@hook.on_connection_ready -> @hook.event(EventType.on_conn_ready)
+@hook.on_ready -> @hook.event(EventType.on_ready)
+@hook.on_start -> @hook.event(EventType.on_start)
+"""
 
 
-@hk2.command()
+@hook.command()
 def test_hook2(reply):
     reply("COMMAND EXECUTED WITH HOOK2")
 
 
-@hk2.event(EventType.on_start)
-def start_test(hook):
-    hk2.add_command("test_cmd", TestCmd(hook, "test_cmd"))
-    print(f"Started beeeyoootch.")
+# test_cmd se ataseaza la hook și definim ulterior subcomenzile (și help-ul, care e fallback pentru nicio comandă și subcomandă invalidă)
+test_cmd = ComplexCommand(hook, "test_cmd")
+
+
+@test_cmd.subcommand()
+def subcmd(self):
+    return "Cf"
+
+
+@test_cmd.subcommand()
+def subcmd2(self):
+    return "Subcomandă"
+
+
+@test_cmd.subcommand()
+def testtt_cmd(self):
+    print(self)
+    return "bruh"
+
+
+@test_cmd.help()
+def help(self):
+    return "Help suprascris"

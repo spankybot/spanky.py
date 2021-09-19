@@ -3,12 +3,14 @@ import os
 
 from spanky.utils import storage
 
+
 @enum.unique
 class Permission(enum.Enum):
-    admin     = "admin" # Can be used by anyone with admin rights in a server
+    admin = "admin"  # Can be used by anyone with admin rights in a server
     bot_owner = "bot_owner"  # Bot big boss
 
-class PermissionMgr():
+
+class PermissionMgr:
     def __init__(self, server):
         self.meta = storage.dsdict(server.id, "meta.json")
         self.server = server
@@ -24,10 +26,11 @@ class PermissionMgr():
 
     def get_plugin_storage(self, stor_file):
         if self.server_id + stor_file not in self.stor_cache:
-            self.stor_cache[self.server_id + stor_file] = \
-                storage.dsdict(self.server_id, stor_file)
+            self.stor_cache[self.server_id + stor_file] = storage.dsdict(
+                self.server_id, stor_file
+            )
 
         return self.stor_cache[self.server_id + stor_file]
 
     def get_data_location(self, name):
-        return str(storage.DS_LOC / self.server_id / (name  +"_data")) + os.sep
+        return str(storage.DS_LOC / self.server_id / (name + "_data")) + os.sep
