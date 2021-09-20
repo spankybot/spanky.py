@@ -67,7 +67,7 @@ def find_best_match(word_list, message):
     """
 
     list_idx = 0
-    while " ".join(word_list[0 : list_idx + 1]) in message:
+    while " ".join(word_list[0 : list_idx + 1]) in message and list_idx <= len(word_list):
         list_idx += 1
 
     return list_idx
