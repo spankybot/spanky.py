@@ -1274,7 +1274,7 @@ async def periodic_task():
 
     while not client.is_closed():
         try:
-            bot.on_periodic()
+            asyncio.create_task(bot.on_periodic())
             check_to_delete()
             await asyncio.sleep(1)
         except Exception:

@@ -17,8 +17,9 @@ from spanky.hook2.actions import (
     ActionCommand,
     ActionPeriodic,
     ActionEvent,
-    ActionOnReady,
 )
+
+from spanky.plugin.hook import legacy_handler
 
 logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
@@ -44,6 +45,7 @@ class Bot:
         self.is_ready = False
         self.loop = asyncio.get_event_loop()
         self.hook2 = hook2.Hook("bot_hook")
+        self.hook2.add_child(legacy_handler)
 
         # Open the bot config file
         with open("bot_config.json") as data_file:
@@ -81,13 +83,21 @@ class Bot:
 
     async def run_on_ready_work(self):
         for server in self.backend.get_servers():
-            await self.dispatch_action(ActionOnReady(self, server))
+
+            class event:
+                def __init__(self, server):
+                    self.server = server
+
+            await self.dispatch_action(
+                ActionEvent(self, event(server), EventType.on_ready)
+            )
 
         # Run on connection ready hooks
         await self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
 
     async def ready(self):
         # Initialize per server permissions
+        # TODO: Remove
         self.server_permissions = {}
         for server in self.backend.get_servers():
             self.server_permissions[server.id] = PermissionMgr(server)
@@ -99,6 +109,7 @@ class Bot:
     def get_servers(self):
         return self.backend.get_servers()
 
+    # TODO: Remove
     def get_pmgr(self, server_id):
         """
         Get permission manager for a given server ID.
@@ -297,12 +308,15 @@ class Bot:
                 )
             )
 
-    def on_periodic(self):
+    async def on_periodic(self):
         if not self.is_ready:
             return
+        tasks = []
 
         for hooklet in self.hook2.all_periodics.values():
             if time.time() - hooklet.last_time > hooklet.interval:
                 hooklet.last_time = time.time()
                 action = ActionPeriodic(self, hooklet.hooklet_id)
-                self.dispatch_action(action)
+                tasks.append(self.dispatch_action(action))
+
+        await asyncio.gather(*tasks)

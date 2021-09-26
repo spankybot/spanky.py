@@ -12,18 +12,16 @@ from .hooklet import (
     MiddlewareResult,
 )
 import asyncio
-import time
 import random
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from .event import EventType
+from .actions import ActionPeriodic
 
 if TYPE_CHECKING:
     from .actions import (
         Action,
         ActionCommand,
-        ActionPeriodic,
         ActionEvent,
-        ActionOnReady,
     )
 
     MiddlewareFunc = Callable[[Action, Hooklet], Optional[MiddlewareResult]]
@@ -67,6 +65,9 @@ class Hook:
 
         # Tree
         self.parent_hook: Optional[Hook] = parent_hook
+        if self.parent_hook != None and not self.parent_hook.has_child(self):
+            self.parent_hook.add_child(self)
+
         self.children: list[Hook] = []
 
     def __del__(self):
@@ -204,7 +205,7 @@ class Hook:
     # Event propagation
     # The return of this function marks the finalization of propagating across the entire subtree
     async def dispatch_action(self, action: Action):
-        if self.hook_id == "bot_hook":
+        if self.hook_id == "bot_hook" and not isinstance(action, ActionPeriodic):
             print(self.hook_id, action)
 
         tasks = []

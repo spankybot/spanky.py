@@ -1,5 +1,7 @@
 from .event import EventType
 
+from spanky.inputs.discord_py import EventPeriodic
+
 
 class Action:
     """Action is the base class for an action"""
@@ -42,16 +44,10 @@ class ActionCommand(Action):
 
 class ActionPeriodic(Action):
     def __init__(self, bot, target):
-        super().__init__(EventType.periodic, bot, {})
+        super().__init__(EventType.periodic, bot, EventPeriodic())
         self.target = target
 
 
 class ActionEvent(Action):
     def __init__(self, bot, event, event_type):
         super().__init__(event_type, bot, event)
-
-
-class ActionOnReady(Action):
-    def __init__(self, bot, server):
-        super().__init__(EventType.on_ready, bot, {})
-        self.server = server

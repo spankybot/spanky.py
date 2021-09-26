@@ -1,6 +1,7 @@
 # Delay checking for typing (TODO: remove when bot runs on python 3.10)
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import time
 
 if TYPE_CHECKING:
     from .hook2 import Hook
@@ -39,6 +40,14 @@ class Hooklet:
                     )
                     return None
                 storage = self.hook.server_storage(action.server_id)
+                args.append(storage)
+            elif arg == "storage_loc":
+                if not action.server_id:
+                    print(
+                        f"Hooklet {self.hooklet_id} asked for storage_loc with an action with no server, cancelling execution. This might be a bug!"
+                    )
+                    return None
+                storage = self.hook.storage.data_location(action.server_id)
                 args.append(storage)
             elif arg == "action":
                 args.append(action)

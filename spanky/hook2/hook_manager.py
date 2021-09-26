@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .hook2 import Hook
-from .actions import ActionOnReady, ActionEvent
+from .actions import ActionEvent
 from .event import EventType
 import os
 import glob
@@ -91,9 +91,18 @@ class Plugin:
             # Run on ready work
             if self.mgr.bot.is_ready:
                 for server in self.mgr.bot.get_servers():
+
+                    class event:
+                        def __init__(self, server):
+                            self.server = server
+
                     tasks.append(
                         asyncio.create_task(
-                            hook.dispatch_action(ActionOnReady(self.mgr.bot, server))
+                            hook.dispatch_action(
+                                ActionEvent(
+                                    self.mgr.bot, event(server), EventType.on_ready
+                                )
+                            )
                         )
                     )
                 tasks.append(

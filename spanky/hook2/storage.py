@@ -22,6 +22,8 @@ class dstype:
         parent = Path(parent)
         logger.debug("Initializing %s, %s" % (parent, name))
         os.system("mkdir -p %s" % loc / parent / "backup")
+        if not name.endswith(".json"):
+            name += ".json"
 
         self.loc: Path = loc
         self.location: Path = parent / name
@@ -126,5 +128,5 @@ class Storage:
         self.srv_stor_cache = {}
         self.hook_stor_cache = None
 
-    def data_location(server_id: str):
-        return str(DS_LOC / server_id / (self.hook_id + "_data")) + os.linesep
+    def data_location(self, server_id: str):
+        return str(DS_LOC / server_id / (self.hook_id + "_data")) + os.sep
