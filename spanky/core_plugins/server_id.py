@@ -1,7 +1,7 @@
 from spanky.hook2 import Hook, ActionCommand, Command
 from spanky.hook2.hooklet import MiddlewareResult
 
-hook = Hook("serverid_hook", storage_name="plugins_admin.json")
+hook = Hook("serverid_hook")
 
 
 @hook.global_middleware(priority=1)
@@ -20,4 +20,4 @@ def check_server_id(action: ActionCommand, hooklet: Command):
         print(f"Unknown server_id type for hooklet {hooklet.hooklet_id}")
         good_server = False
     if not good_server:
-        return MiddlewareResult.DENY
+        return MiddlewareResult.DENY, ""

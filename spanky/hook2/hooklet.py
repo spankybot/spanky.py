@@ -33,6 +33,9 @@ class Hooklet:
             elif hasattr(action._raw, arg):
                 val = getattr(action._raw, arg)
                 args.append(val)
+            elif hasattr(action, "context") and arg in getattr(action, "context"):
+                val = getattr(action, "context")[arg]
+                args.append(val)
             elif arg == "storage":
                 if not action.server_id:
                     print(
@@ -47,8 +50,8 @@ class Hooklet:
                         f"Hooklet {self.hooklet_id} asked for storage_loc with an action with no server, cancelling execution. This might be a bug!"
                     )
                     return None
-                storage = self.hook.storage.data_location(action.server_id)
-                args.append(storage)
+                storage_loc = self.hook.storage.data_location(action.server_id)
+                args.append(storage_loc)
             elif arg == "action":
                 args.append(action)
             elif arg == "event":
@@ -111,6 +114,7 @@ class Command(Hooklet):
         self.name: str = self.args.pop("name", fname)
         # TODO
         # self.aliases: list[str] = self.args.pop("aliases", [])
+        self.doc: str = self.args.pop("doc", func.__doc__)
 
         if self.name == "":
             self.name = func.__name__
@@ -165,5 +169,5 @@ class Middleware(Hooklet):
             if rez == MiddlewareResult.CONTINUE:
                 rez = (rez, "")
             else:
-                rez = (rez, "Event blocked by middleware")
+                rez = (rez, "Command blocked for unknown reason")
         return rez

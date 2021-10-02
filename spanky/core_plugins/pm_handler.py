@@ -11,6 +11,6 @@ def handle_pm(action: ActionCommand, hooklet: Command):
     if pm_only:
         can_pm = True
     if action.is_pm and not can_pm:
-        return MiddlewareResult.DENY
+        return MiddlewareResult.DENY, "Command cannot be run in DM"
     if not action.is_pm and pm_only:
-        return MiddlewareResult.DENY
+        return MiddlewareResult.DENY, "Command can only be run in DM"

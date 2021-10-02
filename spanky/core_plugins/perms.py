@@ -10,7 +10,7 @@ from discord import AllowedMentions
 no_mention = AllowedMentions.none()
 
 
-hook = Hook("permission_hook", storage_name="plugins_admin.json")
+hook = Hook("permission_hook", storage_name="plugins_admin")
 
 # Permission context creation and validation
 
@@ -25,12 +25,19 @@ def finalize_perm_filter(action: ActionCommand, hooklet: Command):
     perms = hooklet.args.get("permissions", [])
     if not isinstance(perms, list):
         perms = [perms]
-    perms = set(perms)
+    new_perms = []
+    for perm in perms:
+        if hasattr(perm, "value"):
+            new_perms.append(perm.value)
+        else:
+            new_perms.append(perm)
+    perms = set(new_perms)
     if perms == set():
         return MiddlewareResult.CONTINUE
     if perms & set(action.context["perms"]["creds"]):
         return MiddlewareResult.CONTINUE
-    return MiddlewareResult.DENY
+    print(perms, action.context["perms"]["creds"])
+    return MiddlewareResult.DENY, "You aren't allowed to do that"
 
 
 # Permissions
@@ -44,7 +51,7 @@ def perm_bot_owner(action: ActionCommand, hooklet: Command):
 
 @hook.global_middleware(priority=10)
 def perm_admin(action: ActionCommand, hooklet: Command):
-    storage = hooklet.hook.server_storage(action.server_id)
+    storage = hook.server_storage(action.server_id)
     if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
         if hooklet.args.get("permissions", None) != None:
             action.reply(
@@ -53,7 +60,6 @@ def perm_admin(action: ActionCommand, hooklet: Command):
             )
             action.context["perms"]["creds"].append("admin")
     else:
-        # TODO: command_owners (maybe in another middleware?)
         allowed_roles = set(storage["admin_roles"])
         user_roles = set([i.id for i in action.author.roles])
         if user_roles & allowed_roles:

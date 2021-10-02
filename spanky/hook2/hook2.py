@@ -128,13 +128,6 @@ class Hook:
         return periodics
 
     @property
-    def all_events(self) -> dict[str, Event]:
-        events = self.events.copy()
-        for child in self.children:
-            events |= child.all_events
-        return events
-
-    @property
     def all_global_middleware(self) -> dict[str, Middleware]:
         global_md = self.global_md.copy()
         for child in self.children:
@@ -165,6 +158,7 @@ class Hook:
         action = act.copy()
 
         mds = self.all_middleware
+        print(mds.keys())
         for md in mds.values():
             rez, msg = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
@@ -176,9 +170,8 @@ class Hook:
             cmd, action = hooklet.get_cmd(action)
             for md in mds.values():
                 rez, msg = await md.handle(action, cmd)
-                if rez == MiddlewareResult.DENY:
-                    print("blocking from ", md.hooklet_id, "with reason", msg)
-                    action.reply(msg)
+                if rez == MiddlewareResult.DENY and msg != "":
+                    action.reply(msg, timeout=15)
                     return
             await cmd.handle(action)
         else:

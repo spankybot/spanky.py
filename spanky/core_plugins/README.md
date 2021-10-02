@@ -6,6 +6,7 @@
 Here is a list with the order in which these middleware are executed:
 - `setup_perm_ctx` (p=0)
 - `check_server_id` (p=1)
+- `check_format` (legacy) (p=4)
 - `handle_pm` (p=5)
 - `perm_admin` (p=10)
 - `perm_bot_owner` (p=10)

@@ -17,6 +17,7 @@ def check_cmd_owner(action: ActionCommand, hooklet: Command):
     cmd = CmdPerms(
         hooklet.hook.server_storage(action.server_id), action.triggered_command
     )
+    print(action.context)
     if "admin" not in action.context["perms"]["creds"]:
 
         allowed_roles = set(cmd.owners)

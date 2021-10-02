@@ -28,6 +28,7 @@ class ActionCommand(Action):
         self.triggered_command: str = command
         self.author = event.author
         self.channel = event.channel
+        self.server = event.server
         self.is_pm = event.is_pm
         self.message = event.msg
 
