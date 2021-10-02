@@ -119,6 +119,18 @@ class Hook:
         for child in self.children:
             commands |= child.all_commands
         return commands
+    
+    def get_command(self, name: str) -> Command:
+        for cmd in self.all_commands.values():
+            if cmd.name == name:
+                return cmd
+        return None
+    
+    def get_local_command(self, name: str) -> Command:
+        for cmd in self.commands.values():
+            if cmd.name == name:
+                return cmd
+        return None
 
     @property
     def all_periodics(self) -> dict[str, Periodic]:
@@ -206,9 +218,9 @@ class Hook:
         if action.event_type is EventType.command:
             # Command trigger
             action: ActionCommand = action
-            if action.triggered_command in self.commands.keys():
+            hooklet = self.get_local_command(action.triggered_command)
+            if hooklet:
                 # Do with middleware
-                hooklet = self.commands[action.triggered_command]
                 tasks.append(
                     asyncio.create_task(self.run_middleware(action, hooklet), name="")
                 )

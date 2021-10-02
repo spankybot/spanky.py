@@ -65,7 +65,7 @@ def qrcode(text):
 
     args = {
         "cht": "qr",  # chart type (QR)
-        "chs": "200x200",  # dimensions
+        "chs": "500x500",  # dimensions
         "chl": text,  # data
     }
 

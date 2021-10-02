@@ -48,10 +48,11 @@ async def grab(text, channel, storage, reply, event):
     # Or we're grabbing a message we are replying to
     if not to_grab:
         ref = await event.msg.reference()
-        if ref.author.id == event.author.id:
-            reply("Don't try to grab yourself 😉")
-            return
-        to_grab = ref
+        if ref:
+            if ref.author.id == event.author.id:
+                reply("Don't try to grab yourself 😉")
+                return
+            to_grab = ref
 
     if not to_grab:
         reply("Couldn't find anything.")
