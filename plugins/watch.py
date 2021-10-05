@@ -1,6 +1,6 @@
-import praw
+import asyncpraw
 import time
-from spanky.plugin import hook
+from spanky.hook2 import Hook, EventType
 from spanky.plugin.permissions import Permission
 
 tstamps = {}
@@ -8,6 +8,8 @@ g_db = None
 
 storages = {}
 servers = {}
+
+hook = Hook("watcher")
 
 
 def set_crt_timestamps():
@@ -24,7 +26,7 @@ def set_crt_timestamps():
         storage.sync()
 
 
-@hook.on_ready()
+@hook.event(EventType.on_ready)
 def ready(server, storage):
     storages[server.id] = storage
     servers[server.id] = server
@@ -46,10 +48,10 @@ def do_it(thread):
     return prefix + " " + message
 
 
-@hook.periodic(30)
-def checker(bot, send_message):
+@hook.periodic(5)
+async def checker(bot, send_message):
     auth = bot.config.get("reddit_auth")
-    reddit_inst = praw.Reddit(
+    reddit_inst = asyncpraw.Reddit(
         client_id=auth.get("client_id"),
         client_secret=auth.get("client_secret"),
         username=auth.get("username"),
@@ -63,16 +65,17 @@ def checker(bot, send_message):
 
         for sub in storage["subs"].keys():
             try:
-                subreddit = reddit_inst.subreddit(sub)
+                subreddit = await reddit_inst.subreddit(sub)
                 newest = storage["subs"][sub]["timestamp"]
 
-                for submission in subreddit.new():
+                async for submission in subreddit.new():
                     subtime = submission.created_utc
                     if subtime > storage["subs"][sub]["timestamp"]:
+                        print(submission)
                         if subtime > newest:
                             newest = subtime
                             storage["subs"][sub]["timestamp"] = newest
-                            storage.sync
+                            storage.sync()
                         send_message(
                             target=storage["channel"],
                             text=do_it(submission),
@@ -82,6 +85,7 @@ def checker(bot, send_message):
             except BaseException as e:
                 print(str(e))
                 print("Exception generated for sub: " + sub)
+    await reddit_inst.close()
 
 
 @hook.command()

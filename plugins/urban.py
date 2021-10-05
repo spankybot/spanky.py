@@ -1,6 +1,7 @@
 import random
 
 import requests
+import aiohttp
 
 import plugins.paged_content as paged
 from spanky.plugin import hook
@@ -18,35 +19,28 @@ async def urban(text, reply, async_send_message):
 
     headers = {"Referer": "http://m.urbandictionary.com"}
 
-    if text:
-        # clean and split the input
-        text = text.lower().strip()
-        parts = text.split()
+    page = {}
+    async with aiohttp.ClientSession(raise_for_status=True) as session:
+        if text:
+            # clean and split the input
+            text = text.lower().strip()
+            parts = text.split()
 
-        # fetch the definitions
-        try:
-            params = {"term": text}
-            request = requests.get(define_url, params=params, headers=headers)
-            request.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-        ) as e:
-            reply("Could not get definition: {}".format(e))
+            # fetch the definitions
+            try:
+                params = {"term": text}
+                async with session.get(define_url, params=params, headers=headers) as resp:
+                    page = await resp.json()
+            except Exception as e:
+                reply("Could not get definition: {}".format(e))
 
-        page = request.json()
-    else:
-        # get a random definition!
-        try:
-            request = requests.get(random_url, headers=headers)
-            request.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-        ) as e:
-            reply("Could not get definition: {}".format(e))
-
-        page = request.json()
+        else:
+            # get a random definition!
+            try:
+                async with session.get(random_url, headers=headers) as resp:
+                    page = await resp.json()
+            except Exception as e:
+                reply("Could not get definition: {}".format(e))
 
     definitions = page["list"]
 
