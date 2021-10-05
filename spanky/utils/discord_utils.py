@@ -10,6 +10,13 @@ def get_user_by_name(server, name):
             return u
     return None
 
+def get_user_by_id_or_name(server, uid_or_name):
+    by_id = get_user_by_id(server, uid_or_name)
+    if not by_id:
+        return get_user_by_name(server, uid_or_name)
+
+    return by_id
+
 def get_role_by_id(server, rid):
     return server.get_role(rid)
 
@@ -22,6 +29,15 @@ def get_role_by_name(server, rname):
 
 def get_channel_by_id(server, cid):
     return server.get_chan(cid)
+
+
+def get_channel_by_id_or_name(server, name_or_id):
+    for chan in server.get_chans():
+        if chan.id == name_or_id or chan.name == name_or_id:
+            return chan
+
+    return None
+
 
 def str_to_id(string):
     return string.strip().replace("@", "").replace("<", "").replace(">", "").replace("!", "").replace("#", "").replace("&", "").replace(":", " ")
@@ -110,6 +126,17 @@ def user_has_role_name(user, rname):
 
     for urole in user.roles:
         if urole.name == rname:
+            return True
+
+    return False
+
+def user_has_role_id(user, rid):
+    """
+    Given a role id return True if user has the role, False otherwise
+    """
+
+    for urole in user.roles:
+        if urole.id == rid:
             return True
 
     return False
