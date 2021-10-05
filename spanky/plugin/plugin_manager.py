@@ -5,6 +5,8 @@ import os
 import importlib
 import asyncio
 
+import spanky.plugin.permissions as permissions
+
 from discord import File
 from spanky.plugin.reloader import PluginReloader
 from spanky.plugin.hook_logic import find_hooks, find_tables
@@ -158,6 +160,9 @@ class PluginManager():
                     event.permission_mgr.get_data_location(
                         hook.plugin.name.replace(".py", "").replace("/","_"))
 
+        if "unique_storage" in hook.required_args:
+            event.unique_storage = permissions.get_unique_storage(hook.plugin.name.replace(".py", "").replace("/","_"))
+
         if "cmd_args" in hook.required_args and hook.param_list is not None:
             event.cmd_args = map_params(event.text, hook.param_list)
         else:
@@ -206,7 +211,7 @@ class PluginManager():
         """
 
         out = self._execute_hook(hook, event)
-        
+
         if out is not None:
             if isinstance(out, (list, tuple)):
                 # if there are multiple items in the response, return them on multiple lines
