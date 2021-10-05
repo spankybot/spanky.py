@@ -31,3 +31,7 @@ class PermissionMgr():
 
     def get_data_location(self, name):
         return str(storage.DS_LOC / self.server_id / (name  +"_data")) + os.sep
+
+
+def get_unique_storage(name):
+    return storage.dsdict("unique", name)
