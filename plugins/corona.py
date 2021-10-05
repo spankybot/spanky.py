@@ -2,13 +2,14 @@ from spanky.plugin import hook
 import requests
 from datetime import datetime
 
-base = "https://corona.lmao.ninja/v2/"
+base = "https://disease.sh/v3/covid-19/"
+base_vacc = "https://disease.sh/v3/covid-19/vaccine/coverage/"
 
 
 def getFormat(author, storage):
     if author.id in storage:
         return storage[author.id]
-    return "`Country | Cases | Recovered | Critical | Deaths | Active | Tests | Last updated at LUpdated`"
+    return "`Country | Cases | Recovered | Critical | Deaths | Active | Tests | Vaccines | Last updated at LUpdated`"
 
 
 @hook.command()
@@ -22,8 +23,12 @@ def corona(text, reply, storage, author):
 
     if args[0] == "all" or args[0] == "total" or text == "":
         country_data = requests.get(base + "all").json()
+        vaccine_data = requests.get(base_vacc + "?lastdays=1&fullData=true").json()
+        vaccines = vaccine_data[0]['total']
     else:
         country_data = requests.get(base + "countries/" + text).json()
+        vaccine_data = requests.get(base_vacc + "countries/" + text + "?lastdays=1&fullData=true").json()
+        vaccines = vaccine_data['timeline'][0]['total']
 
     # if the return data has a message field, it means something occured and we should print it
     if "message" in country_data:
@@ -54,6 +59,7 @@ def corona(text, reply, storage, author):
         "LUpdated": datetime.utcfromtimestamp(country_data["updated"] // 1000).strftime(
             "%Y-%m-%d at %H:%M:%S UTC"
         ),
+        "Vaccines": f"Vaccines: {vaccines:,}"
     }
 
     for key, value in data.items():
@@ -64,7 +70,7 @@ def corona(text, reply, storage, author):
 
 @hook.command()
 def corona_format(text, reply, storage, author):
-    """<format> - formats the .corona command for you. Every keyword in ['Cases', 'Deaths', 'Tests', 'CToday', 'DToday', 'C/M', 'D/M', 'T/M', 'Recovered', 'Active', 'Critical', 'Country', 'Continent', 'LUpdated'] will be replaced with the appropriate data. Use `clear` if you want to clear your format and use the default one"""
+    """<format> - formats the .corona command for you. Every keyword in ['Cases', 'Deaths', 'Tests', 'CToday', 'DToday', 'C/M', 'D/M', 'T/M', 'Recovered', 'Active', 'Critical', 'Country', 'Continent', 'Vaccines', 'LUpdated'] will be replaced with the appropriate data. Use `clear` if you want to clear your format and use the default one"""
     if text == "help":
         reply(corona_format.__doc__)
         return
