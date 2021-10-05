@@ -7,7 +7,7 @@ MAX_ROWS = 10  # Max rows per page
 LARROW = "\U0001F448"
 RARROW = "\U0001F449"
 
-MIN_SEC = 2  # Min seconds between assignments
+MIN_SEC = 1  # Min seconds between assignments
 MSG_TIMEOUT = 2  # Timeout after which the message dissapears
 last_user_assign = {}  # Dict to check for user spamming buttons
 
