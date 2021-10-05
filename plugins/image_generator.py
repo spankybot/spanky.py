@@ -1,12 +1,12 @@
-import os
+import itertools
 import praw
 import random
-import asyncio
+
+import spanky.utils.time_utils as tutils
+from spanky.plugin.permissions import Permission
+
 from spanky.plugin import hook
-from datetime import datetime
-from sqlalchemy import Table, Column, String, PrimaryKeyConstraint, DateTime
-from sqlalchemy.sql import select
-from spanky import database
+
 
 RODDIT_ID = "287285563118190592"
 TESTOSTERON = "611894947024470027"
@@ -27,131 +27,86 @@ SERVERS = [
     TZ_SRV,
     TZ_SRV2,
     TZ_SRV3,
-    DRUNKBOYZ_SRV
+    DRUNKBOYZ_SRV,
 ]
 
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
-domains = ['imgur.com', 'gfycat.com', 'redditmedia.com',
-           'i.redd.it', 'flic.kr', '500px.com', 'redgifs.com']
+domains = [
+    "imgur.com",
+    "gfycat.com",
+    "redditmedia.com",
+    "i.redd.it",
+    "v.redd.it",
+    "flic.kr",
+    "500px.com",
+    "redgifs.com",
+]
 
-dont_cache = ['random', 'randnsfw']
+dont_cache = ["random", "randnsfw"]
 
-g_db = None
 reddit_inst = None
-
-links = Table(
-    'links',
-    database.metadata,
-    Column('subreddit', String),
-    Column('link', String),
-    Column('source', String)
-)
-
-subs = Table(
-    'subs',
-    database.metadata,
-    Column('subreddit', String),
-    Column('cachetime', DateTime)
-)
+ustorage = None
+UPDATE_TIMEOUT = 60 * 60 * 6  # 6 hours
+tracked_subs = []
 
 
-def get_links_from_sub(r, sub):
-    subreddit = r.subreddit(sub)
+def get_links_from_sub(reddit, sub, top_type):
+    try:
+        subreddit = reddit.subreddit(sub)
 
-    new_links = []
-    for submission in subreddit.top("month"):
-        if not submission.is_self:
-            for domain in domains:
-                if domain in submission.url:
-                    new_links.append((submission.url, submission.id))
-                    break
+        new_links = []
+        for top in top_type:
+            for submission in subreddit.top(top):
+                if submission.is_self:
+                    continue
 
-    return new_links
+                for domain in domains:
+                    if domain in submission.url:
+                        # Embeds don't work with v.redd.it
+                        if "https://v.redd.it" not in submission.url:
+                            new_links.append(f"{submission.id};{submission.url}")
+                        else:
+                            new_links.append(
+                                f"{submission.id};https://reddit.com{submission.permalink}"
+                            )
+                        break
 
-
-def refresh_cache(r, el):
-    #print("Refreshing cache for " + el)
-    delete = links.delete(links.c.subreddit == el)
-    g_db.execute(delete)
-    g_db.commit()
-
-    new_links = get_links_from_sub(r, el)
-    #print("Adding %d links" % len(new_links))
-
-    last_fetch = datetime.utcnow()
-
-    # Update db
-    for nlink in new_links:
-        g_db.execute(links.insert().values(
-            subreddit=el, link=nlink[0], source=nlink[1]))
-
-    # Update db timestamp
-    g_db.execute(subs.update().where(
-        subs.c.subreddit == el).values(cachetime=last_fetch))
-
-    g_db.commit()
+        return new_links
+    except Exception as e:
+        print(e)
+        return []
 
 
-def del_sub(sub):
-    print("Removing sub %s" % sub)
-    g_db.execute(subs.delete().where(subs.c.subreddit == sub))
-    g_db.commit()
+def update_sub(reddit, sub, ustorage):
+    print(f"updating {sub}")
 
+    if sub not in dont_cache:
+        links = get_links_from_sub(
+            reddit, sub, ["day", "week", "month", "year"]
+        )
 
-def get_links_from_subs(sub):
-    return _get_links_from_subs(reddit_inst, sub)
-
-
-def _get_links_from_subs(r, sub):
-
-    now = datetime.utcnow()
-
-    db_sub_list = g_db.execute(subs.select())
-    sub_list = {}
-    for row in db_sub_list:
-        sub_list[row['subreddit']] = row['cachetime']
-
-    data = []
-    for el in sub:
-        if el in dont_cache:
-            print("%s is in no cache list" % el)
-            data = get_links_from_sub(r, el)
-            continue
-
-        if el not in sub_list:
-            g_db.execute(subs.insert().values(
-                subreddit=el, cachetime=datetime.min))
-            sub_list[el] = datetime.min
-            g_db.commit()
-
-        # Cache older than 2 hours?
-        if (now - sub_list[el]).total_seconds() > 7200:
-            try:
-                refresh_cache(r, el)
-            except Exception as e:
-                print(e)
-                del_sub(el)
-                return ["Error :/"]
+        if sub not in ustorage["data"]:
+            ustorage["data"][sub] = {
+                "links": links,
+                "updated_on": tutils.tnow(),
+            }
         else:
-            pass
-            #print("Cache for %s is %i" %(el, (now - sub_list[el]).total_seconds()))
+            ustorage["data"][sub]["links"].extend(links)
+            ustorage["data"][sub]["updated_on"] = tutils.tnow()
 
-        db_links = g_db.execute(
-            select([links.c.link, links.c.source]).where(links.c.subreddit == el))
+        # filter out duplicates
+        ustorage["data"][sub]["links"] = list(
+            set(ustorage["data"][sub]["links"])
+        )
+        ustorage.sync()
 
-        for row in db_links:
-            data.append((row))
-
-        if len(data) == 0:
-            data = ["Got nothing. Will try harder next time."]
-            for el in sub:
-                del_sub(el)
-    return data
+        return ustorage["data"][sub]["links"]
+    else:
+        return get_links_from_sub(reddit, sub, ["month"])
 
 
 @hook.on_start
-def init(bot, db):
-    global g_db
+def init(bot, unique_storage):
     global reddit_inst
 
     auth = bot.config.get("reddit_auth")
@@ -160,60 +115,64 @@ def init(bot, db):
         client_secret=auth.get("client_secret"),
         username=auth.get("username"),
         password=auth.get("password"),
-        user_agent="Subreddit watcher by /u/programatorulupeste")
+        user_agent="Subreddit watcher by /u/programatorulupeste",
+    )
 
-    g_db = db
-    with open(os.path.realpath(__file__)) as f:
-        data = f.read()
+    global ustorage
+    ustorage = unique_storage
 
-    data = data.replace(" ", "")
-    data = data.replace("\n", "")
-    data = data.replace("\'", "")
-    data = data.replace("\"", "")
+    if "data" not in ustorage:
+        ustorage["data"] = {}
 
-    start = "get_links_from_subs" + "(["
-    end = "])"
-
-    startpos = 0
-    endpos = 0
-    while True:
-        startpos = data.find(start, startpos)
-        endpos = data.find(end, startpos)
-
-        if startpos == -1:
-            break
-
-        subs = data[startpos + len(start):endpos].split(",")
-        get_links_from_subs(subs)
-
-        startpos += len(start)
+    ustorage.sync()
 
 
-@hook.periodic(300, single_threaded=True)
-def refresh_porn(db):
-    global g_db
-    g_db = db
-
-    # print("Refreshing...")
-    db_subs = g_db.execute(select([subs.c.subreddit]))
-    for el in db_subs:
-        fake_list = [el['subreddit']]
-        get_links_from_subs(fake_list)
+@hook.periodic(60 * 60 * 12)
+def update_porn():
+    for sub in ustorage["data"].keys():
+        if tutils.tnow() - ustorage["data"][sub]["updated_on"] > UPDATE_TIMEOUT:
+            update_sub(reddit_inst, sub, ustorage)
 
 
-@hook.command(server_id=SERVERS)
-def force_refresh_porn():
-    db_subs = g_db.execute(select([subs.c.subreddit]))
-    for el in db_subs:
-        try:
-            refresh_cache(reddit_inst, el['subreddit'])
-        except Exception as e:
-            print(e)
-            pass
+@hook.command(server_id=SERVERS, permissions=Permission.admin)
+def force_refresh_porn(text):
+    if text != "":
+        if text in ustorage["data"]:
+            update_sub(reddit_inst, text, ustorage)
+            return "Done."
+        else:
+            return "No such sub."
+
+    for sub in ustorage["data"].keys():
+        update_sub(reddit_inst, sub, ustorage)
+
+
+@hook.command(server_id=SERVERS, permissions=Permission.admin)
+def nuke_porn(text):
+    if text != "":
+        if text in ustorage["data"]:
+            del ustorage["data"][text]
+            update_sub(reddit_inst, text, ustorage)
+            return "Done."
+        else:
+            return "No such sub."
+
+
+def get_links_from_subs(sub_list):
+    data = []
+    for sub in sub_list:
+        if sub in ustorage["data"]:
+            data.extend(ustorage["data"][sub]["links"])
+        else:
+            data.extend(update_sub(reddit_inst, sub, ustorage))
+
+    return random.choice(data)
 
 
 def format_output_message(data):
-    link, source = random.choice(data)
+    data = data.split(";", maxsplit=1)
+    link = data[1]
+    source = data[0]
 
     if "gfycat.com" in link:
         redgif = link.replace("gfycat.com", "gifdeliverynetwork.com")
@@ -222,167 +181,185 @@ def format_output_message(data):
     return "%s / source: <https://redd.it/%s>" % (link, source)
 
 
+# @hook.on_connection_ready
+# def cache_all():
+#     for sub in tracked_subs:
+#         if sub in dont_cache:
+#             continue
+
+#         print("PRECACHING " + sub)
+
+#         if sub not in ustorage["data"].keys():
+#             update_sub(reddit_inst, sub, ustorage)
+#         else:
+#             if (
+#                 tutils.tnow() - ustorage["data"][sub]["updated_on"]
+#                 > UPDATE_TIMEOUT
+#             ):
+#                 update_sub(reddit_inst, sub, ustorage)
+
+
+def porn(*args, **kwargs):
+    subs = kwargs.get("subs", False)
+
+    # Add to tracked subs for on_connection_ready work
+    global tracked_subs
+    tracked_subs.extend(subs)
+    tracked_subs = list(set(tracked_subs))
+
+    def wrap_porn(func, params=None):
+        def sub_wrapper():
+            data = get_links_from_subs(subs)
+            return format_output_message(data)
+
+        sub_wrapper.__name__ = func.__name__
+        sub_wrapper.__doc__ = func.__doc__
+        return sub_wrapper
+
+    if len(args) == 1 and callable(
+        args[0]
+    ):  # this decorator is being used directly
+        return wrap_porn(args[0])
+    else:  # this decorator is being used indirectly, so return a decorator function
+        return lambda func: wrap_porn(func, params=args)
+
+
 @hook.command(server_id=SERVERS)
+@porn(subs=["skinnytail"])
 def skinny():
-    data = get_links_from_subs(['skinnytail'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["ginger", "redheads", "RedheadGifs"])
 def roscate():
-    data = get_links_from_subs(['ginger', 'redheads', 'RedheadGifs'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["altgonewild"])
 def tatuate():
-    data = get_links_from_subs(['altgonewild'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["nsfwfunny"])
 def nsfwfunny():
-    data = get_links_from_subs(['nsfwfunny'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["thighhighs", "stockings"])
 def craci():
-    data = get_links_from_subs(['thighhighs', 'stockings'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["ass", "asstastic", "assinthong", "pawg", "SuperDuperAss"])
 def buci():
-    data = get_links_from_subs(
-        ['ass', 'asstastic', 'assinthong', 'pawg', 'SuperDuperAss'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["boobs", "boobies", "BiggerThanYouThought"])
 def tzatze():
-    data = get_links_from_subs(['boobs', 'boobies', 'BiggerThanYouThought'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["kinky", "bdsm", "bondage", "collared"])
 def fetish():
-    data = get_links_from_subs(['kinky', 'bdsm', 'bondage', 'collared'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["LegalTeens", "Just18", "youngporn", "barelylegal"])
 def teen():
-    data = get_links_from_subs(
-        ['LegalTeens', 'Just18', 'youngporn', 'barelylegal'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["cumsluts", "GirlsFinishingTheJob"])
 def sloboz():
-    data = get_links_from_subs(['cumsluts', 'GirlsFinishingTheJob'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["anal", "painal"])
 def anal():
-    data = get_links_from_subs(['anal', 'painal'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["milf"])
 def milf():
-    data = get_links_from_subs(['milf'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["RealGirls", "Amateur", "GoneWild"])
 def amateur():
-    data = get_links_from_subs(['RealGirls', 'Amateur', 'GoneWild'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["Tgirls", "traps", "gonewildtrans", "tgifs"])
 def traps():
-    data = get_links_from_subs(['Tgirls', 'traps', 'gonewildtrans', 'tgifs'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["aww"])
 def aww():
-    data = get_links_from_subs(['aww'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["cats"])
 def pisi():
-    data = get_links_from_subs(['cats'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["dogpictures", "TuckedInPuppies"])
 def cutu():
-    data = get_links_from_subs(['dogpictures', 'TuckedInPuppies'])
-
-    return format_output_message(data) + " HAM, HAM!"
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["blep", "blop"])
 def blep():
-    data = get_links_from_subs(['blep', 'blop'])
-
-    return format_output_message(data) + " :P"
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["doggy"])
 def capre():
-    data = get_links_from_subs(['doggy'])
-
-    return format_output_message(data) + " NSFW!"
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["dykesgonewild"])
 def lesbiene():
-    data = get_links_from_subs(['dykesgonewild'])
-
-    return format_output_message(data) + " NSFW!"
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["pawg", "thick"])
 def thicc():
-    data = get_links_from_subs(['pawg', 'thick'])
-
-    return format_output_message(data) + " NSFW!"
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["AsianNSFW", "AsianPorn", "AsianHotties"])
 def asians():
-    data = get_links_from_subs(['AsianNSFW', 'AsianPorn', 'AsianHotties'])
-
-    return format_output_message(data) + " NSFW!"
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["TrashPandas"])
 def raton():
-    data = get_links_from_subs(['TrashPandas'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
@@ -397,34 +374,56 @@ def fetch_image(text):
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["randnsfw", "The_Best_NSFW_GIFS"])
 def plsporn():
     """pls gib porn"""
-    data = get_links_from_subs(['randnsfw', 'The_Best_NSFW_GIFS'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(
+    subs=[
+        "AmateurGayPorn",
+        "DickPics4Freedom",
+        "foreskin",
+        "GaybrosGoneWild",
+        "gayporn",
+        "MassiveCock",
+        "penis",
+        "ratemycock",
+        "selfservice",
+        "totallystraight",
+    ]
+)
 def plsgayporn():
     """pls gib porn"""
-    data = get_links_from_subs(['AmateurGayPorn', 'DickPics4Freedom', 'foreskin', 'GaybrosGoneWild',
-                                'gayporn', 'MassiveCock', 'penis', 'ratemycock', 'selfservice', 'totallystraight'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(
+    subs=[
+        "Blonde",
+        "blondegirlsfucking",
+        "nsfwblondeporn",
+        "GoneWildBlondes",
+        "blondehairblueeyes",
+    ]
+)
 def blonde():
     """blonde"""
-    data = get_links_from_subs(['Blonde', 'blondegirlsfucking',
-                                'nsfwblondeporn', 'GoneWildBlondes', 'blondehairblueeyes'])
-
-    return format_output_message(data)
+    pass
 
 
 @hook.command(server_id=SERVERS)
+@porn(subs=["femboy", "femboys"])
 def femboy():
     """femboy"""
-    data = get_links_from_subs(['femboy', 'femboys'])
+    pass
 
-    return format_output_message(data)
+
+@hook.command(server_id=SERVERS)
+@porn(subs=["tiktokthots"])
+def thot():
+    """tiktokthots"""
+    pass
