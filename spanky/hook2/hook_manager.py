@@ -62,7 +62,7 @@ class Plugin:
             self.module = importlib.import_module(name)
             if self.module in modules:
                 self.module = importlib.reload(self.module)
-            self.legacy_hook = gen_legacy_hook(self.module, hk_name + "_legacy")
+            self.legacy_hook = gen_legacy_hook(self.module, hk_name)
             modules.append(self.module)
         except Exception as e:
             import traceback

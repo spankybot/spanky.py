@@ -62,10 +62,8 @@ def remind_check_server(server, storage, send_pm):
 
 
 @hook.periodic(1)
-def remind_check(bot, send_pm):
+def remind_check(bot, send_pm, storage_getter):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_remind.json"
-        )
+        storage = storage_getter(server.id)
 
         remind_check_server(server, storage, send_pm)

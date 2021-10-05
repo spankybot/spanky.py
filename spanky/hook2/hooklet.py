@@ -36,6 +36,9 @@ class Hooklet:
         self.hooklet_id: str = hooklet_id
         self.func = func
 
+    def __storage_getter(self, server_id: str):
+        return self.hook.server_storage(server_id)
+
     def __get_args(self, action: Action) -> Optional[list[Any]]:
         args = []
         for arg in required_args(self.func):
@@ -66,6 +69,8 @@ class Hooklet:
                 args.append(storage_loc)
             elif arg == "unique_storage":
                 args.append(self.hook.hook_storage)
+            elif arg == "storage_getter":
+                args.append(self.__storage_getter)
             elif arg == "action":
                 args.append(action)
             elif arg == "event":

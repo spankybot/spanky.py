@@ -49,14 +49,15 @@ def alias_wrapper(alias):
 
     return func
 
+from spanky.hook2 import Hook, EventType, Command
+hook = Hook("crypto")
 
+@hook.event(EventType.on_start)
 def init_aliases():
     for alias in ALIASES:
         if alias.nocmd:
             continue
-        _hook = alias_wrapper(alias)
-        globals()[_hook.__name__] = hook.command(name=alias.cmds, autohelp=False)(_hook)
-
+        hook.command(name=alias.cmds)(alias_wrapper(alias))
 
 @hook.command()
 def serak():
@@ -104,6 +105,3 @@ def crypto_command(text, reply):
         float(elem["prices"]["latest_price"]["percent_change"]["hour"]) * 100,
         float(elem["prices"]["latest_price"]["percent_change"]["day"]) * 100,
     )
-
-
-init_aliases()

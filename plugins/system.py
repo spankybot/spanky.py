@@ -13,15 +13,6 @@ from spanky.utils.discord_utils import get_user_by_id
 
 start_trace = None
 
-# TODO fix this eventually
-@hook.periodic(10)
-def debugme(bot, send_pm):
-    for server in bot.backend.get_servers():
-        if server.id == "287285563118190592":
-            plp = get_user_by_id(server, "278247547838136320")
-            if "bulau" not in bot.plugin_manager.commands.keys():
-                send_pm("temp plugins missing", plp)
-
 
 @hook.command()
 def about():

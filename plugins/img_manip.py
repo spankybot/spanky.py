@@ -1,7 +1,9 @@
 import subprocess
-from spanky.plugin import hook
 from oslo_concurrency import lockutils
 from wand.image import Image as wand_img
+from spanky.hook2 import Hook, EventType
+
+hook = Hook("img_manip")
 
 
 @lockutils.synchronized("not_thread_safe")
@@ -112,13 +114,13 @@ def make_imgtext(frame, text):
     return result
 
 
-@hook.command(params="string:text")
-def img_text(event, send_file, send_message, cmd_args):
+@hook.command()
+def img_text(event, send_file, send_message, text):
     """
     Add text to image
     """
     for img in event.image:
-        img.proc_each_wand_frame(make_imgtext, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(make_imgtext, send_file, send_message, {"text":text})
 
 
 def make_gif_app_caller(frame, effect):
@@ -160,7 +162,7 @@ gif_effects = [
     "cat",
 ]
 
-
+@hook.event(EventType.on_start)
 def init_funcs():
     def do_func(effect):
         def f(event, send_file, send_message):
@@ -175,7 +177,7 @@ def init_funcs():
         return f
 
     for i in gif_effects:
-        globals()[i] = hook.command()(do_func(i))
+        hook.command()(do_func(i))
 
 
 init_funcs()
