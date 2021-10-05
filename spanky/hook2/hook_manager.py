@@ -4,6 +4,7 @@ from __future__ import annotations
 from .hook2 import Hook
 from .actions import ActionEvent
 from .event import EventType
+from .hooklet import Hooklet
 import os
 import glob
 from types import ModuleType, CoroutineType
@@ -13,6 +14,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from spanky.bot import Bot
+    from typing import Coroutine
 
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
@@ -43,7 +45,9 @@ class Plugin:
         self.mgr: PluginManager = mgr
         self.parent_hook = parent_hook
         self.loaded: bool = False
-        self.plugin_hook = Hook(f"plugin_obj_{path!s}")
+        self.plugin_hook: Hook = Hook(f"plugin_obj_{path.replace('/', '_')!s}")
+
+        self.legacy_hook: Optional[Hook] = None
 
     # load actually imports the plugin and returns wether to continue with the module loading:
     # NOTE: This maybe can be done in a better way, try and find it.
@@ -52,11 +56,13 @@ class Plugin:
         # Load module
         print(f"Loading {self.name}")
         name = self.name.replace("/", ".").replace(".py", "")
+        hk_name = self.name.replace("/", "_").replace(".py", "")
 
         try:
             self.module = importlib.import_module(name)
             if self.module in modules:
                 self.module = importlib.reload(self.module)
+            self.legacy_hook = gen_legacy_hook(self.module, hk_name + "_legacy")
             modules.append(self.module)
         except Exception as e:
             import traceback
@@ -77,46 +83,57 @@ class Plugin:
     # finalize_hooks fires on_start and (if the bot is already loaded) on_ready and on_conn_ready events to the hooks
     async def finalize_hooks(self):
         tasks = []
+        print("Finalizing hooks", self.hooks)
         for hook in self.hooks:
             # print(hook.hook_id)
             self.plugin_hook.add_child(hook)
-            tasks.append(
-                asyncio.create_task(
-                    hook.dispatch_action(
-                        ActionEvent(self.mgr.bot, {}, EventType.on_start)
-                    )
-                )
+
+            tasks.extend(self.finalize_hook(hook))
+
+        if self.legacy_hook:
+            tasks.extend(self.finalize_hook(self.legacy_hook))
+        await asyncio.gather(*tasks)
+
+    def finalize_hook(self, hook: Hook) -> list[Coroutine]:
+        tasks = []
+        tasks.append(
+            asyncio.create_task(
+                hook.dispatch_action(ActionEvent(self.mgr.bot, {}, EventType.on_start))
             )
+        )
 
-            # Run on ready work
-            if self.mgr.bot.is_ready:
-                for server in self.mgr.bot.get_servers():
+        # Run on ready work
+        if self.mgr.bot.is_ready:
+            for server in self.mgr.bot.get_servers():
 
-                    class event:
-                        def __init__(self, server):
-                            self.server = server
+                class event:
+                    def __init__(self, server):
+                        self.server = server
 
-                    tasks.append(
-                        asyncio.create_task(
-                            hook.dispatch_action(
-                                ActionEvent(
-                                    self.mgr.bot, event(server), EventType.on_ready
-                                )
-                            )
-                        )
-                    )
                 tasks.append(
                     asyncio.create_task(
                         hook.dispatch_action(
-                            ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready)
+                            ActionEvent(self.mgr.bot, event(server), EventType.on_ready)
                         )
                     )
                 )
-        await asyncio.gather(*tasks)
+            tasks.append(
+                asyncio.create_task(
+                    hook.dispatch_action(
+                        ActionEvent(self.mgr.bot, {}, EventType.on_conn_ready)
+                    )
+                )
+            )
+        return tasks
 
     # unload removes the hooks from the master hook
     def unload(self):
+        if not self.loaded:
+            return
+        print(f"Unloading plugin {self.name}")
         self.plugin_hook.unload()
+        if self.legacy_hook:
+            self.legacy_hook.unload()
         self.loaded = False
         print(f"Unloaded {self.name}")
 
@@ -136,7 +153,19 @@ class Plugin:
         for value in self.module.__dict__.values():
             if isinstance(value, Hook):
                 vals.append(value)
+        if self.legacy_hook:
+            vals.append(self.legacy_hook)
         return vals
+
+
+def gen_legacy_hook(module, name: str):
+    hk2 = Hook(name)
+    for value in module.__dict__.values():
+        if hasattr(value, "__hk1_wrapped"):
+            hooklet: Hooklet = getattr(value, "__hk1_hooklet")(hk2)
+            key: str = getattr(value, "__hk1_key")
+            getattr(hk2, getattr(value, "__hk1_list")).update({key: hooklet})
+    return hk2
 
 
 # Watchdog event handler
@@ -148,41 +177,58 @@ class PluginDirectory:
         self.mgr: PluginManager = mgr
         self.plugins: dict[str, Plugin] = {}
         self.observer: Observer = Observer()
-        self.event_handler = PluginDirectoryEventHandler(self, patterns=["*.py"])
+
+        self.loop = asyncio.get_event_loop()
+        self.event_handler = PluginDirectoryEventHandler(
+            self, self.loop, patterns=["*.py"]
+        )
         self.observer.schedule(self.event_handler, path, recursive=False)
         self.observer.start()
+
+        self._lock = asyncio.Lock(loop=self.loop)
 
         self.hook = Hook(f"plugin_dir_{path}")
         self.mgr.hook.add_child(self.hook)
 
-        self.reloading = set()
-
     async def load(self):
+        tasks = []
         for plugin_file in glob.iglob(os.path.join(self.path, "*.py")):
-            plugin = Plugin(plugin_file, self.mgr, self.hook)
-            if await plugin.load():
-                self.plugins[plugin_file] = plugin
+            tasks.append(asyncio.create_task(self._load_file(plugin_file)))
+        await asyncio.gather(*tasks)
 
-    def unload(self, path):
-        if path in self.plugins:
-            self.plugins[path].unload()
-        pass
+    async def _load_file(self, file: str):
+        plugin = Plugin(file, self.mgr, self.hook)
+        if await plugin.load():
+            self.plugins[file] = plugin
 
-    async def reload(self, path):
-        # Might have been very quickly deleted
-        if not os.path.isfile(path):
-            return
-        if path in self.reloading:
-            return
-        self.reloading.add(path)
-        print(path)
-        await self.plugins[path].reload()
-        self.reloading.remove(path)
+    async def unload(self, path: str):
+        async with self._lock:
+            print("Doing unload")
+            if path in self.plugins:
+                self.plugins[path].unload()
+                self.plugins.pop(path)
+            else:
+                print("Unloading unknown plugin")
+
+    async def reload(self, path: str):
+        async with self._lock:
+            print("Doing reload")
+            # Might have been very quickly deleted
+            if not os.path.isfile(path):
+                return
+            print(path)
+            if path in self.plugins:
+                await self.plugins[path].reload()
+            else:
+                await self._load_file(path)
 
 
 class PluginDirectoryEventHandler:
-    def __init__(self, pd: PluginDirectory, *args, **kwargs):
+    def __init__(
+        self, pd: PluginDirectory, loop: asyncio.BaseEventLoop, *args, **kwargs
+    ):
         self.pd = pd
+        self._loop = loop
 
     def valid_event(self, event) -> bool:
         if event.is_directory:
@@ -206,7 +252,7 @@ class PluginDirectoryEventHandler:
             "modified": self.on_modified,
             "moved": self.on_moved,
         }[event.event_type]
-        asyncio.run_coroutine_threadsafe(func(event), self.pd.mgr.bot.loop)
+        asyncio.run_coroutine_threadsafe(func(event), self._loop)
 
     async def on_created(self, event):
         print("create")
@@ -214,7 +260,7 @@ class PluginDirectoryEventHandler:
 
     async def on_deleted(self, event):
         print("delete")
-        self.pd.unload(event.src_path)
+        await self.pd.unload(event.src_path)
 
     async def on_modified(self, event):
         print("modify")
@@ -225,5 +271,5 @@ class PluginDirectoryEventHandler:
         if event.dest_path.endswith(
             ".py" if isinstance(event.dest_path, str) else b".py"
         ):
-            self.pd.unload(event.src_path)
+            await self.pd.unload(event.src_path)
             await self.pd.reload(event.dest_path)

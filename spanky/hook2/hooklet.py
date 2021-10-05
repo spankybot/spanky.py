@@ -7,9 +7,25 @@ if TYPE_CHECKING:
     from .hook2 import Hook
     from .actions import Action, ActionCommand
     from .event import EventType
+    from asyncio import Task
 from enum import Enum
-import inspect
 
+import asyncio
+import inspect
+from concurrent.futures import ThreadPoolExecutor
+executor = ThreadPoolExecutor()
+
+async def schedule_func(func, /, *args):
+    loop = asyncio.get_running_loop()
+    if inspect.iscoroutinefunction(func):
+        return await func(*args)
+    else:
+        return await loop.run_in_executor(executor, func, *args)
+
+
+async def blocking_io():
+    with open('/dev/urandom', 'rb') as f:
+        f.read(100000000)
 
 def required_args(func) -> list[str]:
     args = inspect.getfullargspec(func)[0]
@@ -73,10 +89,7 @@ class Hooklet:
             if args is None:
                 return None
 
-            if inspect.iscoroutinefunction(self.func):
-                rez = await self.func(*args)
-            else:
-                rez = self.func(*args)
+            rez = await schedule_func(self.func, *args)
 
             realRez = None
             if type(rez) is str:

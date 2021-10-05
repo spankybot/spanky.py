@@ -70,13 +70,13 @@ class Hook:
 
         self.children: list[Hook] = []
 
-    def __del__(self):
-        self.unload()
+    #def __del__(self):
+    #    self.unload()
 
-    # unload unloads the entire tree
+    # unload unloads the entire subtree
     def unload(self):
         if self.parent_hook:
-            self.parent_hook.remove_child(self)
+            self.parent_hook.remove_child(self.hook_id)
         for child in self.children:
             child.unload()
 
@@ -119,13 +119,13 @@ class Hook:
         for child in self.children:
             commands |= child.all_commands
         return commands
-    
+
     def get_command(self, name: str) -> Command:
         for cmd in self.all_commands.values():
             if cmd.name == name:
                 return cmd
         return None
-    
+
     def get_local_command(self, name: str) -> Command:
         for cmd in self.commands.values():
             if cmd.name == name:
@@ -170,7 +170,7 @@ class Hook:
         action = act.copy()
 
         mds = self.all_middleware
-        print(mds.keys())
+        #print(mds.keys())
         for md in mds.values():
             rez, msg = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
@@ -199,12 +199,25 @@ class Hook:
             if child.has_child(hook):
                 return True
         return False
+    
+    def find_hook(self, hook_id: str) -> Optional[Hook]:
+        if self.hook_id == hook_id:
+            return self
+        for child in self.children:
+            hk = child.find_hook(hook_id)
+            if hk != None:
+                return hk
+        return None
 
     # remove_child removes a child hook if it is directly underneath the current node.
-    def remove_child(self, hook: Hook):
+    def remove_child(self, hook_id: str):
+        print("remove_child", self.hook_id, hook_id)
+        import traceback
+        traceback.print_stack()
         try:
-            self.children.remove(hook)
-        except:
+            self.children = [child for child in self.children if child.hook_id != hook_id]
+        except Exception as e:
+            print(e)
             pass
 
     # Event propagation

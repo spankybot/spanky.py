@@ -151,7 +151,7 @@ class DiscordUtils(abc.ABC):
             return None
 
     async def async_set_game_status(self, game_status):
-        await client.change_presence(game=discord.Game(name=game_status))
+        await client.change_presence(activity=discord.CustomActivity(game_status))
 
     def get_channel(self, target, server=None):
         """
@@ -1225,10 +1225,11 @@ async def on_member_unban(server, user):
 ###
 
 ### Reactions
-@client.event
-async def on_reaction_add(reaction, user):
-    if user.id != client.user.id:
-        await call_func(bot.on_reaction_add, reaction, user)
+
+#@client.event
+#async def on_reaction_add(reaction, user):
+#    if user.id != client.user.id:
+#        await call_func(bot.on_reaction_add, reaction, user)
 
 
 async def on_reaction_remove(reaction, user):
@@ -1243,7 +1244,7 @@ async def on_raw_reaction_add(reaction):
         # Fetch the message
         if reaction.message_id not in raw_msg_cache:
             msg_id = str(reaction.message_id)
-            channel = await client.fetch_channel(reaction.channel_id)
+            channel = client.get_channel(reaction.channel_id)
             msg = await channel.fetch_message(reaction.message_id)
 
             raw_msg_cache[msg_id] = Message(msg)

@@ -126,7 +126,7 @@ class SearchResult:
 def load_key(bot):
     global dev_key
     global dev_cx
-
+    
     dev_key = bot.config.get("api_keys", {}).get("google_dev_key", None)
     dev_cx = bot.config.get("api_keys", {}).get("google_cx", None)
 
@@ -134,6 +134,8 @@ def load_key(bot):
 @hook.command()
 async def gis(text, async_send_message, event):
     """<query> - Search for a image."""
+    if text == "":
+        return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
     res = service.cse().list(q=text, safe="active", cx=dev_cx,).execute()
@@ -144,6 +146,8 @@ async def gis(text, async_send_message, event):
 @hook.command()
 async def nsfwgis(text, async_send_message, event):
     """<query> - Search for a image."""
+    if text == "":
+        return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
     res = service.cse().list(q=text, safe="off", cx=dev_cx,).execute()
@@ -154,6 +158,8 @@ async def nsfwgis(text, async_send_message, event):
 @hook.command()
 async def g(text, async_send_message, event):
     """<query> - Search for a link."""
+    if text == "":
+        return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
     res = service.cse().list(q=text, safe="active", cx=dev_cx,).execute()

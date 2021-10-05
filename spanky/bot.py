@@ -8,7 +8,6 @@ import asyncio
 
 from spanky.database.db import db_data
 from spanky.plugin.permissions import PermissionMgr
-from spanky.plugin.hook_logic import OnStartHook
 from spanky.hook2 import hook2
 from spanky.hook2.event import EventType
 from spanky.hook2.hook_manager import HookManager
@@ -19,7 +18,6 @@ from spanky.hook2.actions import (
     ActionEvent,
 )
 
-from spanky.plugin.hook import legacy_handler
 
 logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
@@ -45,7 +43,6 @@ class Bot:
         self.is_ready = False
         self.loop = asyncio.get_event_loop()
         self.hook2 = hook2.Hook("bot_hook")
-        self.hook2.add_child(legacy_handler)
 
         # Open the bot config file
         with open("bot_config.json") as data_file:
@@ -317,6 +314,6 @@ class Bot:
             if time.time() - hooklet.last_time > hooklet.interval:
                 hooklet.last_time = time.time()
                 action = ActionPeriodic(self, hooklet.hooklet_id)
-                tasks.append(self.dispatch_action(action))
+                tasks.append(asyncio.create_task(self.dispatch_action(action)))
 
         await asyncio.gather(*tasks)

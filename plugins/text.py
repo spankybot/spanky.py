@@ -25,6 +25,8 @@ def letters(event):
             out += ":regional_indicator_%s:" % thing
         elif thing.isdigit():
             out += d2em[int(thing)]
+        elif thing.isspace():
+            out += ':blue_square:'
         else:
             out += thing
 

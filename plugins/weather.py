@@ -23,16 +23,6 @@ ds_key = None
 
 # Define database table
 
-table = Table(
-    "weather",
-    database.metadata,
-    Column("nick", String),
-    Column("loc", String),
-    PrimaryKeyConstraint("nick"),
-)
-
-location_cache = []
-
 BEARINGS = (
     "N",
     "NNE",
@@ -91,33 +81,12 @@ def find_location(location, bias=None):
     return out
 
 
-def add_location(nick, location, db):
-    test = dict(location_cache)
-    location = str(location)
-    if nick.lower() in test:
-        db.execute(
-            table.update()
-            .values(loc=location.lower())
-            .where(table.c.nick == nick.lower())
-        )
-        db.commit()
-        load_cache(db)
-    else:
-        db.execute(table.insert().values(nick=nick.lower(), loc=location.lower()))
-        db.commit()
-        load_cache(db)
-
-
-@hook.on_start()
-def load_cache(db):
-    new_cache = []
-    for row in db.execute(table.select()):
-        nick = row["nick"]
-        location = row["loc"]
-        new_cache.append((nick, location))
-
-    location_cache.clear()
-    location_cache.extend(new_cache)
+def add_location(user, location, storage):
+    if "locations" not in storage:
+        storage["locations"] = {}
+        storage.sync()
+    storage["locations"][str(user.id)] = str(location).lower()
+    storage.sync()
 
 
 @hook.on_start()
@@ -134,17 +103,16 @@ def create_maps_api(bot):
     ds_key = bot.config.get("api_keys", {}).get("darksky", None)
 
 
-def get_location(nick):
+def get_location(user, storage):
     """looks in location_cache for a saved location"""
-    location = [row[1] for row in location_cache if nick.lower() == row[0]]
-    if not location:
+    if "locations" not in storage:
         return
+    if user.id not in storage["locations"]:
+        return
+    return storage["locations"][user.id]
 
-    location = location[0]
-    return location
 
-
-def check_and_parse(nick, text, db):
+def check_and_parse(user, text, storage):
     """
     Check for the API keys and parse the location from user input
     """
@@ -154,21 +122,20 @@ def check_and_parse(nick, text, db):
     if not data.maps_api:
         return None, "This command requires a Google Developers Console API key."
 
-    # If no input try the db
     if not text:
-        location = get_location(nick)
+        location = get_location(user, storage)
         if not location:
-            return weather.__doc__
+            return None, weather.__doc__
     else:
         location = text
-        add_location(nick, location, db)
+        add_location(user, location, storage)
     print("loc=" + location)
 
     # use find_location to get location data from the user input
     try:
         location_data = find_location(location, bias=None)
     except ApiError:
-        return "API Error occurred."
+        return None, "API Error occurred."
         raise
 
     fio = ForecastIO(
@@ -182,9 +149,9 @@ def check_and_parse(nick, text, db):
 
 
 @hook.command(autohelp=False, aliases=["we"])
-def weather(reply, db, event, text, send_embed):
+def weather(reply, event, text, send_embed, storage):
     """<location> - Gets weather data for <location>."""
-    res, err = check_and_parse(event.author.name, text, db)
+    res, err = check_and_parse(event.author, text, storage)
     if not res:
         return err
 
