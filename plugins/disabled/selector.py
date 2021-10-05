@@ -1,6 +1,6 @@
 import discord
 from spanky.plugin import hook
-import plugins.custom.roddit_irc_mode as roddit
+import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
 
 from spanky.hook2.event import EventType
@@ -20,6 +20,9 @@ async def rebuild_one_selector(bot, element, stype):
         selector = await roddit.ChanSelector.deserialize(bot, element)
     elif stype == "simple_selectors":
         selector = await carousel.RoleSelector.deserialize(bot, element)
+    elif stype == "all_chan_selectors":
+        selector = await roddit.EverythingChanSel.deserialize(bot, element)
+
     # Add it to the permanent message list
     permanent_messages.append(selector)
 
@@ -68,6 +71,12 @@ async def parse_react(bot, event, storage):
                     )
                     break
 
+        if "all_chan_selectors" in storage:
+            for element in list(storage["all_chan_selectors"]):
+                if event.msg.id == element["msg_id"]:
+                    found_selector = await rebuild_one_selector(bot, element, "all_chan_selectors")
+                    break
+
         if found_selector:
             dbg = open("debug.log", "w")
             dbg.write("msg id %s\n" % (event.msg.id))
@@ -114,6 +123,9 @@ def permanent_selector(text, storage, event):
     if "simple_selectors" not in storage:
         storage["simple_selectors"] = []
 
+    if "all_chan_selectors" not in storage:
+        storage["all_chan_selectors"] = []
+
     data = None
     try:
         data = selector.serialize()
@@ -127,6 +139,8 @@ def permanent_selector(text, storage, event):
         storage["chan_selectors"].append(data)
     elif type(selector) == carousel.RoleSelector:
         storage["simple_selectors"].append(data)
+    elif type(selector) == roddit.EverythingChanSel:
+        storage["all_chan_selectors"].append(data)
 
     storage.sync()
 
@@ -252,5 +266,20 @@ async def rebuild_selectors(bot):
                 except:
                     import traceback
 
+                    traceback.print_exc()
+                    print(element)
+
+
+        if "all_chan_selectors" in storage:
+            for element in list(storage["all_chan_selectors"]):
+                try:
+                    selector = await roddit.EverythingChanSel.deserialize(bot, element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except discord.errors.NotFound:
+                    storage["all_chan_selectors"].remove(element)
+                    storage.sync()
+                except:
+                    import traceback
                     traceback.print_exc()
                     print(element)

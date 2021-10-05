@@ -121,7 +121,7 @@ class Storage:
     @property
     def hook_storage(self):
         if not self.hook_stor_cache:
-            self.hook_stor_cache = dsdict("global_hook", self.hook_id)
+            self.hook_stor_cache = dsdict("unique", self.hook_id)
         return self.hook_stor_cache
 
     def invalidate_hook_cache(self):

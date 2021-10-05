@@ -23,10 +23,6 @@ async def schedule_func(func, /, *args):
         return await loop.run_in_executor(executor, func, *args)
 
 
-async def blocking_io():
-    with open('/dev/urandom', 'rb') as f:
-        f.read(100000000)
-
 def required_args(func) -> list[str]:
     args = inspect.getfullargspec(func)[0]
     if not args:
@@ -68,6 +64,8 @@ class Hooklet:
                     return None
                 storage_loc = self.hook.storage.data_location(action.server_id)
                 args.append(storage_loc)
+            elif arg == "unique_storage":
+                args.append(self.hook.hook_storage)
             elif arg == "action":
                 args.append(action)
             elif arg == "event":

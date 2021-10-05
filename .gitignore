@@ -5,3 +5,4 @@ storage_data
 logs
 *.log
 .pyenv
+.*
