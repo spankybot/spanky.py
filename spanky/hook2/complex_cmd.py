@@ -31,7 +31,7 @@ class ComplexCommand(Command):
 
         self.help_cmd = Command(self.hook, "help", default_help)
 
-        self.hook.add_command(self.name, self)
+        self.hook.add_command(self)
 
     def subcommand(self, **kwargs):
         def make_cmd(func):

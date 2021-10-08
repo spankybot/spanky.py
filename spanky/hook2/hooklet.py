@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from .event import EventType
     from asyncio import Task
 from enum import Enum
+from spanky.hook2 import storage
 
 import asyncio
 import inspect
@@ -36,8 +37,10 @@ class Hooklet:
         self.hooklet_id: str = hooklet_id
         self.func = func
 
-    def __storage_getter(self, server_id: str):
-        return self.hook.server_storage(server_id)
+    def __storage_getter(self, server_id: str, storage_name: Optional[str] = None):
+        if storage_name == None:
+            storage_name = self.hook.storage_name
+        return storage.server_storage(server_id, storage_name)
 
     def __get_args(self, action: Action) -> Optional[list[Any]]:
         args = []

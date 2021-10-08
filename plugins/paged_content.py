@@ -3,14 +3,15 @@ import math
 import random
 import time
 from collections import deque
-from spanky.plugin import hook
-from spanky.hook2.event import EventType
+from spanky.hook2 import Hook, EventType
 
 LARROW = u"⬅"
 RARROW = u"➡"
 RANDOM = u"🔢"
 TIMEOUT = 5
 elements = deque(maxlen=10)
+
+hook = Hook("paged_content")
 
 
 class element:

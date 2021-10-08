@@ -61,7 +61,6 @@ class Hook:
         self.storage_name = hook_id
         if storage_name != "":
             self.storage_name = storage_name
-        self.storage: storage.Storage = storage.Storage(self.storage_name)
 
         # Tree
         self.parent_hook: Optional[Hook] = parent_hook
@@ -70,7 +69,7 @@ class Hook:
 
         self.children: list[Hook] = []
 
-    #def __del__(self):
+    # def __del__(self):
     #    self.unload()
 
     # unload unloads the entire subtree
@@ -120,7 +119,15 @@ class Hook:
             commands |= child.all_commands
         return commands
 
-    def get_command(self, name: str) -> Command:
+    def remove_command(self, name: str) -> bool:
+        cmd = self.get_local_command(name)
+        if cmd == None:
+            return False
+        self.commands.pop(cmd.name)
+        return True
+         
+
+    def get_command(self, name: str) -> Optional[Command]:
         for cmd in self.all_commands.values():
             if cmd.name == name:
                 return cmd
@@ -170,7 +177,7 @@ class Hook:
         action = act.copy()
 
         mds = self.all_middleware
-        #print(mds.keys())
+        # print(mds.keys())
         for md in mds.values():
             rez, msg = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
@@ -199,7 +206,7 @@ class Hook:
             if child.has_child(hook):
                 return True
         return False
-    
+
     def find_hook(self, hook_id: str) -> Optional[Hook]:
         if self.hook_id == hook_id:
             return self
@@ -211,11 +218,10 @@ class Hook:
 
     # remove_child removes a child hook if it is directly underneath the current node.
     def remove_child(self, hook_id: str):
-        print("remove_child", self.hook_id, hook_id)
-        import traceback
-        traceback.print_stack()
         try:
-            self.children = [child for child in self.children if child.hook_id != hook_id]
+            self.children = [
+                child for child in self.children if child.hook_id != hook_id
+            ]
         except Exception as e:
             print(e)
             pass
@@ -258,8 +264,8 @@ class Hook:
 
     # Command Hooks
 
-    def add_command(self, name: str, cmd: Command):
-        self.commands[name] = cmd
+    def add_command(self, cmd: Command):
+        self.commands[cmd.name] = cmd
         # self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
 
     # Periodic Hooks
@@ -279,15 +285,11 @@ class Hook:
 
     # Server Storage
     def server_storage(self, server_id: str):
-        return self.storage.server_storage(server_id)
+        return storage.server_storage(server_id, self.storage_name)
 
     @property
     def hook_storage(self):
-        return self.storage.hook_storage
-
-    @property
-    def global_storage(self):
-        return storage.global_storage
+        return storage.hook_storage(self.storage_name)
 
     # Traditional function decorators
 
@@ -298,34 +300,59 @@ class Hook:
             raise TypeError(
                 "Hook.command must be used as a function that returns a decorator."
             )
-        return lambda func: self.add_command(
-            func.__name__, Command(self, func.__name__, func, **kwargs)
-        )
+
+        def wrap(func):
+            self.add_command(
+                func.__name__, Command(self, func.__name__, func, **kwargs)
+            )
+            return func
+
+        return wrap
 
     def periodic(self, period: float):
         if callable(period):
             raise TypeError(
                 "Hook.periodic must be used as a function that returns a decorator."
             )
-        return lambda func: self.add_periodic(func, period)
+
+        def wrap(func):
+            self.add_periodic(func, period)
+            return func
+
+        return wrap
 
     def event(self, event_type: EventType):
         if callable(event_type):
             raise TypeError(
                 "Hook.event must be used as a function that returns a decorator."
             )
-        return lambda func: self.add_event(func, event_type)
+
+        def wrap(func):
+            self.add_event(func, event_type)
+            return func
+
+        return wrap
 
     def global_middleware(self, priority: int):
         if callable(priority):
             raise TypeError(
                 "Hook.global_middleware must be used as a function that returns a decorator."
             )
-        return lambda func: self.add_middleware(func, priority, MiddlewareType.GLOBAL)
+
+        def wrap(func):
+            self.add_middleware(func, priority, MiddlewareType.GLOBAL)
+            return func
+
+        return wrap
 
     def local_middleware(self, priority: int):
         if callable(priority):
             raise TypeError(
                 "Hook.local_middleware must be used as a function that returns a decorator."
             )
-        return lambda func: self.add_middleware(func, priority, MiddlewareType.LOCAL)
+
+        def wrap(func):
+            self.add_middleware(func, priority, MiddlewareType.LOCAL)
+            return func
+
+        return wrap

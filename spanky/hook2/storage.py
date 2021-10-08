@@ -95,38 +95,21 @@ class dsdict(dstype, collections.UserDict):
         self.sync()
         return self.data
 
+_server_cache: dict[(str, str), dsdict] = {}
 
-# TODO: is this a good idea?
-global_storage = dsdict("all_storage", "global")
+def server_storage(server_id: str, hook_id: str) -> dsdict:
+    if (server_id, hook_id) not in _server_cache:
+        _server_cache[(server_id, hook_id)] = dsdict(server_id, hook_id)
+    return _server_cache[(server_id, hook_id)]
 
+def invalidate_server_cache(server_id: str):
+    _server_cache = {k: v for k, v in _server_cache.items() if k[0] != server_id} 
 
-def invalidate_global_storage():
-    global_storage = dsdict("all_storage", "global")
+def invalidate_hook_cache(hook_id: str):
+    _server_cache = {k: v for k, v in _server_cache.items() if k[1] != hook_id} 
 
+def hook_storage(hook_id: str) -> dsdict:
+    return server_storage("unique", hook_id)
 
-class Storage:
-    def __init__(self, hook_id: str):
-        self.hook_id = hook_id
-        self.srv_stor_cache: dict[str, dsdict] = {}
-        self.hook_stor_cache: Optional[dsdict] = None
-
-    def server_storage(self, server_id: str):
-        if server_id not in self.srv_stor_cache:
-            self.srv_stor_cache[server_id] = dsdict(server_id, self.hook_id)
-        return self.srv_stor_cache[server_id]
-
-    def invalidate_cache(self, server_id: str):
-        del self.srv_stor_cache[server_id]
-
-    @property
-    def hook_storage(self):
-        if not self.hook_stor_cache:
-            self.hook_stor_cache = dsdict("unique", self.hook_id)
-        return self.hook_stor_cache
-
-    def invalidate_hook_cache(self):
-        self.srv_stor_cache = {}
-        self.hook_stor_cache = None
-
-    def data_location(self, server_id: str):
-        return str(DS_LOC / server_id / (self.hook_id + "_data")) + os.sep
+def data_location(server_id: str, hook_id: str) -> str:
+    return str(DS_LOC / server_id / (hook_id + "_data")) + os.sep

@@ -7,7 +7,6 @@ import time
 import asyncio
 
 from spanky.database.db import db_data
-from spanky.plugin.permissions import PermissionMgr
 from spanky.hook2 import hook2
 from spanky.hook2.event import EventType
 from spanky.hook2.hook_manager import HookManager
@@ -93,38 +92,12 @@ class Bot:
         await self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
 
     async def ready(self):
-        # Initialize per server permissions
-        # TODO: Remove
-        self.server_permissions = {}
-        for server in self.backend.get_servers():
-            self.server_permissions[server.id] = PermissionMgr(server)
-
         await self.run_on_ready_work()
 
         self.is_ready = True
 
     def get_servers(self):
         return self.backend.get_servers()
-
-    # TODO: Remove
-    def get_pmgr(self, server_id):
-        """
-        Get permission manager for a given server ID.
-        """
-
-        # Maybe the bot joined a server later
-        if server_id not in self.server_permissions:
-            server_list = {}
-
-            for server in self.backend.get_servers():
-                server_list[server.id] = server
-
-            if server_id in server_list.keys():
-                self.server_permissions[server_id] = PermissionMgr(
-                    server_list[server_id]
-                )
-
-        return self.server_permissions[server_id]
 
     def get_own_id(self):
         """
