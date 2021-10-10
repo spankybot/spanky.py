@@ -125,7 +125,6 @@ class Hook:
             return False
         self.commands.pop(cmd.name)
         return True
-         
 
     def get_command(self, name: str) -> Optional[Command]:
         for cmd in self.all_commands.values():
@@ -302,9 +301,7 @@ class Hook:
             )
 
         def wrap(func):
-            self.add_command(
-                func.__name__, Command(self, func.__name__, func, **kwargs)
-            )
+            self.add_command(Command(self, func.__name__, func, **kwargs))
             return func
 
         return wrap

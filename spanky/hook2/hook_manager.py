@@ -185,7 +185,7 @@ class PluginDirectory:
         self.observer.schedule(self.event_handler, path, recursive=False)
         self.observer.start()
 
-        self._lock = asyncio.Lock(loop=self.loop)
+        self._lock = asyncio.Lock()
 
         self.hook = Hook(f"plugin_dir_{path}")
         self.mgr.hook.add_child(self.hook)
@@ -251,8 +251,11 @@ class PluginDirectoryEventHandler:
             "deleted": self.on_deleted,
             "modified": self.on_modified,
             "moved": self.on_moved,
-        }[event.event_type]
+        }.get(event.event_type, self.noop)
         asyncio.run_coroutine_threadsafe(func(event), self._loop)
+    
+    async def noop(self, event):
+        print("noop for event type", event.event_type)
 
     async def on_created(self, event):
         print("create")

@@ -151,7 +151,7 @@ class DiscordUtils(abc.ABC):
             return None
 
     async def async_set_game_status(self, game_status):
-        await client.change_presence(activity=discord.CustomActivity(game_status))
+        await client.change_presence(activity=discord.Game(game_status))
 
     def get_channel(self, target, server=None):
         """
@@ -359,7 +359,7 @@ class DiscordUtils(abc.ABC):
             print(traceback.format_exc())
 
     async def async_set_avatar(self, image):
-        await client.edit_profile(avatar=image)
+        await client.user.edit(avatar=image)
 
 
 class EventPeriodic(DiscordUtils):

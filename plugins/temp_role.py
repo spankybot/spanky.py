@@ -7,12 +7,13 @@ import discord
 import csv
 import sys
 
-from spanky.plugin import hook, permissions
-from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from spanky.utils.volatile import set_vdata, get_vdata
 from collections import OrderedDict
 from spanky.plugin.permissions import Permission
+from spanky.hook2 import Hook, EventType, Command
+
+hook = Hook("temp_role", storage_name="plugins_temp_role")
 
 time_tokens = ["s", "m", "h", "d"]
 SEC_IN_MIN = 60
@@ -37,62 +38,48 @@ def register_cmd(cmd, server):
     Register a user defined command
     """
 
-    def create_it(cmd_name):
-        def do_cmd(text, server, storage, event, send_embed):
-            """
-            Temporary role assignment command as defined by server ops.
-            """
-            print("Got temp cmd %s" % cmd_name)
-            if "cmd_type" not in storage["cmds"][cmd_name]:
-                storage["cmds"][cmd_name]["cmd_type"] = "temporary"
+    cmd_name = cmd["name"]
+    def do_cmd(text, server, storage, event, send_embed):
+        """
+        Temporary role assignment command as defined by server ops.
+        """
+        print("Got temp cmd %s" % cmd_name)
+        if "cmd_type" not in storage["cmds"][cmd_name]:
+            storage["cmds"][cmd_name]["cmd_type"] = "temporary"
+            storage.sync()
 
-            ret_val = None
-            if storage["cmds"][cmd_name]["cmd_type"] == "temporary":
-                ret_val = give_temp_role(text, server, cmd_name, storage, event)
-            elif storage["cmds"][cmd_name]["cmd_type"] == "toggled":
-                ret_val = give_toggled_role(text, server, cmd_name, storage, event)
-            else:
-                return "Unknown command type"
+        ret_val = None
+        if storage["cmds"][cmd_name]["cmd_type"] == "temporary":
+            ret_val = give_temp_role(text, server, cmd_name, storage, event)
+        elif storage["cmds"][cmd_name]["cmd_type"] == "toggled":
+            ret_val = give_toggled_role(text, server, cmd_name, storage, event)
+        else:
+            return "Unknown command type"
 
-            if type(ret_val) == str:
-                return ret_val
+        if type(ret_val) == str:
+            return ret_val
 
-            # Log the action
-            log_action(
-                storage,
-                ret_val,
-                send_embed,
-                "User given the `%s` role" % storage["cmds"][cmd_name]["role_name"],
-            )
+        # Log the action
+        log_action(
+            storage,
+            ret_val,
+            send_embed,
+            "User given the `%s` role" % storage["cmds"][cmd_name]["role_name"],
+        )
 
-            return "Done."
+        return "Done."
 
-        do_cmd.__name__ = cmd_name
-        return do_cmd
-
-    globals()[cmd["name"]] = hook.command(
-        server_id=server.id, permissions=Permission.admin
-    )(create_it(cmd["name"]))
+    hook.add_command(Command(hook, cmd_name, do_cmd, server_id=server.id, permissions="admin"))
 
 
-def reload_file(bot):
-    dirname = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
-    fname = os.path.basename(os.path.abspath(__file__))
-
-    # TODO: use unified way of identifying plugins
-    bot.plugin_manager.load_plugin(dirname + "/" + fname)
-
-
-@hook.on_connection_ready()
-def init_cmds(bot):
+@hook.event(EventType.on_conn_ready)
+def init_cmds(bot, storage_getter):
     """
     Register all commands on bot ready
     """
 
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_temp_role.json"
-        )
+        storage = storage_getter(server.id)
 
         if "cmds" not in storage:
             continue
@@ -101,15 +88,8 @@ def init_cmds(bot):
             print("[%s] Registering %s" % (server.id, cmd))
             register_cmd(storage["cmds"][cmd], server)
 
-    # TODO: workaround - look into adding commands dinamically
-    if not get_vdata("temp_role_reload"):
-        print("temp_role_reload")
-        set_vdata("temp_role_reload", True)
-        reload_file(bot)
-
-
 @hook.command(permissions=Permission.admin)
-def create_temp_role_cmd(text, str_to_id, server, bot, storage):
+def create_temp_role_cmd(text, hook, str_to_id, server, bot, storage):
     """
     <command name, role> - create a command that assigns a temporary role by specifying `command_name role`
     """
@@ -127,7 +107,8 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
         return "Command length needs to be at least 5."
 
     # Check that command exists
-    if cmd in bot.plugin_manager.commands:
+
+    if hook.root.get_command(cmd) != None:
         return "Command `%s` already exists. Try using another name." % cmd
 
     # Get the given role
@@ -152,7 +133,6 @@ def create_temp_role_cmd(text, str_to_id, server, bot, storage):
     storage.sync()
 
     register_cmd(new_cmd, server)
-    reload_file(bot)
 
     return "Done"
 
@@ -169,7 +149,7 @@ def list_temp_role_cmds(storage):
 
 
 @hook.command(permissions=Permission.admin)
-def delete_temp_role_cmd(storage, text, bot):
+def delete_temp_role_cmd(storage, text, hook):
     """
     <command_name> - delete a temporary role command
     """
@@ -178,14 +158,11 @@ def delete_temp_role_cmd(storage, text, bot):
 
     for cmd in storage["cmds"].values():
         if cmd["name"] == text:
-            # Remove plugin entry from the bot and globals
-            # del bot.plugin_manager.commands[text]
-            del globals()[cmd["name"]]
+            # Remove plugin entry from the hook and globals
+            hook.remove_command(cmd["name"])
             del storage["cmds"][cmd["name"]]
 
             storage.sync()
-
-            reload_file(bot)
 
             return "Done"
 
@@ -738,12 +715,10 @@ async def check_expired_bans(server, storage):
 
 
 @hook.periodic(1)
-async def check_expired_time(bot):
+async def check_expired_time(bot, storage_getter):
     # Check timeouts for each server
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_temp_role.json"
-        )
+        storage = storage_getter(server.id)
 
         if "temp_roles" in storage:
             check_expired_roles(server, storage)

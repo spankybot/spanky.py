@@ -1,15 +1,16 @@
 import discord
-from spanky.plugin import hook
 import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
 
-from spanky.hook2.event import EventType
+from spanky.hook2 import Hook, EventType
 from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
 from spanky.plugin.permissions import Permission
 
 
 permanent_messages = []  # What permanent messages are held
+
+hook = Hook("selector", storage_name="plugins_selector")
 
 
 # DEBUG PURPOSES
@@ -215,11 +216,9 @@ def del_permanent_selector(text, storage):
 
 
 @hook.command(permissions=Permission.admin)
-async def rebuild_selectors(bot):
+async def rebuild_selectors(bot, storage_getter):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_selector.json"
-        )
+        storage = storage_getter(server.id)
 
         if "role_selectors" in storage:
             for element in list(storage["role_selectors"]):

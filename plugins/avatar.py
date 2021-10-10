@@ -17,13 +17,13 @@ TEXT_SPACE_H = 20
 @hook.command(format="user")
 def avatar(event, text, str_to_id):
     """<user or user-id> - Get someones avatar"""
-    text = str_to_id(text)
+    uid = str_to_id(text)
 
     for user in event.server.get_users():
         if text == user.name:
             return user.avatar_url
 
-        if text == user.id:
+        if uid == user.id:
             return user.avatar_url
 
     return "Not found"
@@ -46,8 +46,9 @@ async def set_avatar(event, async_set_avatar):
 
 
 @hook.command(permissions=Permission.bot_owner)
-async def set_status(async_set_game_status, text):
+async def set_status(async_set_game_status, reply, text):
     await async_set_game_status(text)
+    return "Done"
 
 
 @hook.command()

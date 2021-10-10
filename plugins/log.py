@@ -371,7 +371,7 @@ def cntusr(text):
     return get_msg_cnt_for_user(text)
 
 
-@hook.command()
-def asdasdasda(server):
-    for user in server.get_users():
-        print(user.name)
+#@hook.command()
+#def asdasdasda(server):
+#    for user in server.get_users():
+#        print(user.name)

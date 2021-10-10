@@ -11,7 +11,7 @@ from collections import OrderedDict
 ro = pytz.timezone("Europe/Bucharest")
 print(ro)
 
-debug = False
+debug =True 
 
 SERVERS = [
     "648937029433950218",  # CNC test server
@@ -23,15 +23,13 @@ ELEVATED_PERMS = [Permission.admin, Permission.bot_owner]
 
 
 @hook.periodic(10)
-def birthday_check(bot, send_message):
+def birthday_check(bot, send_message, storage_getter):
     debug_srv = None
     for server in bot.backend.get_servers():
         if server.id == "648937029433950218":
             debug_srv = server
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_birthday.json"
-        )
+        storage = storage_getter(server.id)
 
         if "birthdays" not in storage:
             continue

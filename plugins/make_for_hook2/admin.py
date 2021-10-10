@@ -1,7 +1,7 @@
 import os
 
 from spanky.plugin import hook, permissions
-from spanky.plugin.permissions import Permission, PermissionMgr
+from spanky.plugin.permissions import Permission
 from spanky.utils.setclearfactory import (
     SetClearFactory,
     data_type_string,
@@ -205,14 +205,6 @@ A group of channels can be associated to a command, so that the command can be u
         cmd=data_type_string(),
         unrestricted=data_type_list(["Yes"]),
     )
-
-
-# Invalidate storage cache for a server
-@hook.command(permissions=Permission.bot_owner)
-def invalidate_caches(bot, server):
-    bot.server_permissions[server.id] = PermissionMgr(server)
-
-    return "Done"
 
 
 #
