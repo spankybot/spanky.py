@@ -7,11 +7,9 @@ from spanky.utils.cmdparser import CmdParser
 
 
 @hook.periodic(10)
-def firewall_check(bot):
+def firewall_check(bot, storage_getter):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_firewall.json"
-        )
+        storage = storage_getter(server.id)
 
         if "fw" not in storage:
             continue

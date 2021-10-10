@@ -1,11 +1,11 @@
 - [ ] Finish legacy hook1 wrapper
 	- [x] @hook.\*
-	- [ ] legacy args suppport
-	- [ ] remove `bot.server_permissions`/`bot.get_pmgr` hack
+	- [x] legacy args suppport
+	- [x] remove `bot.server_permissions`/`bot.get_pmgr` hack
 	- [ ] little bit of testing
-- [ ] Rewrite some plugins to better fit current architecture
-	- [ ] temp\_role.py / role\_selector.py
-	- [ ] help.py
+- [x] Rewrite some plugins to better fit current architecture
+	- [x] temp\_role.py / role\_selector.py
+	- [x] help.py
 - [ ] Rewrite admin.py
 - ???
 - After the above, it can be pushed into the bot for more rigurous testing

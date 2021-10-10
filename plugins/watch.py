@@ -9,7 +9,7 @@ g_db = None
 storages = {}
 servers = {}
 
-hook = Hook("watcher")
+hook = Hook("watcher", storage_name="plugins_watch")
 
 
 def set_crt_timestamps():

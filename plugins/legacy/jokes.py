@@ -51,7 +51,6 @@ def load_joke_data():
 @hook.command(permissions=["bot_owner"])
 def reload_jokes():
     load_joke_data()
-    print(yo_momma)
     return "Reloaded."
 
 
