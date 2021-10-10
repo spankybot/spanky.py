@@ -5,7 +5,7 @@ RUN apt update && \
 
 ENV DEBIAN_FRONTEND="noninteractive" TZ="UTC"
 
-RUN apt install -y git curl wget libqalculate-dev liblqr-1-0-dev tar build-essential libre2-dev
+RUN apt install -y git curl wget libqalculate-dev liblqr-1-0-dev tar build-essential libre2-dev libpq-dev
 
 # Set custom nameserver
 RUN echo "nameserver 1.1.1.1" > /etc/resolv.conf
@@ -29,5 +29,7 @@ RUN cd /qalc && \
 	make -j4 && \
 	make install && \
 	ldconfig
+
+RUN apt install -y pybind11-dev
 
 ADD files/startup.sh /startup.sh
