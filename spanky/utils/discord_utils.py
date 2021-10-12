@@ -12,12 +12,14 @@ def get_user_by_name(server, name):
             return u
     return None
 
+
 def get_user_by_id_or_name(server, uid_or_name):
-    by_id = get_user_by_id(server, uid_or_name)
+    by_id = get_user_by_id(server, str_to_id(uid_or_name))
     if not by_id:
         return get_user_by_name(server, uid_or_name)
 
     return by_id
+
 
 def get_role_by_id(server, rid):
     return server.get_role(rid)
@@ -31,16 +33,27 @@ def get_role_by_name(server, rname):
     return None
 
 
+def get_role_by_id_or_name(server, rid_or_name):
+    by_id = get_role_by_id(server, str_to_id(rid_or_name))
+    if not by_id:
+        return get_role_by_name(server, rid_or_name)
+    return by_id
+
+
 def get_channel_by_id(server, cid):
     return server.get_chan(cid)
 
-
-def get_channel_by_id_or_name(server, name_or_id):
+def get_channel_by_name(server, cname):
     for chan in server.get_chans():
-        if chan.id == name_or_id or chan.name == name_or_id:
+        if chan.name == cname:
             return chan
-
     return None
+
+def get_channel_by_id_or_name(server, cid_or_name):
+    by_id = get_channel_by_id(server, str_to_id(cid_or_name))
+    if not by_id:
+        return get_channel_by_name(server, cid_or_name)
+    return by_id
 
 
 def str_to_id(string):
@@ -149,6 +162,7 @@ def user_has_role_name(user, rname):
 
     return False
 
+
 def user_has_role_id(user, rid):
     """
     Given a role id return True if user has the role, False otherwise
@@ -159,6 +173,7 @@ def user_has_role_id(user, rid):
             return True
 
     return False
+
 
 def remove_role_from_list(start_role, end_role, server, event, send_message):
     roles = get_role_names_between(start_role, end_role, server)

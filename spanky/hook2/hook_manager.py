@@ -253,7 +253,7 @@ class PluginDirectoryEventHandler:
             "moved": self.on_moved,
         }.get(event.event_type, self.noop)
         asyncio.run_coroutine_threadsafe(func(event), self._loop)
-    
+
     async def noop(self, event):
         print("noop for event type", event.event_type)
 

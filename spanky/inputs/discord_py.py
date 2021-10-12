@@ -1226,8 +1226,8 @@ async def on_member_unban(server, user):
 
 ### Reactions
 
-#@client.event
-#async def on_reaction_add(reaction, user):
+# @client.event
+# async def on_reaction_add(reaction, user):
 #    if user.id != client.user.id:
 #        await call_func(bot.on_reaction_add, reaction, user)
 

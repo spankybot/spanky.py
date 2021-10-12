@@ -182,9 +182,7 @@ class SetClearFactory:
             )
 
     def del_thing(self, text):
-        """
-
-        """
+        """ """
         try:
             return self._del_thing(text)
         except Exception as e:

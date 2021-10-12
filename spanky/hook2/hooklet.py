@@ -14,7 +14,9 @@ from spanky.hook2 import storage
 import asyncio
 import inspect
 from concurrent.futures import ThreadPoolExecutor
+
 executor = ThreadPoolExecutor()
+
 
 async def schedule_func(func, /, *args):
     loop = asyncio.get_running_loop()
@@ -133,10 +135,18 @@ class Command(Hooklet):
         self.name: str = self.args.pop("name", fname)
         # TODO
         # self.aliases: list[str] = self.args.pop("aliases", [])
-        self.doc: str = self.args.pop("doc", func.__doc__)
 
         if self.name == "":
             self.name = func.__name__
+
+    def get_doc(self):
+        doc = self.args.get("doc", self.func.__doc__)
+        if doc == None:
+            fmt: str = self.args.get("format", None)
+            if fmt == None:
+                return "No description provided."
+            return ' '.join(f'<{arg}>' for arg in fmt.split())
+        return doc
 
 
 class Periodic(Hooklet):

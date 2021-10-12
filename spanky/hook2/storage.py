@@ -95,21 +95,27 @@ class dsdict(dstype, collections.UserDict):
         self.sync()
         return self.data
 
+
 _server_cache: dict[(str, str), dsdict] = {}
+
 
 def server_storage(server_id: str, hook_id: str) -> dsdict:
     if (server_id, hook_id) not in _server_cache:
         _server_cache[(server_id, hook_id)] = dsdict(server_id, hook_id)
     return _server_cache[(server_id, hook_id)]
 
+
 def invalidate_server_cache(server_id: str):
-    _server_cache = {k: v for k, v in _server_cache.items() if k[0] != server_id} 
+    _server_cache = {k: v for k, v in _server_cache.items() if k[0] != server_id}
+
 
 def invalidate_hook_cache(hook_id: str):
-    _server_cache = {k: v for k, v in _server_cache.items() if k[1] != hook_id} 
+    _server_cache = {k: v for k, v in _server_cache.items() if k[1] != hook_id}
+
 
 def hook_storage(hook_id: str) -> dsdict:
     return server_storage("unique", hook_id)
+
 
 def data_location(server_id: str, hook_id: str) -> str:
     return str(DS_LOC / server_id / (hook_id + "_data")) + os.sep

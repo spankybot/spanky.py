@@ -186,12 +186,8 @@ class Hook:
         # Run middleware for the subcommand
         if isinstance(hooklet, ComplexCommand):
             cmd, action = hooklet.get_cmd(action)
-            for md in mds.values():
-                rez, msg = await md.handle(action, cmd)
-                if rez == MiddlewareResult.DENY and msg != "":
-                    action.reply(msg, timeout=15)
-                    return
-            await cmd.handle(action)
+
+            await self.run_middleware(action, cmd)
         else:
             await hooklet.handle(action)
 

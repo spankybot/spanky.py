@@ -109,7 +109,7 @@ def size(b, system=traditional):
     """Human-readable file size.
 
     Using the traditional system, where a factor of 1024 is used::
-    
+
     >>> size(10)
     '10B'
     >>> size(100)
@@ -130,7 +130,7 @@ def size(b, system=traditional):
     '976K'
     >>> size(2000000)
     '1M'
-    
+
     Using the SI system, with a factor 1000::
 
     >>> size(10, system=si)
@@ -153,7 +153,7 @@ def size(b, system=traditional):
     '1M'
     >>> size(2000000, system=si)
     '2M'
-    
+
     """
     for factor, suffix in system:
         if b >= factor:

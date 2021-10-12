@@ -1,4 +1,4 @@
-# Delay checking for typing (TODO: remove when bot runs on python 3.10)
+# Delay checking for typing (TODO: remove when bot runs on python 3.11)
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
@@ -9,10 +9,6 @@ if TYPE_CHECKING:
 from .hooklet import Command
 import inspect
 from functools import wraps
-
-
-def default_help():
-    return "Invalid subcommand name. This will be a help page someday :)"
 
 
 # ComplexCommand is a class, which must be inherited, that groups a set of subcommands under a common command name.
@@ -26,12 +22,49 @@ def default_help():
 class ComplexCommand(Command):
     def __init__(self, hook: Hook, name: str, **kwargs):
         super().__init__(hook, name, self.run_cmd, **kwargs)
-        self.subcommands: list[Any] = []
         self._sub_commands: list[Command] = []
 
-        self.help_cmd = Command(self.hook, "help", default_help)
+        self._help_cmd = Command(self.hook, "help", self.get_doc)
 
-        self.hook.add_command(self)
+        self.help_prefix = self.args.get('help_prefix', '.')
+        
+        if self.args.get('auto_add', True):
+            self.add_to_hook(hook)
+    
+    def add_to_hook(self, hook: Hook):
+        hook.add_command(self)
+
+    def get_doc(self):
+        text = f"Command usage: `{self.help_prefix}{self.name} <subcommand>`\n"
+        text += "Available subcommands:\n"
+        cmds = 0
+        for subcmd in self._sub_commands:
+            if subcmd.name == "help":
+                continue
+            cmds += 1
+            if isinstance(subcmd, ComplexCommand):
+                text += f"- `{subcmd.name} <subcommand>`: Available subcommands:\n{subcmd.get_suborder_doc()}"
+            else:
+                text += f"- `{subcmd.name}`: {subcmd.get_doc()}\n"
+        if cmds == 0:
+            text += "- No available subcommands"
+        return text
+
+    def get_suborder_doc(self):
+        cmds = 0
+        text = ""
+        for subcmd in self._sub_commands:
+            if subcmd.name == "help":
+                continue
+
+            if isinstance(subcmd, ComplexCommand):
+                text += f"> - `{subcmd.name} <subcommand>`:\n{subcmd.get_suborder_doc()}"
+            else:
+                text += f"> - `{subcmd.name}`: {subcmd.get_doc()}\n"
+            cmds += 1
+        if cmds == 0:
+            return "> No available subcommands\n"
+        return text
 
     def subcommand(self, **kwargs):
         def make_cmd(func):
@@ -42,20 +75,27 @@ class ComplexCommand(Command):
 
         return make_cmd
 
-    def help(self, **kwargs):
+    def help_cmd(self, **kwargs):
         def make_cmd(func):
             cmd = Command(self.hook, "help", func, **kwargs)
             self._sub_commands.append(cmd)
-            self.help_cmd = cmd
+            self._help_cmd = cmd
             return func
 
         return make_cmd
+
+    def complex_subcommand(self, name: str, **kwargs) -> ComplexCommand:
+        kwargs["auto_add"] = False
+        kwargs["help_prefix"] = self.help_prefix + self.name + " "
+        cmd = ComplexCommand(self.hook, name, **kwargs)
+        self._sub_commands.append(cmd)
+        return cmd
 
     def get_cmd(self, action: ActionCommand) -> tuple[Command, ActionCommand]:
         cmd_split = action.text.split(maxsplit=1)
 
         if len(cmd_split) == 0:
-            return self.help_cmd, action
+            return self._help_cmd, action
         cmdname = cmd_split[0]
         if len(cmd_split) == 1:
             cmd_split.append("")
@@ -67,7 +107,7 @@ class ComplexCommand(Command):
                 print(cmd.name)
                 return cmd, act
 
-        return self.help_cmd, action
+        return self._help_cmd, action
 
     async def run_cmd(self, action: ActionCommand):
         cmd, action = self.get_cmd(action)
