@@ -32,6 +32,6 @@ def subcmd2():
     return "Subcomandă"
 
 
-@test_cmd.help()
+@test_cmd.help_cmd()
 def help():
     return "Help suprascris"

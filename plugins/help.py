@@ -7,8 +7,9 @@ from spanky.plugin.permissions import Permission
 @hook.command()
 def help(hook, text, event, send_embed):
     """Get help for a command or the help document"""
-    if text in [cmd.name for cmd in hook.root.all_commands.values()]:
-        send_embed(text, "", {"Usage:": hook.root.get_command(text).doc})
+    cmd = hook.root.get_command(text)
+    if cmd != None:
+        send_embed(text, "", {"Usage:": hook.root.get_command(text).get_doc()})
         return
 
     send_embed(

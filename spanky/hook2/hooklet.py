@@ -139,9 +139,11 @@ class Command(Hooklet):
         if self.name == "":
             self.name = func.__name__
 
-    def get_doc(self):
+    def get_doc(self, no_format=False):
         doc = self.args.get("doc", self.func.__doc__)
         if doc == None:
+            if no_format:
+                return None
             fmt: str = self.args.get("format", None)
             if fmt == None:
                 return "No description provided."

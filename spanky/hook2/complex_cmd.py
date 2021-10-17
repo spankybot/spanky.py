@@ -104,7 +104,6 @@ class ComplexCommand(Command):
             if cmd.name == cmdname:
                 act = action.copy()
                 act.text = cmd_split[1]
-                print(cmd.name)
                 return cmd, act
 
         return self._help_cmd, action
