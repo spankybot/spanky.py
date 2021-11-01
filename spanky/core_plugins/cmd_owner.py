@@ -18,6 +18,8 @@ hook = Hook("cmd_owner_hook", storage_name="plugins_admin.json")
 
 @hook.global_middleware(priority=15)
 def check_cmd_owner(action: ActionCommand, hooklet: Command):
+    if action.is_pm:
+        return
     # If not already admin, we should add that he is "technically" an admin for the owner.
     cmd = CmdPerms(hook.server_storage(action.server_id), action.triggered_command)
     if "admin" not in action.context["perms"]["creds"]:
@@ -30,6 +32,8 @@ def check_cmd_owner(action: ActionCommand, hooklet: Command):
 
 @hook.global_middleware(priority=20)
 def check_chgroups(action: ActionCommand, hooklet: Command):
+    if action.is_pm:
+        return
     storage = hook.server_storage(action.server_id)
     cmd = CmdPerms(storage, action.triggered_command)
     if cmd.customized:

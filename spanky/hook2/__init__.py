@@ -3,6 +3,7 @@ from .event import EventType
 from .actions import Action, ActionCommand
 from .hooklet import Hooklet, Command, Event, Periodic, MiddlewareResult
 from .complex_cmd import ComplexCommand
+from .storage import server_storage
 
 __all__ = (
     Hook,
@@ -15,4 +16,5 @@ __all__ = (
     Periodic,
     ComplexCommand,
     MiddlewareResult,
+    server_storage,
 )

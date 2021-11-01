@@ -12,6 +12,10 @@ def check_server_id(action: ActionCommand, hooklet: Command):
         return MiddlewareResult.CONTINUE
     if isinstance(server_id, int):
         server_id = str(server_id)
+
+    if action.is_pm:
+        return MiddlewareResult.DENY, ""
+
     if type(server_id) == str:
         good_server = action.server_id == server_id
     elif type(server_id) == list:

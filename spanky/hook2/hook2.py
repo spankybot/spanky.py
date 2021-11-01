@@ -245,9 +245,15 @@ class Hook:
                     tasks.append(asyncio.create_task(periodic.handle(action)))
 
         # Gobble all matching event coroutines
-        for event_hooklet in self.events.values():
-            if event_hooklet.event_type == action.event_type:
-                tasks.append(asyncio.create_task(event_hooklet.handle(action)))
+        # If it's a message in a PM, don't register the event (compatibility with hook1)
+        if not (
+            action.is_pm
+            and action.event_type
+            in [EventType.message, EventType.message_del, EventType.message_edit]
+        ):
+            for event_hooklet in self.events.values():
+                if event_hooklet.event_type == action.event_type:
+                    tasks.append(asyncio.create_task(event_hooklet.handle(action)))
 
         # Gobble children dispatch coroutines
         for child in self.children:
@@ -278,7 +284,9 @@ class Hook:
             self.global_md[func.__name__] = Middleware(self, func, m_type, priority)
 
     # Server Storage
-    def server_storage(self, server_id: str):
+    def server_storage(self, server_id: Optional[str]):
+        if not server_id:
+            return None
         return storage.server_storage(server_id, self.storage_name)
 
     @property

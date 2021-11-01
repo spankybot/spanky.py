@@ -46,6 +46,8 @@ def perm_bot_owner(action: ActionCommand, hooklet: Command):
 
 @hook.global_middleware(priority=10)
 def perm_admin(action: ActionCommand, hooklet: Command):
+    if action.is_pm:
+        return
     storage = hook.server_storage(action.server_id)
     if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
         if hooklet.args.get("permissions", None) != None:
