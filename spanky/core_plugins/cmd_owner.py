@@ -96,7 +96,7 @@ class CmdPerms:
             for chgroup in storage["commands"][cmd]["groups"]:
                 if "channels" in storage["chgroups"][chgroup].keys():
                     self.channel_ids.extend(storage["chgroups"][chgroup]["channels"])
-            if len(self.channel_ids) > 0:
+            if len(self.chgroups) > 0:
                 self.customized = True
 
         if "fgroups" in storage["commands"][cmd].keys():
@@ -104,7 +104,7 @@ class CmdPerms:
 
             for chgroup in storage["commands"][cmd]["fgroups"]:
                 self.fchannel_ids.extend(storage["chgroups"][chgroup]["channels"])
-            if len(self.fchannel_ids) > 0:
+            if len(self.fchgroups) > 0:
                 self.customized = True
 
         if (
