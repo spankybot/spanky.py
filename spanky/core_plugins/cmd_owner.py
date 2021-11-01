@@ -578,7 +578,7 @@ def migration_help():
 
 
 # TODO
-@admin_master_cmd.subcommand(format="cmd")
+@hook.command(permissions="bot_owner")
 def command_properties(storage, text, id_to_chan, id_to_role_name):
     """Get set command properties"""
     if text not in storage["commands"]:
