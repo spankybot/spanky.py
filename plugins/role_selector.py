@@ -283,8 +283,8 @@ def create_selector(text, str_to_id, server, bot, storage):
         return "Selector command length needs to be at least 5 characters long."
 
     # Check that command exists
-    if cmd in bot.plugin_manager.commands:
-        return f"Command {cmd} already exists. Try using another name."
+    if hook.root.get_command(cmd) != None:
+        return f"Command `{cmd}` already exists. Try using another name."
 
     # initialize command
     if "selectors" not in storage:
