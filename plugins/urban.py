@@ -13,7 +13,7 @@ define_url = base_url + "/define"
 random_url = base_url + "/random"
 
 
-@hook.command()
+@hook.command(aliases=["ud"])
 async def urban(text, reply, async_send_message):
     """urban <phrase> [id] -- Looks up <phrase> on urbandictionary.com."""
 

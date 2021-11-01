@@ -155,3 +155,11 @@ def system(send_message):
     )
 
     return msg
+
+@hook.command(permissions=Permission.bot_owner)
+def list_bot_servers(bot):
+    msg = ""
+    for server in bot.backend.get_servers():
+        msg += "Name: %s, ID: %s\n" % (server.name, server.id)
+
+    return msg

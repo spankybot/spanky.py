@@ -25,4 +25,3 @@ def command_args(action: ActionCommand, hooklet: Command):
         return
     param_list = extract_params(param_list)
     action.context["cmd_args"] = map_params(action.text, param_list)
-    print(param_list, action.context)

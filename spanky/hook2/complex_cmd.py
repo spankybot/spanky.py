@@ -11,7 +11,7 @@ import inspect
 from functools import wraps
 
 
-# ComplexCommand is a class, which must be inherited, that groups a set of subcommands under a common command name.
+# ComplexCommand is a hooklet that groups a set of subcommands under a common command name.
 # This might still be a bit buggy!
 # An effective example will be located in spanky/core_plugins/perms.py
 # Please note that middleware is parsed separately for the command and the subcommand:
@@ -24,15 +24,18 @@ class ComplexCommand(Command):
         super().__init__(hook, name, self.run_cmd, **kwargs)
         self._sub_commands: list[Command] = []
 
-        self._help_cmd = Command(self.hook, "help", self.get_doc)
+        self._help_cmd = Command(self.hook, "help", self.__default_help_func)
 
-        self.help_prefix = self.args.get('help_prefix', '.')
-        
-        if self.args.get('auto_add', True):
+        self.help_prefix = self.args.get("help_prefix", ".")
+
+        if self.args.get("auto_add", True):
             self.add_to_hook(hook)
-    
+
     def add_to_hook(self, hook: Hook):
         hook.add_command(self)
+
+    def __default_help_func(self, send_embed):
+        send_embed(self.name, "**Usage:**\n" + self.get_doc())
 
     def get_doc(self):
         text = f"Command usage: `{self.help_prefix}{self.name} <subcommand>`\n"
@@ -58,7 +61,9 @@ class ComplexCommand(Command):
                 continue
 
             if isinstance(subcmd, ComplexCommand):
-                text += f"> - `{subcmd.name} <subcommand>`:\n{subcmd.get_suborder_doc()}"
+                text += (
+                    f"> - `{subcmd.name} <subcommand>`:\n{subcmd.get_suborder_doc()}"
+                )
             else:
                 text += f"> - `{subcmd.name}`: {subcmd.get_doc()}\n"
             cmds += 1

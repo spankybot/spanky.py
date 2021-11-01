@@ -83,7 +83,7 @@ class Plugin:
     # finalize_hooks fires on_start and (if the bot is already loaded) on_ready and on_conn_ready events to the hooks
     async def finalize_hooks(self):
         tasks = []
-        print("Finalizing hooks", self.hooks)
+        # print("Finalizing hooks", self.hooks)
         for hook in self.hooks:
             # print(hook.hook_id)
             self.plugin_hook.add_child(hook)
@@ -130,7 +130,7 @@ class Plugin:
     def unload(self):
         if not self.loaded:
             return
-        print(f"Unloading plugin {self.name}")
+        # print(f"Unloading plugin {self.name}")
         self.plugin_hook.unload()
         if self.legacy_hook:
             self.legacy_hook.unload()
@@ -255,7 +255,9 @@ class PluginDirectoryEventHandler:
         asyncio.run_coroutine_threadsafe(func(event), self._loop)
 
     async def noop(self, event):
-        print("noop for event type", event.event_type)
+        # no need to know about no-ops
+        # print("noop for event type", event.event_type)
+        pass
 
     async def on_created(self, event):
         print("create")

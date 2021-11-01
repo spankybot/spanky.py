@@ -127,7 +127,7 @@ def get_log_stream(event, args):
         # a dumb hack to bypass the fact windows does not allow * in file names
         new_filename = new_filename.replace("*", "server")
 
-        log_stream = codecs.open(new_filename, mode="a", encoding="utf-8", buffering=1)
+        log_stream = codecs.open(new_filename, mode="a", encoding="utf-8")
         stream_cache[cache_key] = (new_filename, log_stream)
 
     return log_stream

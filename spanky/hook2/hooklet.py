@@ -133,8 +133,9 @@ class Command(Hooklet):
         super().__init__(hook, f"{hook.hook_id}_{fname}", func)
         self.args: dict[str, Any] = kwargs
         self.name: str = self.args.pop("name", fname)
-        # TODO
-        # self.aliases: list[str] = self.args.pop("aliases", [])
+        self.aliases: list[str] = self.args.pop("aliases", [])
+        if not isinstance(self.aliases, list):
+            self.aliases = [self.aliases]
 
         if self.name == "":
             self.name = func.__name__
@@ -147,8 +148,8 @@ class Command(Hooklet):
             fmt: str = self.args.get("format", None)
             if fmt == None:
                 return "No description provided."
-            return ' '.join(f'<{arg}>' for arg in fmt.split())
-        return doc
+            return " ".join(f"<{arg}>" for arg in fmt.split())
+        return doc.strip()
 
 
 class Periodic(Hooklet):

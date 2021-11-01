@@ -9,7 +9,7 @@ def help(hook, text, event, send_embed):
     """Get help for a command or the help document"""
     cmd = hook.root.get_command(text)
     if cmd != None:
-        send_embed(text, "", {"Usage:": hook.root.get_command(text).get_doc()})
+        send_embed(cmd.name, "**Usage:**\n"+ hook.root.get_command(text).get_doc())
         return
 
     send_embed(

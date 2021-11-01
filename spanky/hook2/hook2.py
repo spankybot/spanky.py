@@ -128,13 +128,13 @@ class Hook:
 
     def get_command(self, name: str) -> Optional[Command]:
         for cmd in self.all_commands.values():
-            if cmd.name == name:
+            if cmd.name == name or name in cmd.aliases:
                 return cmd
         return None
 
     def get_local_command(self, name: str) -> Command:
         for cmd in self.commands.values():
-            if cmd.name == name:
+            if cmd.name == name or name in cmd.aliases:
                 return cmd
         return None
 
@@ -180,8 +180,7 @@ class Hook:
         for md in mds.values():
             rez, msg = await md.handle(action, hooklet)
             if rez == MiddlewareResult.DENY:
-                print("blocking from", md.hooklet_id, "with reason", msg)
-                action.reply(msg)
+                action.reply(msg, timeout=15)
                 return
         # Run middleware for the subcommand
         if isinstance(hooklet, ComplexCommand):
