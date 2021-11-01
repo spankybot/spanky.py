@@ -566,7 +566,7 @@ class User():
                 if self._raw.premium_since:
                     # get nitro role
                     for role in self.roles:
-                        if role.name == "Nitro Booster":
+                        if role.booster:
                             nitro = role._raw
 
                     found = False
@@ -876,8 +876,18 @@ class Server():
         for role in self._raw.roles:
             if role.name == role_name:
                 await role.delete()
+                return
 
         print("Could not find role %s to delete" % role_name)
+
+    async def delete_role_by_id(self, role_id):
+        role_id = int(role_id)
+        for role in self._raw.roles:
+            if role.id == role_id:
+                await role.delete()
+                return
+
+        print("Could not find role %s to delete" % role_id)
 
     @property
     def banner_url(self):
@@ -922,6 +932,9 @@ class Role():
         self.name = obj.name
         self.id = str(obj.id)
         self.position = obj.position
+        self.booster = False
+        if hasattr(obj, 'is_premium_subscriber'):
+            self.booster = obj.is_premium_subscriber()
         self._raw = obj
 
     @property
@@ -1098,10 +1111,10 @@ async def on_member_unban(server, user):
 ###
 
 ### Reactions
-@client.event
-async def on_reaction_add(reaction, user):
-    if user.id != client.user.id:
-        await call_func(bot.on_reaction_add, reaction, user)
+# @client.event
+# async def on_reaction_add(reaction, user):
+#     if user.id != client.user.id:
+#         await call_func(bot.on_reaction_add, reaction, user)
 
 async def on_reaction_remove(reaction, user):
     if user.id != client.user.id:
