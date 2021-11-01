@@ -1,12 +1,14 @@
 import subprocess
-from spanky.plugin import hook
 from oslo_concurrency import lockutils
 from wand.image import Image as wand_img
+from spanky.hook2 import Hook, EventType
+
+hook = Hook("img_manip")
 
 
-@lockutils.synchronized('not_thread_safe')
+@lockutils.synchronized("not_thread_safe")
 def make_df(frame):
-    frame.transform(resize='800x800>')
+    frame.transform(resize="800x800>")
 
     frame.contrast_stretch(black_point=0.4, white_point=0.5)
     frame.modulate(saturation=800)
@@ -24,7 +26,7 @@ def df(event, send_file, send_message):
         img.proc_each_wand_frame(make_df, send_file, send_message)
 
 
-@lockutils.synchronized('not_thread_safe')
+@lockutils.synchronized("not_thread_safe")
 def make_flip(frame):
     frame.flip()
     return frame
@@ -39,7 +41,7 @@ def flip(event, send_file, send_message):
         img.proc_each_wand_frame(make_flip, send_file, send_message)
 
 
-@lockutils.synchronized('not_thread_safe')
+@lockutils.synchronized("not_thread_safe")
 def make_resize(frame, width, height):
     frame.resize(width, height)
     return frame
@@ -51,11 +53,10 @@ def resize(event, send_file, send_message, cmd_args):
     Resize image
     """
     for img in event.image:
-        img.proc_each_wand_frame(
-            make_resize, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(make_resize, send_file, send_message, cmd_args)
 
 
-@lockutils.synchronized('not_thread_safe')
+@lockutils.synchronized("not_thread_safe")
 def make_flop(frame):
     frame.flop()
     return frame
@@ -70,7 +71,7 @@ def flop(event, send_file, send_message):
         img.proc_each_wand_frame(make_flop, send_file, send_message)
 
 
-@lockutils.synchronized('not_thread_safe')
+@lockutils.synchronized("not_thread_safe")
 def make_implode(frame, amount):
     print(amount)
     frame.implode(amount)
@@ -83,8 +84,7 @@ def implode(event, send_file, send_message, cmd_args):
     Implode image
     """
     for img in event.image:
-        img.proc_each_wand_frame(
-            make_implode, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(make_implode, send_file, send_message, cmd_args)
 
 
 def make_negate(frame):
@@ -102,10 +102,11 @@ def negate(event, send_file, send_message):
 
 
 def make_imgtext(frame, text):
-    frame.transform(resize='400x400>')
+    frame.transform(resize="400x400>")
 
-    proc = subprocess.Popen(["gif", "text", text], stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE)
+    proc = subprocess.Popen(
+        ["gif", "text", text], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    )
 
     out = proc.communicate(wand_img(frame).make_blob("png"))[0]
 
@@ -113,26 +114,27 @@ def make_imgtext(frame, text):
     return result
 
 
-@hook.command(params="string:text")
-def img_text(event, send_file, send_message, cmd_args):
+@hook.command()
+def img_text(event, send_file, send_message, text):
     """
     Add text to image
     """
     for img in event.image:
-        img.proc_each_wand_frame(
-            make_imgtext, send_file, send_message, cmd_args)
+        img.proc_each_wand_frame(make_imgtext, send_file, send_message, {"text":text})
 
 
 def make_gif_app_caller(frame, effect):
-    frame.transform(resize='400x400>')
+    frame.transform(resize="400x400>")
 
-    proc = subprocess.Popen(["gif", effect], stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE)
+    proc = subprocess.Popen(
+        ["gif", effect], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    )
 
     out = proc.communicate(wand_img(frame).make_blob("png"))[0]
 
     result = wand_img(blob=out)
     return result
+
 
 # @hook.command()
 # def ggif(event, send_file, text, send_message):
@@ -157,23 +159,25 @@ gif_effects = [
     "rain",
     "scan",
     "noise",
-    "cat"
+    "cat",
 ]
 
-
+@hook.event(EventType.on_start)
 def init_funcs():
     def do_func(effect):
         def f(event, send_file, send_message):
             for img in event.image:
                 args = {"effect": effect}
-                img.proc_each_wand_frame(make_gif_app_caller, send_file,
-                                         send_message, args)
+                img.proc_each_wand_frame(
+                    make_gif_app_caller, send_file, send_message, args
+                )
+
         f.__name__ = effect
 
         return f
 
     for i in gif_effects:
-        globals()[i] = hook.command()(do_func(i))
+        hook.command()(do_func(i))
 
 
 init_funcs()

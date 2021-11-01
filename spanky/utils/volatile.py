@@ -1,8 +1,10 @@
 # Save volatile data, per bot session
 vol_stor = {}
 
+
 def set_vdata(key, val):
     vol_stor[key] = val
+
 
 def get_vdata(key):
     if key in vol_stor:

@@ -8,10 +8,10 @@ import pytz
 import discord
 from collections import OrderedDict
 
-ro = pytz.timezone('Europe/Bucharest')
+ro = pytz.timezone("Europe/Bucharest")
 print(ro)
 
-debug = False
+debug = False 
 
 SERVERS = [
     "648937029433950218",  # CNC test server
@@ -21,23 +21,25 @@ SERVERS = [
 ]
 ELEVATED_PERMS = [Permission.admin, Permission.bot_owner]
 
+
 @hook.periodic(10)
-def birthday_check(bot, send_message):
+def birthday_check(bot, send_message, storage_getter):
     debug_srv = None
     for server in bot.backend.get_servers():
         if server.id == "648937029433950218":
             debug_srv = server
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage("plugins_birthday.json")
+        storage = storage_getter(server.id)
 
         if "birthdays" not in storage:
             continue
-        
+
         check_birthdays(server, storage, send_message, debug_srv)
+
 
 def check_birthdays(server, storage, send_message, dbg_srv, force=False):
     global last_time
-    
+
     now = datetime.now()
 
     try:
@@ -53,19 +55,20 @@ def check_birthdays(server, storage, send_message, dbg_srv, force=False):
         else:
             if now.hour == last_time.hour:
                 return
-   
+
     # reset last_time
     last_time = now
 
-    ro_now = now.astimezone(ro)#ro.localize(now)
+    ro_now = now.astimezone(ro)  # ro.localize(now)
     if debug:
         hour = ro_now.minute
     else:
         hour = ro_now.hour
-    
+
     update_roles(server, storage, ro_now, send_message, dbg_srv)
-    if hour == 8: # 8am
+    if hour == 8:  # 8am
         send_messages(server, storage, ro_now, send_message, dbg_srv)
+
 
 def update_roles(server, storage, now, send_message, dbg_srv):
     if "role" not in storage:
@@ -73,7 +76,7 @@ def update_roles(server, storage, now, send_message, dbg_srv):
     role = server.get_role(storage["role"])
     if not role:
         return
-    
+
     (month, day) = (str(now.month), str(now.day))
 
     for user in role.members:
@@ -92,6 +95,7 @@ def update_roles(server, storage, now, send_message, dbg_srv):
             debug_msg(dbg_srv, send_message, f"User <@{user.id}> not found.")
             continue
         user.add_role(role)
+
 
 def send_messages(server, storage, now, send_message, dbg_srv):
     if "chan" not in storage:
@@ -115,34 +119,55 @@ def send_messages(server, storage, now, send_message, dbg_srv):
             continue
         msg = storage["bday_message"].replace("<userid>", f"<@{user.id}>")
         try:
-            send_message(msg, server=server, target=chan.id, check_old=False, allowed_mentions=discord.AllowedMentions(everyone=False, users=[user._raw], roles=False))
+            send_message(
+                msg,
+                server=server,
+                target=chan.id,
+                check_old=False,
+                allowed_mentions=discord.AllowedMentions(
+                    everyone=False, users=[user._raw], roles=False
+                ),
+            )
         except Exception as e:
             debug_msg(dbg_srv, send_message, f"Send Message Exception: {str(e)}")
             import traceback
+
             print(traceback.format_exc())
 
+
 def debug_msg(debug_srv, send_message, msg):
-    send_message(f"(Birthday debug) {msg}", server=debug_srv, target="869130692490059816", check_old=False)
+    send_message(
+        f"(Birthday debug) {msg}",
+        server=debug_srv,
+        target="869130692490059816",
+        check_old=False,
+    )
+
 
 def get_date():
     date = datetime.today()
     return (date.day, date.month)
 
+
 def validate_date(day, month):
     try:
-        date = datetime(2020, month, day) # 2020 is leap year, so 29 February should count as valid
+        date = datetime(
+            2020, month, day
+        )  # 2020 is leap year, so 29 February should count as valid
         return True
     except:
         return False
 
+
 def parse_day(text):
     try:
-        (day, month) = text.split('-')
+        (day, month) = text.split("-")
         if not validate_date(int(day), int(month)):
             raise Exception("Invalid date")
         return (str(int(day)), str(int(month)))
     except:
         raise Exception("Invalid date")
+
 
 def find_user(uid, storage):
     for month, month_data in storage["birthdays"].items():
@@ -151,21 +176,26 @@ def find_user(uid, storage):
                 return (str(day), str(month))
     return None
 
+
 def is_bday_boy(uid, storage, date: datetime):
     date = (str(date.day), str(date.month))
     if date == find_user(uid, storage):
         return True
     return False
 
+
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def bday_dbg(text, reply, server, storage):
     # Rectify incorrect keys
     for month, month_data in [*storage["birthdays"].items()]:
         for day in [*month_data.keys()]:
-            storage["birthdays"][month][str(int(day))] = storage["birthdays"][month].pop(day)
+            storage["birthdays"][month][str(int(day))] = storage["birthdays"][
+                month
+            ].pop(day)
         storage["birthdays"][str(int(month))] = storage["birthdays"].pop(month)
     storage.sync()
     return str(storage["birthdays"])
+
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def trigger_check(server, storage, send_message, bot):
@@ -177,8 +207,10 @@ def trigger_check(server, storage, send_message, bot):
         check_birthdays(server, storage, send_message, debug_srv, force=True)
     except:
         import traceback
+
         return str(traceback.format_exc())
     return "Done."
+
 
 @hook.command(permissions=ELEVATED_PERMS, server_id=SERVERS)
 def birthday(text, reply, server, storage):
@@ -187,7 +219,7 @@ def birthday(text, reply, server, storage):
     Manage birthday announcements.
 
     See `.birthday help` for more info
-    """ 
+    """
 
     defaultBdayMsg = "<userid> La multzean baaaaaa"
 
@@ -207,7 +239,9 @@ def birthday(text, reply, server, storage):
 All birthdays:
 
 """
-        for month, month_data in OrderedDict(sorted(storage["birthdays"].items())).items():
+        for month, month_data in OrderedDict(
+            sorted(storage["birthdays"].items())
+        ).items():
             for day, day_data in OrderedDict(sorted(month_data.items())).items():
                 msg += f"{datetime.now().year}-{month}-{day}:\n"
                 users = []
@@ -217,7 +251,7 @@ All birthdays:
                         del storage["birthdays"][month][day][idx]
                         continue
                     users.append(f"<@{user}>")
-                msg += ', '.join(users)
+                msg += ", ".join(users)
                 msg += "\n\n"
         storage.sync()
         reply(msg, allowed_mentions=discord.AllowedMentions.none())
@@ -261,7 +295,7 @@ All birthdays:
         del storage["chan"]
         storage.sync()
         reply("Channel unset.")
-    
+
     def bday_add(text):
         user = server.get_user(dutils.str_to_id(text[0]))
         if not user:
@@ -273,22 +307,22 @@ All birthdays:
         except Exception as e:
             reply(str(e))
             return
-        
+
         if find_user(user.id, storage):
             reply("User already has a birthday set, remove him first!")
             return
-        
+
         if date[1] not in storage["birthdays"]:
             storage["birthdays"][date[1]] = {}
 
         if date[0] not in storage["birthdays"][date[1]]:
-            storage["birthdays"][date[1]][date[0]] = [] 
+            storage["birthdays"][date[1]][date[0]] = []
 
         storage["birthdays"][date[1]][date[0]].append(user.id)
         storage.sync()
 
         reply("Added birthday.")
-    
+
     def bday_remove(text):
         user = server.get_user(dutils.str_to_id(text[0]))
         if not user:
@@ -342,17 +376,17 @@ All birthdays:
             storage["birthdays"][new_date[1]] = {}
 
         if new_date[0] not in storage["birthdays"][new_date[1]]:
-            storage["birthdays"][new_date[1]][new_date[0]] = [] 
-        
+            storage["birthdays"][new_date[1]][new_date[0]] = []
+
         storage["birthdays"][new_date[1]][new_date[0]].append(user.id)
         storage.sync()
 
         reply("Updated birthday date.")
-    
+
     def bday_setMessage(text):
         if len(text) == 0:
             text = [defaultTopMsg]
-        storage["bday_message"] = ' '.join(text) 
+        storage["bday_message"] = " ".join(text)
         reply(f'Updated birthday message to "{" ".join(text)}"')
 
     parser = CmdParser(
@@ -363,83 +397,75 @@ All birthdays:
                 "command",
                 "birthday command",
                 options=[
-                    CmdParser(
-                        "list",
-                        "List birthdays",
-                        action=bday_list),
+                    CmdParser("list", "List birthdays", action=bday_list),
                     CmdParser(
                         "add",
                         "Add birthday",
-                        args=[CmdParser(
-                            "user",
-                            "User to celebrate",
-                            required=True),
+                        args=[
+                            CmdParser("user", "User to celebrate", required=True),
                             CmdParser(
-                            "bday",
-                            "Birthday date (format: DD-MM)",
-                            required=True
-                            )],
-                        action=bday_add),
+                                "bday", "Birthday date (format: DD-MM)", required=True
+                            ),
+                        ],
+                        action=bday_add,
+                    ),
                     CmdParser(
                         "updateMessage",
                         "Update birthday message",
-                        args=[CmdParser(
-                            "user",
-                            "User to update",
-                            required=True),
+                        args=[
+                            CmdParser("user", "User to update", required=True),
                             CmdParser(
-                            "message",
-                            "Birthday message. Use <userid> for the mention",
-                            required=False)],
-                        action=bday_setMessage),
+                                "message",
+                                "Birthday message. Use <userid> for the mention",
+                                required=False,
+                            ),
+                        ],
+                        action=bday_setMessage,
+                    ),
                     CmdParser(
                         "updateDate",
                         "Update birthday date",
-                        args=[CmdParser(
-                            "user",
-                            "User to update",
-                            required=True),
+                        args=[
+                            CmdParser("user", "User to update", required=True),
                             CmdParser(
-                            "date",
-                            "Birthday date (format: DD-MM)",
-                            required=True)],
-                        action=bday_setDate),
+                                "date", "Birthday date (format: DD-MM)", required=True
+                            ),
+                        ],
+                        action=bday_setDate,
+                    ),
                     CmdParser(
                         "remove",
                         "Remove birthday",
-                        args=[CmdParser(
-                            "user",
-                            "User to remove birthday",
-                            required=True)],
-                        action=bday_remove),
+                        args=[
+                            CmdParser("user", "User to remove birthday", required=True)
+                        ],
+                        action=bday_remove,
+                    ),
                     CmdParser(
                         "setRole",
                         "Set birthday role",
-                        args=[CmdParser(
-                            "role",
-                            "Role to set",
-                            required=True)],
-                        action=bday_set_role),
-                    CmdParser(
-                        "delRole",
-                        "Unset birthday role",
-                        action=bday_del_role),
+                        args=[CmdParser("role", "Role to set", required=True)],
+                        action=bday_set_role,
+                    ),
+                    CmdParser("delRole", "Unset birthday role", action=bday_del_role),
                     CmdParser(
                         "setChan",
                         "Set birthday message channel",
-                        args=[CmdParser(
-                            "chan",
-                            "Channel to send messages in",
-                            required=True)],
-                        action=bday_set_channel),
+                        args=[
+                            CmdParser(
+                                "chan", "Channel to send messages in", required=True
+                            )
+                        ],
+                        action=bday_set_channel,
+                    ),
                     CmdParser(
                         "delChan",
                         "Unset birthday message channel",
-                        action=bday_del_channel
+                        action=bday_del_channel,
                     ),
-                ]
+                ],
             )
-        ]
+        ],
     )
 
     try:
@@ -448,4 +474,3 @@ All birthdays:
         return "```\n" + str(e) + "\n```"
     except CmdParser.Exception as e:
         return "```\n" + str(e) + "\n```"
-

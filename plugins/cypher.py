@@ -42,14 +42,14 @@ def decode(password, encoded, notice):
     dec = []
     try:
         encoded_bytes = base64.urlsafe_b64decode(encoded.encode()).decode()
-    except binascii.Error:
+        for i in range(len(encoded_bytes)):
+            key_c = password[i % len(password)]
+            dec_c = chr((256 + ord(encoded_bytes[i]) - ord(key_c)) % 256)
+            dec.append(dec_c)
+        return "".join(dec)
+    except:
         notice("Invalid input '{}'".format(encoded))
         return
-    for i in range(len(encoded_bytes)):
-        key_c = password[i % len(password)]
-        dec_c = chr((256 + ord(encoded_bytes[i]) - ord(key_c)) % 256)
-        dec.append(dec_c)
-    return "".join(dec)
 
 
 @hook.command(format="pass str")

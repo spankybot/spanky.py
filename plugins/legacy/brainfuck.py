@@ -10,21 +10,22 @@ from spanky.plugin import hook
 BUFFER_SIZE = 5000
 MAX_STEPS = 1000000
 
-@hook.command
+
+@hook.command()
 def brainfuck(text):
     """<prog> - executes <prog> as Brainfuck code
     :type text: str
     """
 
-    program = re.sub('[^][<>+-.,]', '', text)
+    program = re.sub("[^][<>+-.,]", "", text)
 
     # create a dict of brackets pairs, for speed later on
     brackets = {}
     open_brackets = []
     for pos in range(len(program)):
-        if program[pos] == '[':
+        if program[pos] == "[":
             open_brackets.append(pos)
-        elif program[pos] == ']':
+        elif program[pos] == "]":
             if len(open_brackets) > 0:
                 brackets[pos] = open_brackets[-1]
                 brackets[open_brackets[-1]] = pos
@@ -45,29 +46,29 @@ def brainfuck(text):
     # the main program loop:
     while ip < len(program):
         c = program[ip]
-        if c == '+':
+        if c == "+":
             memory[mp] = (memory[mp] + 1) % 256
-        elif c == '-':
+        elif c == "-":
             memory[mp] = (memory[mp] - 1) % 256
-        elif c == '>':
+        elif c == ">":
             mp += 1
             if mp > rightmost:
                 rightmost = mp
                 if mp >= len(memory):
                     # no restriction on memory growth!
                     memory.extend([0] * BUFFER_SIZE)
-        elif c == '<':
+        elif c == "<":
             mp -= 1 % len(memory)
-        elif c == '.':
+        elif c == ".":
             output += chr(memory[mp])
             if len(output) > 500:
                 break
-        elif c == ',':
+        elif c == ",":
             memory[mp] = random.randint(1, 255)
-        elif c == '[':
+        elif c == "[":
             if memory[mp] == 0:
                 ip = brackets[ip]
-        elif c == ']':
+        elif c == "]":
             if memory[mp] != 0:
                 ip = brackets[ip]
 
@@ -79,7 +80,7 @@ def brainfuck(text):
             output += "(exceeded {} iterations)".format(MAX_STEPS)
             break
 
-    stripped_output = re.sub(r'[\x00-\x1F]', '', output)
+    stripped_output = re.sub(r"[\x00-\x1F]", "", output)
 
     if not stripped_output:
         if output:

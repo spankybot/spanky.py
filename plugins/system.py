@@ -13,15 +13,6 @@ from spanky.utils.discord_utils import get_user_by_id
 
 start_trace = None
 
-# TODO fix this eventually
-@hook.periodic(10)
-def debugme(bot, send_pm):
-    for server in bot.backend.get_servers():
-        if server.id == "287285563118190592":
-            plp = get_user_by_id(server, "278247547838136320")
-            if "bulau" not in bot.plugin_manager.commands.keys():
-                send_pm("temp plugins missing", plp)
-
 
 @hook.command()
 def about():
@@ -41,28 +32,36 @@ def invite_me():
 
 @hook.command(permissions=Permission.bot_owner)
 def restart():
-    os.system('kill %d' % os.getpid())
+    os.system("kill %d" % os.getpid())
 
 
 @hook.command(permissions=Permission.bot_owner)
 def gitpull():
     try:
-        return subprocess.check_output("git pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+        return subprocess.check_output(
+            "git pull", shell=True, stderr=subprocess.STDOUT
+        ).decode("utf-8")
     except subprocess.CalledProcessError as e:
         return e.stdout.decode("utf-8")
     except:
         import traceback
+
         return traceback.format_exc()
+
 
 @hook.command(permissions=Permission.bot_owner)
 def gitpull2():
     try:
-        return subprocess.check_output("git -C plugins/custom/ pull", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+        return subprocess.check_output(
+            "git -C plugins/custom/ pull", shell=True, stderr=subprocess.STDOUT
+        ).decode("utf-8")
     except subprocess.CalledProcessError as e:
         return e.stdout.decode("utf-8")
     except:
         import traceback
+
         return traceback.format_exc()
+
 
 @hook.command(permissions=Permission.bot_owner)
 def start_tracemalloc():
@@ -79,10 +78,10 @@ def stop_tracemalloc():
 
 @hook.command(permissions=Permission.bot_owner)
 def mem_snapshot():
-    key_type = 'lineno'
+    key_type = "lineno"
     limit = 10
 
-    rval = '#\n'
+    rval = "#\n"
     snapshot = tracemalloc.take_snapshot()
     top_stats = snapshot.compare_to(start_trace, key_type)
 
@@ -96,12 +95,16 @@ def mem_snapshot():
         frame = stat.traceback[0]
         # replace "/path/to/module/file.py" with "module/file.py"
         filename = os.sep.join(frame.filename.split(os.sep)[-2:])
-        rval += "#%s: %s:%s: %.1f KiB\n" % (index,
-                                            filename, frame.lineno, stat.size / 1024)
+        rval += "#%s: %s:%s: %.1f KiB\n" % (
+            index,
+            filename,
+            frame.lineno,
+            stat.size / 1024,
+        )
 
         line = linecache.getline(frame.filename, frame.lineno).strip()
         if line:
-            rval += '    %s\n' % line
+            rval += "    %s\n" % line
 
     other = top_stats[limit:]
     if other:
@@ -121,17 +124,20 @@ def system(send_message):
     sys_os = platform.platform()
     python_implementation = platform.python_implementation()
     python_version = platform.python_version()
-    sys_architecture = '-'.join(platform.architecture())
+    sys_architecture = "-".join(platform.architecture())
     sys_cpu_count = platform.machine()
 
-    msg = "OS: {}, "\
-        "Python: {} {}, "\
+    msg = (
+        "OS: {}, "
+        "Python: {} {}, "
         "Architecture: {} ({})".format(
             sys_os,
             python_implementation,
             python_version,
             sys_architecture,
-            sys_cpu_count)
+            sys_cpu_count,
+        )
+    )
 
     process = psutil.Process(os.getpid())
 
@@ -141,13 +147,19 @@ def system(send_message):
     memory_usage = format_bytes(process.memory_info()[0])
     uptime = timedelta(seconds=round(time.time() - process.create_time()))
 
-    msg += "Uptime: {}, "\
-        "Threads: {}, "\
-        "CPU Usage: {}, "\
-        "Memory Usage: {}".format(
-            uptime,
-            thread_count,
-            cpu_usage,
-            memory_usage)
+    msg += (
+        "Uptime: {}, "
+        "Threads: {}, "
+        "CPU Usage: {}, "
+        "Memory Usage: {}".format(uptime, thread_count, cpu_usage, memory_usage)
+    )
+
+    return msg
+
+@hook.command(permissions=Permission.bot_owner)
+def list_bot_servers(bot):
+    msg = ""
+    for server in bot.backend.get_servers():
+        msg += "Name: %s, ID: %s\n" % (server.name, server.id)
 
     return msg

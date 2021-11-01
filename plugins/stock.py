@@ -2,7 +2,16 @@ from spanky.plugin import hook
 import yfinance as yf
 
 filter_fields = [
-    "name", "symbol", "exchangeCode", "close", "change", "pPrice", "pChange", "open", "low", "high"
+    "name",
+    "symbol",
+    "exchangeCode",
+    "close",
+    "change",
+    "pPrice",
+    "pChange",
+    "open",
+    "low",
+    "high",
 ]
 
 
@@ -25,7 +34,7 @@ def quote(text):
         open=data["open"],
         close=data["regularMarketPreviousClose"],
         high=data["dayHigh"],
-        low=data["dayLow"]
+        low=data["dayLow"],
     )
 
 

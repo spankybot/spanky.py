@@ -24,8 +24,7 @@ def userinfo(text, str_to_id, reply, server):
             return
 
         # account creation timestamp
-        createTimestamp = datetime.fromtimestamp(
-            getUnixTimestamp(id), tz=timezone.utc)
+        createTimestamp = datetime.fromtimestamp(getUnixTimestamp(id), tz=timezone.utc)
         output += f"Creation date: {createTimestamp.strftime(dateString)}\n"
 
         # join timestamp
@@ -106,6 +105,7 @@ async def inrole(text, server, async_send_message):
         send_func=async_send_message,
         description="Total members: %d" % total_members,
         max_lines=20,
-        no_timeout=True)
+        no_timeout=True,
+    )
 
     await content.get_crt_page()

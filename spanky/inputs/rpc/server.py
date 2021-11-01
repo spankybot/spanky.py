@@ -1,8 +1,12 @@
 import grpc
 
 from spanky.inputs.rpc import spanky_pb2
-from spanky.inputs.rpc.spanky_pb2_grpc import add_SpankyServicer_to_server, SpankyServicer
+from spanky.inputs.rpc.spanky_pb2_grpc import (
+    add_SpankyServicer_to_server,
+    SpankyServicer,
+)
 from concurrent import futures
+
 
 class Servicer(SpankyServicer):
     def ExposeMethods(self, request, context):
@@ -21,8 +25,8 @@ class Servicer(SpankyServicer):
             print("Aasda")
         except:
             import traceback
-            traceback.print_exc()
 
+            traceback.print_exc()
 
 
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -33,4 +37,5 @@ server.start()
 
 while True:
     import time
+
     time.sleep(10)

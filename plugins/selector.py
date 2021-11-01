@@ -1,15 +1,16 @@
 import discord
-from spanky.plugin import hook
 import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
 
-from spanky.plugin.event import EventType
+from spanky.hook2 import Hook, EventType
 from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
 from spanky.plugin.permissions import Permission
 
 
 permanent_messages = []  # What permanent messages are held
+
+hook = Hook("selector", storage_name="plugins_selector")
 
 
 # DEBUG PURPOSES
@@ -27,6 +28,7 @@ async def rebuild_one_selector(bot, element, stype):
     permanent_messages.append(selector)
 
     return selector
+
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event, storage):
@@ -49,20 +51,25 @@ async def parse_react(bot, event, storage):
         if "role_selectors" in storage:
             for element in list(storage["role_selectors"]):
                 if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(bot, element, "role_selectors")
+                    found_selector = await rebuild_one_selector(
+                        bot, element, "role_selectors"
+                    )
                     break
 
         if "chan_selectors" in storage:
             for element in list(storage["chan_selectors"]):
                 if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(bot, element, "chan_selectors")
+                    found_selector = await rebuild_one_selector(
+                        bot, element, "chan_selectors"
+                    )
                     break
-
 
         if "simple_selectors" in storage:
             for element in list(storage["simple_selectors"]):
                 if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(bot, element, "simple_selectors")
+                    found_selector = await rebuild_one_selector(
+                        bot, element, "simple_selectors"
+                    )
                     break
 
         if "all_chan_selectors" in storage:
@@ -142,7 +149,9 @@ def permanent_selector(text, storage, event):
     permanent_messages.append(found_sel)
     carousel.Selector.POSTED_MESSAGES.remove(found_sel)
 
-    return "Bot will permanently watch for reactions on this message. You can pin it now."
+    return (
+        "Bot will permanently watch for reactions on this message. You can pin it now."
+    )
 
 
 @hook.command(permissions=Permission.admin)
@@ -152,9 +161,16 @@ def list_permanent_selectors(text, storage):
     if "role_selectors" not in storage:
         return retval
 
-    for data in list(storage["role_selectors"]) + list(storage["chan_selectors"]) + list(storage["simple_selectors"]):
+    for data in (
+        list(storage["role_selectors"])
+        + list(storage["chan_selectors"])
+        + list(storage["simple_selectors"])
+    ):
         retval.append(
-            dutils.return_message_link(data["server_id"], data["channel_id"], data["msg_id"]))
+            dutils.return_message_link(
+                data["server_id"], data["channel_id"], data["msg_id"]
+            )
+        )
 
     if len(retval) == 0:
         return "No selectors set"
@@ -200,15 +216,16 @@ def del_permanent_selector(text, storage):
 
 
 @hook.command(permissions=Permission.admin)
-async def rebuild_selectors(bot):
+async def rebuild_selectors(bot, storage_getter):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_selector.json")
+        storage = storage_getter(server.id)
 
         if "role_selectors" in storage:
             for element in list(storage["role_selectors"]):
                 try:
-                    selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
+                    selector = await carousel.RoleSelectorInterval.deserialize(
+                        bot, element
+                    )
 
                     # Add it to the permanent message list
                     permanent_messages.append(selector)
@@ -217,9 +234,9 @@ async def rebuild_selectors(bot):
                     storage.sync()
                 except:
                     import traceback
+
                     traceback.print_exc()
                     print(element)
-
 
         if "chan_selectors" in storage:
             for element in list(storage["chan_selectors"]):
@@ -232,9 +249,9 @@ async def rebuild_selectors(bot):
                     storage.sync()
                 except:
                     import traceback
+
                     traceback.print_exc()
                     print(element)
-
 
         if "simple_selectors" in storage:
             for element in list(storage["simple_selectors"]):
@@ -247,6 +264,7 @@ async def rebuild_selectors(bot):
                     storage.sync()
                 except:
                     import traceback
+
                     traceback.print_exc()
                     print(element)
 

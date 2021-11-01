@@ -82,11 +82,7 @@ async def s(text, channel, reply, event, bot, storage):
     split_text = text.split()
     if len(split_text) == 0:
         msg = "Invalid format"
-        msg += (
-            ": "
-            + "\n`"
-            + "<word replacement> - replace 'word' with replacement`"
-        )
+        msg += ": " + "\n`" + "<word replacement> - replace 'word' with replacement`"
         msg += (
             "\n`"
             + "if only one word is specified, it will be replaced with a blankspace`"
@@ -115,8 +111,7 @@ async def s(text, channel, reply, event, bot, storage):
 
         if msg_index > 0:
             final_text = msg.text.replace(
-                " ".join(split_text[0:msg_index]),
-                " ".join(split_text[msg_index:]),
+                " ".join(split_text[0:msg_index]), " ".join(split_text[msg_index:]),
             )
 
             msg = "<%s> %s" % (msg.author.name, final_text)
@@ -133,11 +128,7 @@ async def ss(text, channel, reply, event, bot, storage):
     text = text.split(maxsplit=1)
     if len(text) == 0 or len(text) > 2:
         msg = "Invalid format"
-        msg += (
-            ": "
-            + "\n`"
-            + "<regex replacement> - replace regex with replacement`"
-        )
+        msg += ": " + "\n`" + "<regex replacement> - replace regex with replacement`"
         msg += (
             "\n`"
             + "if only the regex is specified, it will be replaced with a blankspace`"

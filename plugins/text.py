@@ -14,7 +14,7 @@ d2em = {
 }
 
 
-@hook.command
+@hook.command()
 def letters(event):
     """<text> - text to emoji letters"""
     text = event.msg._raw.clean_content.split(maxsplit=1)[1].lower()
@@ -25,6 +25,8 @@ def letters(event):
             out += ":regional_indicator_%s:" % thing
         elif thing.isdigit():
             out += d2em[int(thing)]
+        elif thing.isspace():
+            out += ':blue_square:'
         else:
             out += thing
 

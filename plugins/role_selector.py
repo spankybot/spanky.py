@@ -3,9 +3,11 @@ import plugins.selector as selector
 import spanky.utils.carousel as carousel
 import spanky.utils.discord_utils as dutils
 
-from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 from spanky.utils.volatile import set_vdata, get_vdata
+from spanky.hook2 import Hook, EventType, Command
+
+hook = Hook("role_selector", storage_name="plugins_role_selector")
 
 
 # selector.py is the generic implementation of the selector
@@ -16,61 +18,43 @@ from spanky.utils.volatile import set_vdata, get_vdata
 #
 
 
+# register_cmd(storage["selectors"][cmd], server)
 def register_cmd(cmd, server):
     """Register a user defined command"""
 
-    def create_it(cmd):
-        async def do_cmd(text, server, storage, event, send_embed, reply):
-            print(f"Got selector {cmd['name']}")
-            if cmd["roles"] == []:
-                # TODO: For some reason, `return "No roles in selector"` does not work here
-                reply("No roles in selector")
-                return
+    cmd_name = cmd['name']
 
-            sel = carousel.RoleSelector(
-                server=server,
-                title=cmd["title"],
-                roles=cmd["roles"],
-                max_selectable=cmd["maxSelectable"]
-            )
-            await sel.do_send(event)
+    async def do_cmd(text, server, storage, event, send_embed, reply):
+        print(f"Got selector {cmd_name}")
+        if storage["selectors"][cmd_name]["roles"] == []:
+            # TODO: For some reason, `return "No roles in selector"` does not work here
+            reply("No roles in selector")
+            return
 
-        do_cmd.__doc__ = cmd["description"]
-        do_cmd.__name__ = cmd["name"]
-        return do_cmd
+        sel = carousel.RoleSelector(
+            server=server,
+            title=storage["selectors"][cmd_name]["title"],
+            roles=storage["selectors"][cmd_name]["roles"],
+            max_selectable=storage["selectors"][cmd_name]["maxSelectable"],
+        )
+        await sel.do_send(event)
 
-    globals()[cmd["name"]] = hook.command(server_id=server.id)(create_it(cmd))
+    do_cmd.__doc__ = cmd["description"]
+    do_cmd.__name__ = cmd["name"]
+    hook.add_command(Command(hook, cmd["name"], do_cmd, server_id=server.id))
 
-
-def reload_file(bot):
-    dirname = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
-    fname = os.path.basename(os.path.abspath(__file__))
-
-    # TODO: use unified way of identifying plugins
-    bot.plugin_manager.load_plugin(dirname + "/" + fname)
-
-
-@hook.on_connection_ready()
-def init_cmds(bot):
+@hook.event(EventType.on_conn_ready)
+def init_cmds(bot, storage_getter):
     """Register all commands on bot ready"""
     print("Connection ready")
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_role_selector.json"
-        )
+        storage = storage_getter(server.id)
         if "selectors" not in storage or storage["selectors"] == {}:
             continue
 
         for cmd in storage["selectors"]:
             print(f"[{server.id}] Registering {cmd}")
             register_cmd(storage["selectors"][cmd], server)
-
-    # TODO: workaround - look into adding commands dinamically
-    if not get_vdata("selector_reload"):
-        print("selector_reload")
-        set_vdata("selector_reload", True)
-        reload_file(bot)
-
 
 #
 # Selector modifiers
@@ -92,8 +76,6 @@ def set_selector_description(server, storage, text, bot):
 
     storage["selectors"][text[0]]["description"] = text[1]
     storage.sync()
-
-    reload_file(bot)
 
     return "Done"
 
@@ -117,8 +99,6 @@ def set_selector_max_selectable(server, storage, text, bot):
     storage["selectors"][text[0]]["maxSelectable"] = int(text[1])
     storage.sync()
 
-    reload_file(bot)
-
     return "Done"
 
 
@@ -137,8 +117,6 @@ def set_selector_title(server, storage, text, bot):
 
     storage["selectors"][text[0]]["title"] = text[1]
     storage.sync()
-
-    reload_file(bot)
 
     return "Done"
 
@@ -324,7 +302,6 @@ def create_selector(text, str_to_id, server, bot, storage):
     storage.sync()
 
     register_cmd(new_cmd, server)
-    reload_file(bot)
 
     return f"Created selector {cmd}."
 
@@ -350,7 +327,7 @@ def delete_selector(storage, text, bot):
         if cmd["name"] == text:
             # Remove plugin entry from the bot and globals
             # del bot.plugin_manager.commands[text]
-            del globals()[cmd["name"]]
+            hook.remove_command(cmd["name"])
             del storage["selectors"][cmd["name"]]
 
             storage.sync()

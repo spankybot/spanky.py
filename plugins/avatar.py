@@ -17,13 +17,13 @@ TEXT_SPACE_H = 20
 @hook.command(format="user")
 def avatar(event, text, str_to_id):
     """<user or user-id> - Get someones avatar"""
-    text = str_to_id(text)
+    uid = str_to_id(text)
 
     for user in event.server.get_users():
         if text == user.name:
             return user.avatar_url
 
-        if text == user.id:
+        if uid == user.id:
             return user.avatar_url
 
     return "Not found"
@@ -41,12 +41,14 @@ async def set_avatar(event, async_set_avatar):
             return
     except:
         import traceback
+
         traceback.print_exc()
 
 
 @hook.command(permissions=Permission.bot_owner)
-async def set_status(async_set_game_status, text):
+async def set_status(async_set_game_status, reply, text):
     await async_set_game_status(text)
+    return "Done"
 
 
 @hook.command()
@@ -83,18 +85,14 @@ def resize_to_fit(image, max_width, max_height):
 
     # Resize it
     image = image.resize(
-        (
-            int(image.width / ratio),
-            int(image.height / ratio)
-        ),
-        resample=PIL.Image.ANTIALIAS)
+        (int(image.width / ratio), int(image.height / ratio)),
+        resample=PIL.Image.ANTIALIAS,
+    )
 
     # Paste the resized image in the center
-    canvas.paste(image,
-                 (
-                     max_width // 2 - image.width // 2,
-                     max_height // 2 - image.height // 2)
-                 )
+    canvas.paste(
+        image, (max_width // 2 - image.width // 2, max_height // 2 - image.height // 2)
+    )
 
     return canvas
 
@@ -116,13 +114,17 @@ async def update_banner(server, storage):
     text_size = DEFAULT_TEXT_SIZE
     banner_text = storage["banner_text"].replace("`", "")
     while True:
-        font = ImageFont.truetype('plugin_data/fonts/plp.ttf', text_size)
+        font = ImageFont.truetype("plugin_data/fonts/plp.ttf", text_size)
         bbox = img_draw.textbbox(
-            (0, 0), banner_text, font=font, align="center", direction="ltr")
+            (0, 0), banner_text, font=font, align="center", direction="ltr"
+        )
         text_width, text_height = bbox[2], bbox[3]
 
         # If text fits, break otherwise decrease size
-        if text_width < BANNER_W - TEXT_SPACE_W and text_height < BANNER_H - TEXT_SPACE_H:
+        if (
+            text_width < BANNER_W - TEXT_SPACE_W
+            and text_height < BANNER_H - TEXT_SPACE_H
+        ):
             break
         else:
             text_size -= 2
@@ -134,12 +136,14 @@ async def update_banner(server, storage):
     print(text_height)
     print(TEXT_SPACE_H)
 
-    img_draw.text((BANNER_W // 2, BANNER_H // 2),
-                  storage["banner_text"],
-                  font=font,
-                  fill=(255, 255, 255, 255),
-                  anchor="mm",
-                  align="center")
+    img_draw.text(
+        (BANNER_W // 2, BANNER_H // 2),
+        storage["banner_text"],
+        font=font,
+        fill=(255, 255, 255, 255),
+        anchor="mm",
+        align="center",
+    )
 
     await dutils.banner_from_pil(server, resized)
 

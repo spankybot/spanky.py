@@ -4,17 +4,22 @@ from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
 
-@hook.command
-def help(bot, text, event, send_embed):
+@hook.command()
+def help(hook, text, event, send_embed):
     """Get help for a command or the help document"""
-    if text in bot.plugin_manager.commands:
-        send_embed(
-            text, "",
-            {"Usage:": bot.plugin_manager.commands[text].function.__doc__})
+    cmd = hook.root.get_command(text)
+    if cmd != None:
+        send_embed(cmd.name, "**Usage:**\n"+ hook.root.get_command(text).get_doc())
         return
 
-    send_embed("Bot help:", "",
-               {"Links:": "See <https://github.com/spankybot/commands/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/spankybot/commands/blob/master/commands/%s/admin.md>" % (event.server.id, event.server.id)})
+    send_embed(
+        "Bot help:",
+        "",
+        {
+            "Links:": "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>"
+            % (event.server.id, event.server.id)
+        },
+    )
     return
 
 
@@ -22,8 +27,10 @@ def prepare_repo(storage_loc):
     dest = storage_loc + "/doc/"
     os.system("rm -rf %s" % dest)
     os.system("mkdir -p %s" % dest)
-    os.system("git clone git@github.com:spankybot/commands.git %s"
-              % (storage_loc + "/doc"))
+    os.system(
+        "git clone git@github.com:gc-plp/spanky-command-doc.git %s"
+        % (storage_loc + "/doc")
+    )
 
 
 def gen_doc(files, fname, header, bot, storage_loc, server_id):
@@ -34,15 +41,14 @@ def gen_doc(files, fname, header, bot, storage_loc, server_id):
 
         doc += "------\n"
         doc += "### %s \n" % file
-        for cmd in sorted(files[file]):
-            hook = bot.plugin_manager.commands[cmd]
-            hook_name = " / ".join(i for i in hook.aliases)
+        for cmd in sorted(files[file], key=lambda hooklet: hooklet.name):
+            hook = cmd
+            hook_name = cmd.name  # " / ".join(i for i in hook.aliases)
 
-            help_str = bot.plugin_manager.commands[cmd].function.__doc__
+            help_str = cmd.doc
 
             if help_str:
-                help_str = help_str.lstrip("\n").lstrip(
-                    " ").rstrip(" ").rstrip("\n")
+                help_str = help_str.lstrip("\n").lstrip(" ").rstrip(" ").rstrip("\n")
             else:
                 help_str = "No documentation provided."
 
@@ -61,21 +67,39 @@ def commit_changes(storage_loc, server_id):
     server_path = "%s/doc/commands/%s" % (storage_loc, server_id)
 
     os.system("git -C %s add ." % server_path)
-    os.system("git -C %s commit -m \"Update documentation for %s\"" %
-              (server_path, server_id))
+    os.system(
+        'git -C %s commit -m "Update documentation for %s"' % (server_path, server_id)
+    )
     os.system("git -C %s push" % (server_path))
 
 
 @hook.command(permissions=Permission.bot_owner)
-def gen_documentation(bot, storage_loc, event):
+def gen_documentation(bot, storage_loc, action, hook):
     for server in bot.get_servers():
         files = {}
         admin_files = {}
 
-        cmd_dict = bot.plugin_manager.commands
+        cmd_dict = hook.root.all_commands
         for cmd_str in cmd_dict:
             cmd = cmd_dict[cmd_str]
-            file_name = cmd.plugin.name.split("/")[-1].replace(".py", "")
+
+            cmd_perms = cmd.args.get("permissions", [])
+            if not isinstance(cmd_perms, list):
+                cmd_perms = [cmd_perms]
+            new_perms = []
+            for perm in cmd_perms:
+                if hasattr(perm, "value"):
+                    new_perms.append(perm.value)
+                else:
+                    new_perms.append(perm)
+            cmd_perms = new_perms
+
+            # TODO: Shitty hack
+            file_name = (
+                cmd.hook.hook_id.removeprefix("plugins_")
+                .removeprefix("legacy_")
+                .removeprefix("custom_")
+            )
             file_cmds = []
 
             if file_name not in files:
@@ -84,23 +108,33 @@ def gen_documentation(bot, storage_loc, event):
             if file_name not in admin_files:
                 admin_files[file_name] = []
 
-            if bot.plugin_manager.commands[cmd.name].server_id and not \
-                    bot.plugin_manager.commands[cmd.name].has_server_id(server.id):
-                print(cmd.name)
+            server_ids = cmd.args.get("server_id", [])
+            if not isinstance(server_ids, list):
+                server_ids = [server_ids]
+            if cmd.args.get("server_id", None) and server.id not in server_ids:
+                # print(cmd.name)
                 continue
 
-            if Permission.admin in bot.plugin_manager.commands[cmd.name].permissions:
-                admin_files[file_name].append(cmd.name)
-            elif Permission.bot_owner in bot.plugin_manager.commands[cmd.name].permissions:
+            if "admin" in cmd_perms:
+                admin_files[file_name].append(cmd)
+            elif "bot_owner" in cmd_perms:
                 continue
             else:
-                files[file_name].append(cmd.name)
+                files[file_name].append(cmd)
 
         prepare_repo(storage_loc)
-        gen_doc(files, "commands.md", "Bot commands:",
-                bot, storage_loc, server.id)
-        gen_doc(admin_files, "admin.md", "Admin commands:",
-                bot, storage_loc, server.id)
+        gen_doc(files, "commands.md", "Bot commands:", bot, storage_loc, server.id)
+        gen_doc(admin_files, "admin.md", "Admin commands:", bot, storage_loc, server.id)
         commit_changes(storage_loc, server.id)
 
     return "Done."
+
+
+@hook.command(permissions=Permission.bot_owner)
+def list_bot_servers(bot):
+    msg = ""
+    for server in bot.backend.get_servers():
+        msg += "Name: %s, ID: %s\n" % (server.name, server.id)
+
+    return msg
+

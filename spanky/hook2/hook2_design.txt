@@ -1,0 +1,91 @@
+
+Hook 2.0 Design Proposal 
+========================
+
+Why?
+====
+- The old hook design is a relic of CloudBot.
+- Spanky 2.0 wouldn't allow the old hook design to work without huge refactoring, so why shouldn't we just make a new one?
+- Hook 2.0 could have a more rigid structure for events;
+- We could port all existing plugins to Hook 2.0 with its more rigidified structure in order to make the Spanky 2.0 transition easier.
+
+Terminology
+===========
+- Hook = the Hook class (interface? object?)
+- Hooklet = functionality provided by a plugin (command, event handler, ?regex handler?, middleware, etc) 
+- Hooklet Type = the classes Command, Event, ?Regex?, Middleware, etc
+- Global Middleware = a Hooklet that is run for every event 
+- Action = an event coming through the bot that is propagated to the relevant Hooks.
+
+How it works
+============
+- Everything is based around the Hook class;
+- The Bot instance gets a master Hook from which it can dispatch actions that are propagated to "children" Hooks in a tree-like fashion;
+- Hooks manage the storage objects.
+
+Advantages
+==========
+- Refactors the plugin_manager and hook logic into a smaller footprint;
+- Reduces complexity in the overall system;
+- A more rigid structure and definition (instead of the pseudo-genericness we have right now);
+- plugin_manager gets a large overhaul (acts as a hook provider?);
+- A more modern python codebase.
+
+Additions
+=========
+- Context
+	- Each action gets a context that is mutated by all hooklets it passes through;
+	- Can be used for permissions (detailed below), but also for other useful information passed by middleware.
+- Middleware
+	- Middlewares are the replacement for sieves;
+	- Think of them as middlewares for an HTTP server:
+		- They can read the "request" (event, in our case);
+		- They can Deny/Approve going forward with handling it (for example, we can implement a rate limiter);
+		- They can mutate the Context. 
+	- They are of 2 scopes: Global (attached to the master Hook, ALL events pass through them) and Local (only events that are to be executed by the current Hook and its children)
+		- ? Global middleware is just Local middleware but attached to the master Hook 
+		- All middleware is run based on the priority integer. When equal, the order is ambiguous.
+			- ?Server scope, only commands in one or more servers pass through it?
+				- ?Can be used to more easily implement admin.py?
+- Better permissions handling
+	- Middleware can mutate a 'permissions' list in the context with different elements;
+		- For example, a middleware can add 'bot_owner' to the permissions, signifying that the action author is a bot owner.
+	- After all middleware is executed, the hook decides if the current "credentials" are sufficient for the action to finalize (based on the 'permissions' parameter to the hooklet).
+- Sieves are removed, middleware being their replacement;
+- ? Global storage for a plugin (also general storage, sort of like a config?);
+- ? SQL Storage;
+- More stuff can be added and thought of according to our needs.
+
+How the port to Hook 2.0 should happen
+======================================
+- There are multiple ideas, none have been extensively thought through:
+	1. Try wrapping the old plugin manager into a special hook and add it to the Bot instance and slowly phase out the usage of the hook.
+	2. Modify plugin_manager:
+	- When loading the plugin, the bot injects a `get_hook()` function;
+	- We replace all occurences of `from spanky.plugin import hook` with ```py
+hook = get_hook("<PLUGIN_NAME>")
+``` in the plugins;
+	- The hook instance already has the function decorators, making life easier;
+	- The disadvantage is that we have to support all obscure features and edge cases in the new Hooklets, which is not a thing we want (also, we will try to move away from the old plugin_manager anyway).
+- I personally think option 1 is best.
+
+Stuff to be thought out better
+==============================
+- How to handle plugin loading and give a hook to each plugin (maybe like option 2 from above?);
+- General code structure;
+- Find out a way to easily migrate from old storage to new storage;
+- Better integration with CmdParser.
+
+How it could be integrated in Spanky 2.0
+========================================
+- The SpankyServer gets a Hook;
+- Each SpankyWorker gets its own Hook;
+- SpankyServer's Hook is filled with interfaces to all workers' Hooks (could communicate events with gRPC);
+- The Server Hook decides which Worker gets to handle the event;
+- Each hooklet (global middleware, periodic) gets a unique identifier in order to know which workers can handle it.
+- ?? Contexts somehow get passed around between Workers and Server (encode/decode as json?)
+
+
+
+
+

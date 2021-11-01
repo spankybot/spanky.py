@@ -2,9 +2,11 @@ import os
 from spanky.plugin import hook
 
 
-@hook.periodic(3600*12)
+@hook.periodic(3600 * 12)
 def backup_data():
-    os.system("cd storage_data && \
+    os.system(
+        'cd storage_data && \
             git add -A && \
-            git commit -m \"Update data\" && \
-            git push")
+            git commit -m "Update data" && \
+            git push'
+    )

@@ -4,7 +4,7 @@ import random
 import plugins.paged_content as paged
 import spanky.utils.discord_utils as dutils
 from spanky.plugin import hook
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
 import discord
 
@@ -42,15 +42,17 @@ async def grab(text, channel, storage, reply, event):
                 pass
             except:
                 import traceback
+
                 traceback.print_exc()
 
     # Or we're grabbing a message we are replying to
     if not to_grab:
         ref = await event.msg.reference()
-        if ref.author.id == event.author.id:
-            reply("Don't try to grab yourself 😉")
-            return
-        to_grab = ref
+        if ref:
+            if ref.author.id == event.author.id:
+                reply("Don't try to grab yourself 😉")
+                return
+            to_grab = ref
 
     if not to_grab:
         reply("Couldn't find anything.")
@@ -124,7 +126,7 @@ def grabu(text, storage, str_to_id):
     return random.choice(content)
 
 
-@hook.command
+@hook.command()
 async def grabl(event, storage, async_send_message, str_to_id, user_id_to_name, text):
     """
     <user> - List quotes for user. If no user is specified, it lists everything on the server.
@@ -161,7 +163,8 @@ async def grabs(event, storage, async_send_message):
         return
     else:
         paged_content = paged.element(
-            content, async_send_message, "Grabs containing %s" % text)
+            content, async_send_message, "Grabs containing %s" % text
+        )
         await paged_content.get_crt_page()
 
 
@@ -174,8 +177,7 @@ def del_grab(text, storage):
     to_delete = get_all_data(lambda m: text in m["text"], storage)
 
     if len(to_delete) > 1:
-        msg = "Found more than one results (%d). Not deleting." % len(
-            to_delete)
+        msg = "Found more than one results (%d). Not deleting." % len(to_delete)
 
         if len(to_delete) < 10:
             msg += "\nThe IDs are: "

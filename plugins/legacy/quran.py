@@ -1,7 +1,9 @@
 import requests
 from requests import HTTPError
 
-from spanky.plugin import hook
+from spanky.hook2.hook2 import Hook
+
+hook = Hook("quran")
 
 
 def statuscheck(status, item):
@@ -15,20 +17,24 @@ def statuscheck(status, item):
     return out
 
 
-def smart_truncate(content, length=425, suffix='...\n'):
+def smart_truncate(content, length=425, suffix="...\n"):
     if len(content) <= length:
         return content
     else:
-        return content[:length].rsplit(' ', 1)[0] + suffix + content[:length].rsplit(' ', 1)[1] + smart_truncate(
-            content[length:])
+        return (
+            content[:length].rsplit(" ", 1)[0]
+            + suffix
+            + content[:length].rsplit(" ", 1)[1]
+            + smart_truncate(content[length:])
+        )
 
 
-@hook.command("quran", format="verse")
+@hook.command(format="verse")
 def quran(text, send_message, reply):
     """<verse> - Prints the specified Qur'anic verse(s) and its/their translation(s)"""
     api_url = "http://quranapi.azurewebsites.net/api/verse/"
-    chapter = text.split(':')[0]
-    verse = text.split(':')[1]
+    chapter = text.split(":")[0]
+    verse = text.split(":")[1]
     params = {"chapter": chapter, "number": verse, "lang": "ar"}
     r = requests.get(api_url, params=params)
     try:
@@ -51,8 +57,8 @@ def quran(text, send_message, reply):
     data = r.json()
     data2 = r2.json()
     out = "{}: ".format(text)
-    verse = data['Text']
+    verse = data["Text"]
     out += verse
     send_message(out)
-    translation = smart_truncate(data2['Text'])
+    translation = smart_truncate(data2["Text"])
     return translation

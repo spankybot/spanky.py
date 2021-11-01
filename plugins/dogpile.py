@@ -3,16 +3,16 @@ from spanky.plugin import hook
 from collections import deque
 from googleapiclient.discovery import build
 from spanky.utils import discord_utils as dutils
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 
-LARROW = u'\U0001F448'
-RARROW = u'\U0001F449'
+LARROW = u"\U0001F448"
+RARROW = u"\U0001F449"
 dev_key = None
 dev_cx = None
 search_results = deque(maxlen=500)
 
 
-class CSEResult():
+class CSEResult:
     def __init__(self, data):
         self.data = data
 
@@ -45,7 +45,7 @@ class CSEResult():
         return self.data["link"]
 
 
-class SearchResult():
+class SearchResult:
     def __init__(self, res, async_send_message, search_term, event, images=False):
         self.async_send_message = async_send_message
         self.crt_page = 0
@@ -70,27 +70,33 @@ class SearchResult():
         if self.images:
             embed = dutils.prepare_embed(
                 title="Image search",
-                description="Query: %s (result %d/%d)" % (self.search_term,
-                                                          self.crt_page + 1, len(self.urls)),
+                description="Query: %s (result %d/%d)"
+                % (self.search_term, self.crt_page + 1, len(self.urls)),
                 image_url=self.urls[self.crt_page].image_url,
-                footer_txt=self.footer)
+                footer_txt=self.footer,
+            )
         else:
             embed = dutils.prepare_embed(
                 title="Google search",
-                description="Query: %s (result %d/%d)\n%s\n%s" % (
+                description="Query: %s (result %d/%d)\n%s\n%s"
+                % (
                     self.search_term,
                     self.crt_page + 1,
                     len(self.urls),
                     self.urls[self.crt_page].snippet,
-                    self.urls[self.crt_page].link),
+                    self.urls[self.crt_page].link,
+                ),
                 thumbnail_url=self.urls[self.crt_page].image_thumb,
-                footer_txt=self.footer)
+                footer_txt=self.footer,
+            )
 
         new_message = self.msg
         try:
             updated_message = await self.async_send_message(embed=embed)
         except Exception as e:
-            import traceback; traceback.print_exc()
+            import traceback
+
+            traceback.print_exc()
             return
 
         if updated_message:
@@ -120,7 +126,7 @@ class SearchResult():
 def load_key(bot):
     global dev_key
     global dev_cx
-
+    
     dev_key = bot.config.get("api_keys", {}).get("google_dev_key", None)
     dev_cx = bot.config.get("api_keys", {}).get("google_cx", None)
 
@@ -128,13 +134,11 @@ def load_key(bot):
 @hook.command()
 async def gis(text, async_send_message, event):
     """<query> - Search for a image."""
+    if text == "":
+        return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(
-        q=text,
-        safe="active",
-        cx=dev_cx,
-    ).execute()
+    res = service.cse().list(q=text, safe="active", cx=dev_cx,).execute()
 
     await SearchResult(res, async_send_message, text, event, images=True).send_msg()
 
@@ -142,13 +146,11 @@ async def gis(text, async_send_message, event):
 @hook.command()
 async def nsfwgis(text, async_send_message, event):
     """<query> - Search for a image."""
+    if text == "":
+        return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(
-        q=text,
-        safe="off",
-        cx=dev_cx,
-    ).execute()
+    res = service.cse().list(q=text, safe="off", cx=dev_cx,).execute()
 
     await SearchResult(res, async_send_message, text, event, images=True).send_msg()
 
@@ -156,13 +158,11 @@ async def nsfwgis(text, async_send_message, event):
 @hook.command()
 async def g(text, async_send_message, event):
     """<query> - Search for a link."""
+    if text == "":
+        return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(
-        q=text,
-        safe="active",
-        cx=dev_cx,
-    ).execute()
+    res = service.cse().list(q=text, safe="active", cx=dev_cx,).execute()
 
     await SearchResult(res, async_send_message, text, event, images=False).send_msg()
 

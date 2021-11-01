@@ -1,5 +1,4 @@
-
-class CmdParser():
+class CmdParser:
     """
     Command parser for easily parsing arguments.
     """
@@ -8,24 +7,25 @@ class CmdParser():
         """
         Parser exception base class.
         """
+
         pass
 
     class HelpException(Exception):
         """
         Parser exception class when help is called.
         """
+
         pass
 
-    class Result():
+    class Result:
         """
         A dictionary of results.
         """
+
         DEFAULT_STR = "__default_value__"
 
         def __init__(self, default_value):
-            self._data = {
-                CmdParser.Result.DEFAULT_STR: default_value
-            }
+            self._data = {CmdParser.Result.DEFAULT_STR: default_value}
 
         def __setitem__(self, key, value):
             self._data[key] = value
@@ -45,14 +45,16 @@ class CmdParser():
         def __str__(self):
             return str(self._data[CmdParser.Result.DEFAULT_STR])
 
-    def __init__(self,
-                 name,
-                 description=None,
-                 args=[],
-                 default=None,
-                 required=False,
-                 options=[],
-                 action=None):
+    def __init__(
+        self,
+        name,
+        description=None,
+        args=[],
+        default=None,
+        required=False,
+        options=[],
+        action=None,
+    ):
         """
         Creates a command parser.
 
@@ -67,8 +69,7 @@ class CmdParser():
         """
 
         if args != [] and options != []:
-            raise CmdParser.Exception(
-                "Cannot specify both args and options.")
+            raise CmdParser.Exception("Cannot specify both args and options.")
 
         self.name = name
         self.description = description
@@ -138,7 +139,8 @@ class CmdParser():
 
             if len(text) < len(required_args):
                 raise CmdParser.Exception(
-                    f"Incorrect number of parameter for {self.name}. Parameters: {self.args}")
+                    f"Incorrect number of parameter for {self.name}. Parameters: {self.args}"
+                )
 
             # Build result list
 
@@ -151,12 +153,12 @@ class CmdParser():
             # Check if it's a valid option
             if len(text) == 0 or text[0] not in self.options:
                 raise CmdParser.Exception(
-                    f"Incorrect parameter for {self.name}. Valid parameters: {self.options}")
+                    f"Incorrect parameter for {self.name}. Valid parameters: {self.options}"
+                )
 
             for option in self.options:
                 if text[0] == str(option):
-                    result[option] = CmdParser.Result(
-                        option.parse(text[1:], **kwargs))
+                    result[option] = CmdParser.Result(option.parse(text[1:], **kwargs))
 
         # Call the action - if anything was set up
         if self.action:

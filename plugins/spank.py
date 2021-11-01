@@ -30,21 +30,23 @@ def load_spanks(bot):
         bdsm_data = json.load(f)
 
 
-@hook.command
+@hook.command()
 def spank(text, send_message):
     """<user> - Spanks a  <user>"""
     user = text.strip()
 
-    generator = textgen.TextGenerator(spank_data["templates"], spank_data["parts"],
-                                      variables={"user": user})
+    generator = textgen.TextGenerator(
+        spank_data["templates"], spank_data["parts"], variables={"user": user}
+    )
     # act out the message
     send_message(generator.generate_string())
 
 
-@hook.command("bdsm")
+@hook.command()
 def bdsm(text, send_message):
     """Just a little bit of kinky fun."""
     user = text.strip()
     generator = textgen.TextGenerator(
-        bdsm_data["templates"], bdsm_data["parts"], variables={"user": user})
+        bdsm_data["templates"], bdsm_data["parts"], variables={"user": user}
+    )
     send_message(generator.generate_string())

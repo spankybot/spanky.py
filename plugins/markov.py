@@ -57,7 +57,8 @@ def markov(server, text, event):
             msg_list.pop(idx)
 
     print("Inputting %d messages" % len(msg_list))
-    text_model = markovify.NewlineText(
-        "\n".join(msg_list), retain_original=False)
+    text_model = markovify.NewlineText("\n".join(msg_list), retain_original=False)
 
-    return "```%s```" % text_model.make_short_sentence(min_chars=50, max_chars=300, tries=10000, DEFAULT_MAX_OVERLAP_RATIO=0.4)
+    return "```%s```" % text_model.make_short_sentence(
+        min_chars=50, max_chars=300, tries=10000, DEFAULT_MAX_OVERLAP_RATIO=0.4
+    )

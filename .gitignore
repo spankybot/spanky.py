@@ -6,3 +6,5 @@ logs
 *.log
 .pyenv
 .*
+!.gitignore
+!.github

@@ -1,6 +1,6 @@
 import datetime
 from spanky.plugin import hook, permissions
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from plugins.log import get_msg_cnt_for_user
@@ -118,7 +118,9 @@ e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 123456
         storage["on_join"].append(new_entry)
         storage.sync()
 
-        return "OK. Will send the given on join message to " + id_to_chan(new_entry["chan"])
+        return "OK. Will send the given on join message to " + id_to_chan(
+            new_entry["chan"]
+        )
     elif text[0] == "role":
         existing = find_event_by_text_match(storage, text[1], str_to_id)
         for match in existing:
@@ -150,18 +152,20 @@ def do_join(event, storage, send_message, str_to_id, server):
     for item in storage["on_join"]:
         if item["type"] == "message":
             creation_date = datetime.datetime.utcfromtimestamp(
-                int((int(event.member.id) >> 22) + 1420070400000) / 1000)
+                int((int(event.member.id) >> 22) + 1420070400000) / 1000
+            )
             args = {
-                "AGE":  time_utils.sec_to_human((datetime.datetime.now() - creation_date).total_seconds()),
+                "AGE": time_utils.sec_to_human(
+                    (datetime.datetime.now() - creation_date).total_seconds()
+                ),
                 "USER": event.member.name,
-                "USER_ID": event.member.id
+                "USER_ID": event.member.id,
             }
             if "{SEEN_CNT}" in item["message"]:
                 args["SEEN_CNT"] = get_msg_cnt_for_user(event.member.id)
 
             message = item["message"].format(**args)
-            send_message(target=item["chan"],
-                         text=message, timeout=item["timeout"])
+            send_message(target=item["chan"], text=message, timeout=item["timeout"])
 
         elif item["type"] == "role":
             for role in server.get_roles():
@@ -199,15 +203,16 @@ def list_join_events(storage, id_to_chan, id_to_role_name, reply):
 `Channel:` {id_to_chan(m["chan"])}
 `Timeout:` {time_utils.sec_to_human(str(m["timeout"]))}"""
 
-        #msg += """\n---\n`Message:` """ + m["message"]
-        #msg += "\n`Channel:` " + id_to_chan(m["chan"])
+        # msg += """\n---\n`Message:` """ + m["message"]
+        # msg += "\n`Channel:` " + id_to_chan(m["chan"])
         # if m["timeout"] != 0:
         #    msg += "\n`Timeout:` " + str(m["timeout"])
 
     if len(roles) > 0:
-        msg += "\n---\n`Roles given on join:` \n" + \
-            "\n".join("`ID:` %s `Name:` %s" % (str(cnt.get()),
-                                               id_to_role_name(i["role"])) for i in roles)
+        msg += "\n---\n`Roles given on join:` \n" + "\n".join(
+            "`ID:` %s `Name:` %s" % (str(cnt.get()), id_to_role_name(i["role"]))
+            for i in roles
+        )
 
     reply(msg, allowed_mentions=discord.AllowedMentions.none())
 
@@ -257,6 +262,7 @@ def set_timeout_for(storage, text, str_to_id):
         return "Done. Set timeout to %d seconds" % evt["timeout"]
     except:
         import traceback
+
         traceback.print_exc()
 
     storage.sync()

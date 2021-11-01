@@ -1,5 +1,6 @@
 from spanky.plugin import hook
 
+
 @hook.command(params="float:hot float:crazy", format="hot crazy")
 def vicky(cmd_args):
     """<hot> <crazy> - Returns the zone from the universal hot crazy matrix"""

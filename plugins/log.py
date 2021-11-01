@@ -6,7 +6,7 @@ import psycopg2
 
 from datetime import datetime
 from spanky.plugin import hook
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
 
 base_formats = {
@@ -20,23 +20,25 @@ db_conn = None
 def init_db(bot):
     global db_conn
 
-    db_name = bot.config.get("db_name")
+    db_name = bot.config.get("db_name", None)
     db_user = bot.config.get("db_user")
     db_host = bot.config.get("db_host")
     db_pass = bot.config.get("db_pass")
 
 
     try:
-        db_conn = psycopg2.connect(
-            "dbname=%s user=%s password=%s host=%s" % (db_name, db_user, db_pass, db_host))
+        if db_name != None:
+            db_conn = psycopg2.connect(
+                "dbname=%s user=%s password=%s host=%s" % (db_name, db_user, db_pass, db_host))
     except:
         import traceback
+
         traceback.print_exc()
 
 
 def get_format_args(event):
     # Setup arguments
-    hour, minute, second = time.strftime("%H,%M,%S").split(',')
+    hour, minute, second = time.strftime("%H,%M,%S").split(",")
 
     # Handle PMs
     server_name = "pm"
@@ -55,13 +57,17 @@ def get_format_args(event):
         "server_id": server_id,
         "channel": channel_name,
         "channel_id": channel_id,
-        "nick": event.author.name + "/" + event.author.nick + "/" + str(event.author.id),
+        "nick": event.author.name
+        + "/"
+        + event.author.nick
+        + "/"
+        + str(event.author.id),
         "author": event.author.name,
         "author_id": event.author.id,
         "hour": hour,
         "minute": minute,
         "second": second,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
     if event.text is not None:
@@ -74,6 +80,7 @@ def get_format_args(event):
 
 def format_event(event, args):
     return base_formats[event.type].format(**args)
+
 
 # +--------------+
 # | File logging |
@@ -124,8 +131,7 @@ def get_log_stream(event, args):
         # a dumb hack to bypass the fact windows does not allow * in file names
         new_filename = new_filename.replace("*", "server")
 
-        log_stream = codecs.open(
-            new_filename, mode="a", encoding="utf-8", buffering=1)
+        log_stream = codecs.open(new_filename, mode="a", encoding="utf-8")
         stream_cache[cache_key] = (new_filename, log_stream)
 
     return log_stream
@@ -167,17 +173,21 @@ def db_log(event, args):
         return
 
     cs = db_conn.cursor()
-    cs.execute("""insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
-            values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (
-        args["msg_id"],
-        args["timestamp"],
-        args["author"],
-        args["author_id"],
-        args["content"],
-        args["channel"],
-        args["channel_id"],
-        args["server"],
-        args["server_id"]))
+    cs.execute(
+        """insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
+            values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+        (
+            args["msg_id"],
+            args["timestamp"],
+            args["author"],
+            args["author_id"],
+            args["content"],
+            args["channel"],
+            args["channel_id"],
+            args["server"],
+            args["server_id"],
+        ),
+    )
     db_conn.commit()
 
 
@@ -197,17 +207,21 @@ def log_msg(msg):
     cs.execute("""select * from messages where id = %s;""", (args["msg_id"],))
     out = cs.fetchall()
     if len(out) == 0:
-        cs.execute("""insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
-            values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (
-            args["msg_id"],
-            args["timestamp"],
-            args["author"],
-            args["author_id"],
-            args["content"],
-            args["channel"],
-            args["channel_id"],
-            args["server"],
-            args["server_id"]))
+        cs.execute(
+            """insert into messages (id, date, author, author_id, msg, channel, channel_id, server, server_id) \
+            values(%s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+            (
+                args["msg_id"],
+                args["timestamp"],
+                args["author"],
+                args["author_id"],
+                args["content"],
+                args["channel"],
+                args["channel_id"],
+                args["server"],
+                args["server_id"],
+            ),
+        )
         db_conn.commit()
 
 
@@ -261,8 +275,7 @@ def get_msg_cnt_for_user(uid):
 
 def get_msg_cnt_for_channel(cid):
     cs = db_conn.cursor()
-    cs.execute(
-        """select count(*) from messages where channel_id=%s""", (str(cid),))
+    cs.execute("""select count(*) from messages where channel_id=%s""", (str(cid),))
 
     return cs.fetchall()[0][0]
 
@@ -270,8 +283,10 @@ def get_msg_cnt_for_channel(cid):
 def get_msg_cnt_for_channel_after(cid, lower):
     cs = db_conn.cursor()
 
-    cs.execute("""select count(*) from messages where channel_id=%s and date>%s""",
-               (str(cid), str(datetime.fromtimestamp(lower)),))
+    cs.execute(
+        """select count(*) from messages where channel_id=%s and date>%s""",
+        (str(cid), str(datetime.fromtimestamp(lower)),),
+    )
 
     return cs.fetchall()[0][0]
 
@@ -279,10 +294,13 @@ def get_msg_cnt_for_channel_after(cid, lower):
 def get_msgs_for_user_in_chan(uid, cid, limit):
     cs = db_conn.cursor()
     try:
-        cs.execute("""select msg from messages where author_id=%s and channel_id=%s order by date desc limit %s""",
-                   (str(uid), str(cid), str(limit)))
+        cs.execute(
+            """select msg from messages where author_id=%s and channel_id=%s order by date desc limit %s""",
+            (str(uid), str(cid), str(limit)),
+        )
     except:
         import traceback
+
         traceback.print_exc()
         db_conn.rollback()
         print("Error getting messages for %s in %s" % (uid, cid))
@@ -296,10 +314,13 @@ def get_msgs_for_user_in_chan(uid, cid, limit):
 def get_msgs_in_chan(cid, limit):
     cs = db_conn.cursor()
     try:
-        cs.execute("""select msg from messages where channel_id=%s order by date desc limit %s""",
-                   (str(cid), str(limit)))
+        cs.execute(
+            """select msg from messages where channel_id=%s order by date desc limit %s""",
+            (str(cid), str(limit)),
+        )
     except:
         import traceback
+
         traceback.print_exc()
         db_conn.rollback()
         print("Error getting messages for %s in %s" % (uid, cid))
@@ -329,7 +350,8 @@ async def rip_channel(client, ch):
 @hook.command(permissions=Permission.bot_owner)
 async def ripmusic(event, reply):
     link = re.compile(
-        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})")
+        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})"
+    )
 
     out = open("music.csv", "w")
     total = 0
@@ -338,8 +360,7 @@ async def ripmusic(event, reply):
         print(i.content)
 
         for finding in finds:
-            data = "%s, %s, %s\n" % (
-                i.author.name, i.created_at, "".join(finding))
+            data = "%s, %s, %s\n" % (i.author.name, i.created_at, "".join(finding))
             out.write(data)
 
             total += 1
@@ -351,6 +372,7 @@ async def ripmusic(event, reply):
 @hook.command(permissions=Permission.bot_owner)
 async def rip_servers(bot):
     import discord
+
     client = bot.backend.client
 
     gen = client.get_all_channels()
@@ -362,6 +384,7 @@ async def rip_servers(bot):
                 await rip_channel(client, ch)
             except:
                 import traceback
+
                 traceback.print_exc()
 
 

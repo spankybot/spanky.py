@@ -32,6 +32,7 @@ def add_chan_to_auto_order(text, str_to_id, storage, send_message, server):
     storage.sync()
     send_message("Done")
 
+
 @hook.command(permissions=Permission.admin)
 def list_auto_order_chans(storage, id_to_chan):
     """
@@ -43,6 +44,7 @@ def list_auto_order_chans(storage, id_to_chan):
     chans = storage["auto_order"]
 
     return ", ".join("<#%s>" % i for i in chans)
+
 
 @hook.command(permissions=Permission.admin)
 def del_chan_from_auto_order(text, storage, send_message, str_to_id):
@@ -58,6 +60,7 @@ def del_chan_from_auto_order(text, storage, send_message, str_to_id):
 
     storage.sync()
     send_message("Done")
+
 
 def do_auto_order(server, chanlist):
     lower_limit = int(time_utils.tnow()) - time_utils.SEC_IN_MIN * 60
@@ -97,8 +100,8 @@ def do_auto_order(server, chanlist):
 
 
 @hook.periodic(5)
-def order_chans(bot):
+def order_chans(bot, storage_getter):
     for server in bot.backend.get_servers():
-        stor = bot.server_permissions[server.id].get_plugin_storage("plugins_auto_order.json")
+        stor = storage_getter(server.id)
         if "auto_order" in stor:
             do_auto_order(server, stor["auto_order"])

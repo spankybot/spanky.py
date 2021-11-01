@@ -16,7 +16,9 @@ async def say(text, server, async_send_message):
     if not channel:
         return "Invalid channel"
 
-    await async_send_message(text=data[1], target=channel.id, allowed_mentions=AllowedMentions.all())
+    await async_send_message(
+        text=data[1], target=channel.id, allowed_mentions=AllowedMentions.all()
+    )
 
 
 @hook.command(permissions=Permission.admin)

@@ -27,12 +27,12 @@ class Alias:
 
 
 ALIASES = (
-    Alias('btc', 'btc', False),
-    Alias('ltc', 'ltc', False),
-    Alias('eth', 'eth', False),
-    Alias('bch', 'bch'),
-    Alias('xrp', 'xrp'),
-    Alias('eos', 'eos'),
+    Alias("btc", "btc", False),
+    Alias("ltc", "ltc", False),
+    Alias("eth", "eth", False),
+    Alias("bch", "bch"),
+    Alias("xrp", "xrp"),
+    Alias("eos", "eos"),
 )
 
 
@@ -49,15 +49,15 @@ def alias_wrapper(alias):
 
     return func
 
+from spanky.hook2 import Hook, EventType, Command
+hook = Hook("crypto")
 
+@hook.event(EventType.on_start)
 def init_aliases():
     for alias in ALIASES:
         if alias.nocmd:
             continue
-        _hook = alias_wrapper(alias)
-        globals()[_hook.__name__] = hook.command(
-            alias.cmds, autohelp=False)(_hook)
-
+        hook.command(name=alias.cmds)(alias_wrapper(alias))
 
 @hook.command()
 def serak():
@@ -67,15 +67,16 @@ def serak():
 
     return msg
 
+
 # main command
-@hook.command("crypto")
+@hook.command(name="crypto")
 def crypto_command(text, reply):
     """<ticker> [currency] - Returns current value of a cryptocurrency"""
     args = text.split()
     ticker = args.pop(0)
 
     if not args:
-        currency = 'USD'
+        currency = "USD"
     else:
         currency = args.pop(0).upper()
 
@@ -98,12 +99,9 @@ def crypto_command(text, reply):
         return "Could not find ticker"
 
     return "`{} || {:.2f} {} || Change 1h {:.3f}% || Change 24h: {:.3f}%`".format(
-        elem['base'],
+        elem["base"],
         float(elem["prices"]["latest"]),
         currency,
         float(elem["prices"]["latest_price"]["percent_change"]["hour"]) * 100,
         float(elem["prices"]["latest_price"]["percent_change"]["day"]) * 100,
     )
-
-
-init_aliases()

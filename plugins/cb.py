@@ -9,7 +9,7 @@ def get_key(bot):
     cb = CleverWrap(api_key)
 
 
-@hook.command
+@hook.command()
 def coa(text):
     """<text> - talk to CleverBot"""
     return cb.say(text)

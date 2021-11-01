@@ -1,6 +1,6 @@
-import praw
+import asyncpraw
 import time
-from spanky.plugin import hook
+from spanky.hook2 import Hook, EventType
 from spanky.plugin.permissions import Permission
 
 tstamps = {}
@@ -8,6 +8,8 @@ g_db = None
 
 storages = {}
 servers = {}
+
+hook = Hook("watcher", storage_name="plugins_watch")
 
 
 def set_crt_timestamps():
@@ -24,7 +26,7 @@ def set_crt_timestamps():
         storage.sync()
 
 
-@hook.on_ready()
+@hook.event(EventType.on_ready)
 def ready(server, storage):
     storages[server.id] = storage
     servers[server.id] = server
@@ -35,26 +37,27 @@ def ready(server, storage):
 
 def do_it(thread):
     sub = thread.subreddit.display_name
-    prefix = '**Self post:**' if thread.is_self else '**Link post:**'
+    prefix = "**Self post:**" if thread.is_self else "**Link post:**"
     message = '"%s" posted in /r/%s by %s. <%s>' % (
         thread.title,
         sub,
         thread.author,
-        (thread.shortlink).replace("http://redd.it", "http://ssl.reddit.com")
+        (thread.shortlink).replace("http://redd.it", "http://ssl.reddit.com"),
     )
 
     return prefix + " " + message
 
 
-@hook.periodic(30)
-def checker(bot, send_message):
+@hook.periodic(5)
+async def checker(bot, send_message):
     auth = bot.config.get("reddit_auth")
-    reddit_inst = praw.Reddit(
+    reddit_inst = asyncpraw.Reddit(
         client_id=auth.get("client_id"),
         client_secret=auth.get("client_secret"),
         username=auth.get("username"),
         password=auth.get("password"),
-        user_agent="Subreddit watcher by /u/programatorulupeste")
+        user_agent="Subreddit watcher by /u/programatorulupeste",
+    )
 
     for server_id, storage in storages.items():
         if "watching" not in storage or storage["watching"] == False:
@@ -62,31 +65,36 @@ def checker(bot, send_message):
 
         for sub in storage["subs"].keys():
             try:
-                subreddit = reddit_inst.subreddit(sub)
+                subreddit = await reddit_inst.subreddit(sub)
                 newest = storage["subs"][sub]["timestamp"]
 
-                for submission in subreddit.new():
+                async for submission in subreddit.new():
                     subtime = submission.created_utc
                     if subtime > storage["subs"][sub]["timestamp"]:
+                        print(submission)
                         if subtime > newest:
                             newest = subtime
                             storage["subs"][sub]["timestamp"] = newest
-                            storage.sync
-                        send_message(target=storage["channel"], text=do_it(
-                            submission), server=servers[server_id])
+                            storage.sync()
+                        send_message(
+                            target=storage["channel"],
+                            text=do_it(submission),
+                            server=servers[server_id],
+                        )
 
             except BaseException as e:
                 print(str(e))
                 print("Exception generated for sub: " + sub)
+    await reddit_inst.close()
 
 
-@hook.command
+@hook.command()
 def subwatch_list(event):
     """
     List watched subreddits.
     """
     if storages[event.server.id]["subs"]:
-        return 'Watching: ' + ", ".join(i for i in storages[event.server.id]["subs"])
+        return "Watching: " + ", ".join(i for i in storages[event.server.id]["subs"])
     else:
         return "Empty."
 
@@ -142,7 +150,7 @@ def set_rupdates_channel(text, str_to_id, event):
     """
     <channel> - Send reddit updates on channel.
     """
-    storages[event.server.id]['channel'] = str_to_id(text)
+    storages[event.server.id]["channel"] = str_to_id(text)
     return "Done."
 
 
@@ -151,7 +159,7 @@ def clear_rupdates_channel(event):
     """
     Remove reddit updates channel.
     """
-    storages[event.server.id]['channel'] = None
+    storages[event.server.id]["channel"] = None
     return "Done."
 
 
@@ -160,7 +168,7 @@ def get_rupdates_channel(id_to_chan, event):
     """
     List reddit updates annoucement channel.
     """
-    if storages[event.server.id]['channel']:
-        return id_to_chan(storages[event.server.id]['channel'])
+    if storages[event.server.id]["channel"]:
+        return id_to_chan(storages[event.server.id]["channel"])
     else:
         return "Not set."

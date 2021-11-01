@@ -3,12 +3,13 @@ from tokenize import tokenize, OP, ENDMARKER
 from collections import OrderedDict, deque
 from io import BytesIO
 
+
 def extract_params(s):
     tokvals = deque([None, None, None])
     toknums = deque([None, None, None])
     decls = OrderedDict()
 
-    g = tokenize(BytesIO(s.encode('utf-8')).readline)
+    g = tokenize(BytesIO(s.encode("utf-8")).readline)
 
     def add_decl(var_type, var_name):
         decls[var_name] = {}
@@ -23,7 +24,7 @@ def extract_params(s):
                 var_def = float(var_def)
             decls[var_name]["default"] = var_def
 
-    for toknum, tokval, _, _, _  in g:
+    for toknum, tokval, _, _, _ in g:
         # Only trigger for : or =
         if toknums[-1] == OP:
             # If the operator is a : then it's a variable declaration
@@ -42,9 +43,12 @@ def extract_params(s):
         if decls[var]["default"] != None:
             has_defval = True
         elif has_defval:
-            raise ValueError("Implicit values must be specified at the end of the string")
+            raise ValueError(
+                "Implicit values must be specified at the end of the string"
+            )
 
     return decls
+
 
 def map_params(s, params):
     try:
@@ -55,14 +59,18 @@ def map_params(s, params):
 
     # TODO: this is discord specific
     if s.endswith(">"):
-        s = s[0:s.rfind("<")]
+        s = s[0 : s.rfind("<")]
 
-    g = tokenize(BytesIO(s.strip().encode('utf-8')).readline)
+    g = tokenize(BytesIO(s.strip().encode("utf-8")).readline)
 
     # Go through the parsed tokens and eliminate tokens used for string formatting
     input_toks = []
     for toknum, tokval, _, _, _ in g:
-        if toknum > token.N_TOKENS or toknum in [token.ENDMARKER, token.ENCODING, token.NEWLINE]:
+        if toknum > token.N_TOKENS or toknum in [
+            token.ENDMARKER,
+            token.ENCODING,
+            token.NEWLINE,
+        ]:
             continue
 
         input_toks.append((tokval, toknum))

@@ -14,14 +14,17 @@ import codecs
 import json
 import os
 
-from spanky.plugin import hook
 from spanky.utils import formatting, textgen
+from spanky.hook2 import Hook
+
+hook = Hook("name_generator")
 
 
 def get_generator(_json):
     data = json.loads(_json)
-    return textgen.TextGenerator(data["templates"],
-                                 data["parts"], default_templates=data["default_templates"])
+    return textgen.TextGenerator(
+        data["templates"], data["parts"], default_templates=data["default_templates"]
+    )
 
 
 @hook.command(autohelp=False)
@@ -35,13 +38,15 @@ def namegen(text, bot):
 
     # get a list of available name generators
     files = os.listdir(os.path.join("plugin_data/name_files"))
-    all_modules = [os.path.splitext(i)[0] for i in files if os.path.splitext(i)[1] == ".json"]
+    all_modules = [
+        os.path.splitext(i)[0] for i in files if os.path.splitext(i)[1] == ".json"
+    ]
     all_modules.sort()
 
     # command to return a list of all available generators
     if inp == "list":
         message = "Available generators: "
-        message += formatting.get_text_list(all_modules, 'and')
+        message += formatting.get_text_list(all_modules, "and")
         return message
         return
 
@@ -68,4 +73,6 @@ def namegen(text, bot):
     name_list = generator.generate_strings(10)
 
     # and finally return the final message :D
-    return "Some names to ponder: {}.".format(formatting.get_text_list(name_list, 'and'))
+    return "Some names to ponder: {}.".format(
+        formatting.get_text_list(name_list, "and")
+    )

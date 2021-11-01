@@ -17,6 +17,8 @@ TZ_SRV = "754550072955371620"
 TZ_SRV2 = "426392328429633542"
 TZ_SRV3 = "881138853765865493"
 DRUNKBOYZ_SRV = "418705572511219723"
+CNC_TEST_SRV = "648937029433950218"
+
 
 SERVERS = [
     RODDIT_ID,
@@ -28,6 +30,7 @@ SERVERS = [
     TZ_SRV2,
     TZ_SRV3,
     DRUNKBOYZ_SRV,
+    CNC_TEST_SRV,
 ]
 
 USER_AGENT = "Image fetcher for Snoonet:#Romania by /u/programatorulupeste"
@@ -104,8 +107,11 @@ def update_sub(reddit, sub, ustorage):
     else:
         return get_links_from_sub(reddit, sub, ["month"])
 
+@hook.command()
+def count_subs():
+    return f"{len(tracked_subs)}: {', '.join(tracked_subs)}"
 
-@hook.on_start
+@hook.on_start()
 def init(bot, unique_storage):
     global reddit_inst
 

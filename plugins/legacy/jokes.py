@@ -2,8 +2,9 @@ import codecs
 import os
 import random
 
-from spanky.plugin import hook
-from spanky.plugin.permissions import Permission
+from spanky.hook2 import Hook, EventType
+
+hook = Hook("jokes")
 
 
 def load_joke_data():
@@ -19,39 +20,51 @@ def load_joke_data():
         pun = [line.strip() for line in f.readlines() if not line.startswith("//")]
 
     with codecs.open(os.path.join("plugin_data/confucious.txt"), encoding="utf-8") as f:
-        confucious = [line.strip() for line in f.readlines() if not line.startswith("//")]
+        confucious = [
+            line.strip() for line in f.readlines() if not line.startswith("//")
+        ]
 
     with codecs.open(os.path.join("plugin_data/one_liners.txt"), encoding="utf-8") as f:
-        one_liner = [line.strip() for line in f.readlines() if not line.startswith("//")]
+        one_liner = [
+            line.strip() for line in f.readlines() if not line.startswith("//")
+        ]
 
     with codecs.open(os.path.join("plugin_data/wisdom.txt"), encoding="utf-8") as f:
         wisdom = [line.strip() for line in f.readlines() if not line.startswith("//")]
 
     with codecs.open(os.path.join("plugin_data/book_puns.txt"), encoding="utf-8") as f:
-        book_puns = [line.strip() for line in f.readlines() if not line.startswith("//")]
+        book_puns = [
+            line.strip() for line in f.readlines() if not line.startswith("//")
+        ]
 
     with codecs.open(os.path.join("plugin_data/lawyerjoke.txt"), encoding="utf-8") as f:
-        lawyerjoke = [line.strip() for line in f.readlines() if not line.startswith("//")]
+        lawyerjoke = [
+            line.strip() for line in f.readlines() if not line.startswith("//")
+        ]
 
     with codecs.open(os.path.join("plugin_data/kero.txt"), encoding="utf-8") as f:
-        kero_sayings = [line.strip() for line in f.readlines() if not line.startswith("//")]
+        kero_sayings = [
+            line.strip() for line in f.readlines() if not line.startswith("//")
+        ]
 
 
-@hook.command(permissions=Permission.bot_owner)
+@hook.command(permissions=["bot_owner"])
 def reload_jokes():
     load_joke_data()
-    print(yo_momma)
     return "Reloaded."
 
-@hook.on_start()
+
+@hook.event(EventType.on_start)
 def load_jokes():
     load_joke_data()
 
-@hook.command()
+
+@hook.command(server_id="648937029433950218")
 def yomomma(text):
     """<nick> - tells a yo momma joke to <nick>"""
+    print("bruh")
     target = text.strip()
-    return '{}, {}'.format(target, random.choice(yo_momma).lower())
+    return "{}, {}".format(target, random.choice(yo_momma).lower())
 
 
 @hook.command(autohelp=False)
@@ -63,13 +76,14 @@ def doit():
 @hook.command(autohelp=False)
 def pun():
     """- Come on everyone loves puns right?"""
+    print("wtf?????????")
     return random.choice(pun)
 
 
 @hook.command(autohelp=False)
 def confucious():
     """- confucious say man standing on toilet is high on pot."""
-    return 'Confucious say {}'.format(random.choice(confucious).lower())
+    return "Confucious say {}".format(random.choice(confucious).lower())
 
 
 @hook.command(autohelp=False)
@@ -89,30 +103,30 @@ def bookpun():
     """- Suggests a pun of a book title/author."""
     # suggestions = ["Why not try", "You should read", "You gotta check out"]
     book = random.choice(book_puns)
-    title = book.split(':')[0].strip()
-    author = book.split(':')[1].strip()
+    title = book.split(":")[0].strip()
+    author = book.split(":")[1].strip()
     return "{} by {}".format(title, author)
 
 
-@hook.command("boobs")
+@hook.command(name="boobs")
 def boobies(text):
     """- prints boobies!"""
     boob = "\u2299"
     out = text.strip()
-    out = out.replace('o', boob).replace('O', boob).replace('0', boob)
+    out = out.replace("o", boob).replace("O", boob).replace("0", boob)
     if out == text.strip():
         return "Sorry I couldn't turn anything in '{}' into boobs for you.".format(out)
     return out
 
 
-@hook.command("awesome")
+@hook.command(name="awesome")
 def awesome(text):
     """- Prints a webpage to show <nick> how awesome they are."""
-    link = 'http://is-awesome.cool/{}'
-    nick = text.split(' ')[0]
+    link = "http://is-awesome.cool/{}"
+    nick = text.split(" ")[0]
     return "{}: I am blown away by your recent awesome action(s). Please read \x02{}\x02".format(
-            nick, link.format(nick)
-        )
+        nick, link.format(nick)
+    )
 
 
 @hook.command(autohelp=False)

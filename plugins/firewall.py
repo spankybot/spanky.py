@@ -1,5 +1,5 @@
 from spanky.plugin import hook
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
 
 from spanky.utils import time_utils
@@ -7,17 +7,22 @@ from spanky.utils.cmdparser import CmdParser
 
 
 @hook.periodic(10)
-def firewall_check(bot):
+def firewall_check(bot, storage_getter):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_firewall.json")
+        storage = storage_getter(server.id)
 
         if "fw" not in storage:
             continue
 
-        if storage["fw"]["status"] == "up" and storage["fw"]["end_time"] and time_utils.tnow() > storage["fw"]["end_time"]:
-            storage["fw"]["status"] = "auto stopped on %s GMT" % time_utils.time_to_date(
-                storage["fw"]["end_time"])
+        if (
+            storage["fw"]["status"] == "up"
+            and storage["fw"]["end_time"]
+            and time_utils.tnow() > storage["fw"]["end_time"]
+        ):
+            storage["fw"]["status"] = (
+                "auto stopped on %s GMT"
+                % time_utils.time_to_date(storage["fw"]["end_time"])
+            )
             storage.sync()
 
 
@@ -64,8 +69,9 @@ def firewall(text, reply, storage):
     def fw_up(text):
         # Extract the duration
         if len(text) > 0:
-            storage["fw"]["end_time"] = time_utils.tnow(
-            ) + time_utils.timeout_to_sec(text[0])
+            storage["fw"]["end_time"] = time_utils.tnow() + time_utils.timeout_to_sec(
+                text[0]
+            )
         else:
             storage["fw"]["end_time"] = None
 
@@ -73,8 +79,10 @@ def firewall(text, reply, storage):
         storage.sync()
 
         if storage["fw"]["end_time"]:
-            reply("Firewall enabled. It will stop in %s" %
-                  time_utils.sec_to_human(time_utils.timeout_to_sec(text[0])))
+            reply(
+                "Firewall enabled. It will stop in %s"
+                % time_utils.sec_to_human(time_utils.timeout_to_sec(text[0]))
+            )
         else:
             reply("Firewall enabled. It will run indefinitely.")
 
@@ -91,9 +99,12 @@ def firewall(text, reply, storage):
         if storage["fw"]["status"] == "up":
             if storage["fw"]["end_time"]:
                 to_reply += "\nFirewall will stop at: %s GMT" % time_utils.time_to_date(
-                    storage["fw"]["end_time"])
+                    storage["fw"]["end_time"]
+                )
             else:
-                to_reply += "\nFirewall does not have a timeout and will run indefinitely."
+                to_reply += (
+                    "\nFirewall does not have a timeout and will run indefinitely."
+                )
 
         to_reply += "\n```"
         reply(to_reply)
@@ -113,32 +124,30 @@ def firewall(text, reply, storage):
                     CmdParser(
                         "up",
                         "raise firewall",
-                        args=[CmdParser(
-                            "duration",
-                            "how long to keep the firewall up",
-                            required=False,
-                            default=0)],
-                        action=fw_up),
-                    CmdParser(
-                        "down",
-                        "disable firewall",
-                        action=fw_down),
-                    CmdParser(
-                        "status",
-                        "view firewall status",
-                        action=fw_status),
+                        args=[
+                            CmdParser(
+                                "duration",
+                                "how long to keep the firewall up",
+                                required=False,
+                                default=0,
+                            )
+                        ],
+                        action=fw_up,
+                    ),
+                    CmdParser("down", "disable firewall", action=fw_down),
+                    CmdParser("status", "view firewall status", action=fw_status),
                     CmdParser(
                         "mode",
                         "set firewall mode",
                         options=[
-                            CmdParser(
-                                "autokick", "autokick while firewall is up"),
-                            CmdParser("autoban", "autoban while firewall is up")],
-                        action=fw_mode
+                            CmdParser("autokick", "autokick while firewall is up"),
+                            CmdParser("autoban", "autoban while firewall is up"),
+                        ],
+                        action=fw_mode,
                     ),
-                ]
+                ],
             )
-        ]
+        ],
     )
 
     try:

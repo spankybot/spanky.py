@@ -4,8 +4,10 @@
     "api_keys" : {
         "This is a dictionary":""
     },
+	"db_host": "Host of PSQL database",
     "db_name": "PSQL database name to connect to",
     "db_user": "Username to use to connect to the DB",
+	"db_pass": "Password to use for user",
 
     "bot_owners": [
         "List of user IDs who have special bot owner rights"

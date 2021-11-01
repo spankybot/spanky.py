@@ -14,15 +14,15 @@ MAX_LINES = 10
 def quote_it(data):
     import re
 
-    return '```\n' + data + '\n```'
+    return "```\n" + data + "\n```"
 
 
 def extract_code(msg):
     msg = msg.strip()
-    if msg == '':
+    if msg == "":
         return None, None
 
-    parts = msg.split('\n', 1)
+    parts = msg.split("\n", 1)
     if len(parts) == 1:
         fl_parts = parts[0].split(None, 1)
 
@@ -33,7 +33,7 @@ def extract_code(msg):
         lang, code = fl_parts
 
         # remove backticks (doesn't unescape other backticks)
-        if code[0] == code[-1] == '`':
+        if code[0] == code[-1] == "`":
             code = code[1:-1]
 
         return lang, code
@@ -44,17 +44,17 @@ def extract_code(msg):
 
     # remove ``` from the end if we've got them
     code = parts[1]
-    if code.endswith('\n```'):
+    if code.endswith("\n```"):
         code = code[:-4]
 
     # handle ```<lang> when language was not specified
     lang = parts[0].strip()
-    if lang.startswith('```'):
+    if lang.startswith("```"):
         lang = lang[3:]
 
     # remove ```[lang]
-    elif code.startswith('```'):
-        _, code = code.split('\n', 1)
+    elif code.startswith("```"):
+        _, code = code.split("\n", 1)
 
     return lang, code
 
@@ -63,7 +63,7 @@ def extract_code(msg):
 def wb(text, send_message):
     """wandbox interface"""
     if len(compilers) == 0:
-        request = requests.get('https://wandbox.org/api/list.json')
+        request = requests.get("https://wandbox.org/api/list.json")
         for i in request.json():
             lang = i["language"].replace(" HEAD", "").split()[0].lower()
             if lang not in compilers_proc:
@@ -79,8 +79,7 @@ def wb(text, send_message):
     if lang not in compilers and lang not in compilers_proc:
         msg = "Compilers: `" + ", ".join(i for i in sorted(compilers)) + "`\n"
         msg += "OR\n"
-        msg += "Languages: `" + \
-            ", ".join(i for i in sorted(compilers_proc)) + "`\n"
+        msg += "Languages: `" + ", ".join(i for i in sorted(compilers_proc)) + "`\n"
         msg += "Run with: `.wb <compiler/language> <code>`"
         send_message(msg)
         return
@@ -97,7 +96,7 @@ def wb(text, send_message):
     request = requests.post("https://wandbox.org/api/compile.json", json=req)
 
     resp = request.json()
-    #print("asd" + str(resp))
+    # print("asd" + str(resp))
 
     if "program_message" in resp:
         to_print = resp["program_message"]
@@ -107,25 +106,39 @@ def wb(text, send_message):
 
     try:
         if to_print:
-            to_print = re.sub(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]', '', to_print)
+            to_print = re.sub(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]", "", to_print)
             if len(to_print) > MAX_LEN and len(to_print.split("\n")) > MAX_LINES:
                 url = web.paste(data=str(to_print))
                 resp_lines = to_print.split("\n")
-                return '```' + "\n".join(resp_lines[:MAX_LINES]) + '```' + " [...] see output at " + url
+                return (
+                    "```"
+                    + "\n".join(resp_lines[:MAX_LINES])
+                    + "```"
+                    + " [...] see output at "
+                    + url
+                )
 
             if len(to_print) > MAX_LEN:
                 url = web.paste(data=str(to_print))
-                return '```' + to_print[:MAX_LEN] + '```' + " [...] see output at " + url
+                return (
+                    "```" + to_print[:MAX_LEN] + "```" + " [...] see output at " + url
+                )
 
             elif len(to_print.split("\n")) > MAX_LINES:
                 url = web.paste(data=str(to_print))
 
                 resp_lines = to_print.split("\n")
 
-                return '```' + "\n".join(resp_lines[:MAX_LINES]) + '```' + " [...] see output at " + url
+                return (
+                    "```"
+                    + "\n".join(resp_lines[:MAX_LINES])
+                    + "```"
+                    + " [...] see output at "
+                    + url
+                )
             else:
-                return(quote_it(to_print))
+                return quote_it(to_print)
     except Exception as e:
         print(e)
-        url = web.paste(data=str(resp).encode('utf-8'))
-        return("No output. Maybe something bad happened - see " + url)
+        url = web.paste(data=str(resp).encode("utf-8"))
+        return "No output. Maybe something bad happened - see " + url

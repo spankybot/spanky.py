@@ -23,9 +23,7 @@ def dist_ab(p1, p2):
 
 
 def avg_pos_rel_p1(p1, p2):
-    return (
-        p1[0] + (p2[0] - p1[0]) // 2,
-        p1[1] + (p2[1] - p1[1]) // 2)
+    return (p1[0] + (p2[0] - p1[0]) // 2, p1[1] + (p2[1] - p1[1]) // 2)
 
 
 def get_average_pos(array):
@@ -64,8 +62,7 @@ def prepare_image(img):
         size_y *= y_scale
 
     if x_scale != 1 or y_scale != 1:
-        img = img.resize((int(size_x),
-                          int(size_y)), resample=PIL.Image.BICUBIC)
+        img = img.resize((int(size_x), int(size_y)), resample=PIL.Image.BICUBIC)
 
     return img
 
@@ -86,24 +83,31 @@ def get_overlay(name, location):
         else:
             # Enumerate all resources and return
             resources = glob.glob("%s/*.png.json" % location)
-            return False, "%s is not a valid parameter. Try one of: %s" % \
-                (name,
-                 ", ".join(i.split("/")[-1].replace(".png.json", "") for i in resources))
+            return (
+                False,
+                "%s is not a valid parameter. Try one of: %s"
+                % (
+                    name,
+                    ", ".join(
+                        i.split("/")[-1].replace(".png.json", "") for i in resources
+                    ),
+                ),
+            )
 
     return True, overlay.replace(".json", "")
 
 
 @hook.command(params="string:name=random")
 def glasses(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(
-        cmd_args["name"], "plugin_data/face_res/glasses/")
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/glasses/")
 
     if not valid:
         return overlay
 
     for img in event.image:
-        img.proc_each_pil_frame(add_glasses, send_file, send_message, {
-                                "glasses_img": overlay})
+        img.proc_each_pil_frame(
+            add_glasses, send_file, send_message, {"glasses_img": overlay}
+        )
 
 
 def add_glasses(image, glasses_img, debug=False):
@@ -142,15 +146,23 @@ def add_glasses(image, glasses_img, debug=False):
         x_scale_ratio = glasses.size[0] / eyes_dist / glasses_json["scale"]
 
         # Resize the glasses
-        glasses = glasses.resize((int(glasses.size[0] / x_scale_ratio), int(
-            glasses.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
+        glasses = glasses.resize(
+            (
+                int(glasses.size[0] / x_scale_ratio),
+                int(glasses.size[1] / x_scale_ratio),
+            ),
+            resample=PIL.Image.BICUBIC,
+        )
 
         offset = rotate_origin_only(
-            (glasses_json["offset_x"], glasses_json["offset_y"]), -eyes_angle)
+            (glasses_json["offset_x"], glasses_json["offset_y"]), -eyes_angle
+        )
 
         # Calculate where to paste the glasses
-        glasses_paste = (eyes_avg[0] - glasses.size[0] // 2 +
-                         offset[0], eyes_avg[1] - glasses.size[1] // 2 + offset[1])
+        glasses_paste = (
+            eyes_avg[0] - glasses.size[0] // 2 + offset[0],
+            eyes_avg[1] - glasses.size[1] // 2 + offset[1],
+        )
 
         image.paste(glasses, glasses_paste, glasses)
 
@@ -162,15 +174,15 @@ def add_glasses(image, glasses_img, debug=False):
 
 @hook.command(params="string:name=random")
 def moustache(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(
-        cmd_args["name"], "plugin_data/face_res/moustache/")
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/moustache/")
 
     if not valid:
         return overlay
 
     for img in event.image:
-        img.proc_each_pil_frame(add_moustache, send_file, send_message, {
-                                "moustache_img": overlay})
+        img.proc_each_pil_frame(
+            add_moustache, send_file, send_message, {"moustache_img": overlay}
+        )
 
 
 def add_moustache(image, moustache_img, debug=False):
@@ -179,8 +191,7 @@ def add_moustache(image, moustache_img, debug=False):
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
     if debug:
-        print("I found {} face(s) in this photograph.".format(
-            len(face_landmarks_list)))
+        print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
 
     moustache = Image.open(moustache_img)
     moustache_json = json.load(open(moustache_img + ".json"))
@@ -204,17 +215,26 @@ def add_moustache(image, moustache_img, debug=False):
         x_scale_ratio = moustache.size[0] / lip_sizex / moustache_json["scale"]
 
         # Resize the glasses
-        moustache = moustache.resize((int(moustache.size[0] / x_scale_ratio),
-                                      int(moustache.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
+        moustache = moustache.resize(
+            (
+                int(moustache.size[0] / x_scale_ratio),
+                int(moustache.size[1] / x_scale_ratio),
+            ),
+            resample=PIL.Image.BICUBIC,
+        )
 
         avg_pos = get_average_pos(
-            face_landmarks["nose_tip"] + face_landmarks["top_lip"])
+            face_landmarks["nose_tip"] + face_landmarks["top_lip"]
+        )
 
         offset = rotate_origin_only(
-            (moustache_json["offset_x"], moustache_json["offset_y"]), -lip_angle)
+            (moustache_json["offset_x"], moustache_json["offset_y"]), -lip_angle
+        )
 
-        moustache_paste = (avg_pos[0] - moustache.size[0] // 2 + offset[0],
-                           avg_pos[1] - moustache.size[1] // 2 + offset[1])
+        moustache_paste = (
+            avg_pos[0] - moustache.size[0] // 2 + offset[0],
+            avg_pos[1] - moustache.size[1] // 2 + offset[1],
+        )
 
         image.paste(moustache, moustache_paste, moustache)
 
@@ -236,8 +256,7 @@ def hat(event, send_file, send_message, cmd_args):
         return overlay
 
     for img in event.image:
-        img.proc_each_pil_frame(
-            add_hat, send_file, send_message, {"hat_img": overlay})
+        img.proc_each_pil_frame(add_hat, send_file, send_message, {"hat_img": overlay})
 
 
 def add_hat(image, hat_img, debug=False):
@@ -247,8 +266,7 @@ def add_hat(image, hat_img, debug=False):
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
     if debug:
-        print("I found {} face(s) in this photograph.".format(
-            len(face_landmarks_list)))
+        print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
 
     hat = Image.open(hat_img)
     hat_json = json.load(open(hat_img + ".json"))
@@ -277,17 +295,22 @@ def add_hat(image, hat_img, debug=False):
         x_scale_ratio = hat.size[0] / chin_sizex / hat_json["scale"]
 
         # Resize the glasses
-        hat = hat.resize((int(hat.size[0] / x_scale_ratio),
-                          int(hat.size[1] / x_scale_ratio)), resample=PIL.Image.BICUBIC)
+        hat = hat.resize(
+            (int(hat.size[0] / x_scale_ratio), int(hat.size[1] / x_scale_ratio)),
+            resample=PIL.Image.BICUBIC,
+        )
 
         avg_pos = avg_pos_rel_p1(avg_left, avg_right)
         print(-chin_angle)
 
         offset = rotate_origin_only(
-            (hat_json["offset_x"], hat_json["offset_y"]), -chin_angle)
+            (hat_json["offset_x"], hat_json["offset_y"]), -chin_angle
+        )
 
-        moustache_paste = (avg_pos[0] - hat.size[0] // 2 + offset[0],
-                           avg_pos[1] - hat.size[1] // 2 + offset[1])
+        moustache_paste = (
+            avg_pos[0] - hat.size[0] // 2 + offset[0],
+            avg_pos[1] - hat.size[1] // 2 + offset[1],
+        )
 
         image.paste(hat, moustache_paste, hat)
 
@@ -302,15 +325,15 @@ def add_hat(image, hat_img, debug=False):
 
 @hook.command(params="string:name=random")
 def eyes(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(
-        cmd_args["name"], "plugin_data/face_res/eyes/")
+    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/eyes/")
 
     if not valid:
         return overlay
 
     for img in event.image:
-        img.proc_each_pil_frame(add_eyes, send_file, send_message, {
-                                "eyes_img": overlay})
+        img.proc_each_pil_frame(
+            add_eyes, send_file, send_message, {"eyes_img": overlay}
+        )
 
 
 def add_eyes(image, eyes_img, debug=False):
@@ -320,8 +343,7 @@ def add_eyes(image, eyes_img, debug=False):
     face_landmarks_list = face_recognition.face_landmarks(np.array(image))
 
     if debug:
-        print("I found {} face(s) in this photograph.".format(
-            len(face_landmarks_list)))
+        print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
 
     eye_l = Image.open(eyes_img.replace(".png", "_l.png"))
     eye_r = Image.open(eyes_img.replace(".png", "_r.png"))
@@ -350,22 +372,37 @@ def add_eyes(image, eyes_img, debug=False):
 
         # Calculate the scaling and resize
         x_scale_ratio_l = eye_l.size[0] / eyes_dist / eyes_json["scale"]
-        eye_l = eye_l.resize((int(eye_l.size[0] / x_scale_ratio_l),
-                              int(eye_l.size[1] / x_scale_ratio_l)), resample=PIL.Image.BICUBIC)
+        eye_l = eye_l.resize(
+            (
+                int(eye_l.size[0] / x_scale_ratio_l),
+                int(eye_l.size[1] / x_scale_ratio_l),
+            ),
+            resample=PIL.Image.BICUBIC,
+        )
 
         # Calculate the scaling and resize
         x_scale_ratio_r = eye_r.size[0] / eyes_dist / eyes_json["scale"]
-        eye_r = eye_r.resize((int(eye_r.size[0] / x_scale_ratio_r),
-                              int(eye_r.size[1] / x_scale_ratio_r)), resample=PIL.Image.BICUBIC)
+        eye_r = eye_r.resize(
+            (
+                int(eye_r.size[0] / x_scale_ratio_r),
+                int(eye_r.size[1] / x_scale_ratio_r),
+            ),
+            resample=PIL.Image.BICUBIC,
+        )
 
         offset = rotate_origin_only(
-            (eyes_json["offset_x"], eyes_json["offset_y"]), -eyes_angle)
+            (eyes_json["offset_x"], eyes_json["offset_y"]), -eyes_angle
+        )
 
-        eye_l_paste = (avg_left[0] - eye_l.size[0] // 2 + offset[0],
-                       avg_left[1] - eye_l.size[1] // 2 + offset[1])
+        eye_l_paste = (
+            avg_left[0] - eye_l.size[0] // 2 + offset[0],
+            avg_left[1] - eye_l.size[1] // 2 + offset[1],
+        )
 
-        eye_r_paste = (avg_right[0] - eye_r.size[0] // 2 + offset[0],
-                       avg_right[1] - eye_r.size[1] // 2 + offset[1])
+        eye_r_paste = (
+            avg_right[0] - eye_r.size[0] // 2 + offset[0],
+            avg_right[1] - eye_r.size[1] // 2 + offset[1],
+        )
 
         image.paste(eye_l, eye_l_paste, eye_l)
         image.paste(eye_r, eye_r_paste, eye_r)

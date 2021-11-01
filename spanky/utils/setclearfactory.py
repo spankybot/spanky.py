@@ -1,9 +1,11 @@
 import json
 import re
 
-class data_type():
+
+class data_type:
     def validate(self):
         raise NotImplementedError("validate() not implemented")
+
 
 class data_type_string(data_type):
     def __init__(self):
@@ -11,6 +13,7 @@ class data_type_string(data_type):
 
     def validate(self, data):
         return data
+
 
 class data_type_list(data_type):
     def __init__(self, dlist):
@@ -22,6 +25,7 @@ class data_type_list(data_type):
         else:
             raise AttributeError("%s not found in data list" % data)
 
+
 class data_type_dynamic(data_type):
     def __init__(self, parent_object):
         self.parent_object = parent_object
@@ -30,10 +34,12 @@ class data_type_dynamic(data_type):
         if self.parent_object.exist_thing(data):
             return data
         else:
-            raise AttributeError("%s could not be found in %s" % (data, self.parent_object.name))
+            raise AttributeError(
+                "%s could not be found in %s" % (data, self.parent_object.name)
+            )
 
 
-class SetClearFactory():
+class SetClearFactory:
     """
     Class that can manage data in a dictionary data type.
     All information is stored in a given dictionary, where entries will be added according to a predefined hirearchy.
@@ -45,7 +51,10 @@ class SetClearFactory():
     :param data_hierarchy: how the data types are structured.
     :param **kwargs: each data type declared in data_format must be explicitly referenced here.
     """
-    def __init__(self, name, description, data_ref, data_format, data_hierarchy=None, **kwargs):
+
+    def __init__(
+        self, name, description, data_ref, data_format, data_hierarchy=None, **kwargs
+    ):
         self.data = {}
         self.name = name
         self.format = data_format.split()
@@ -60,7 +69,6 @@ class SetClearFactory():
             if key not in self.format:
                 raise ValueError("Type %s not specified in data_format" % key)
 
-
         for elem in self.format:
             if elem not in kwargs:
                 raise ValueError("Element %s not in kwargs" % elem)
@@ -71,7 +79,7 @@ class SetClearFactory():
         self.hierarchy = json.loads(data_hierarchy)
 
     def findWholeWord(self, w):
-        return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
+        return re.compile(r"\b({0})\b".format(w), flags=re.IGNORECASE).search
 
     def get_data(self):
         return self.data[self.name]
@@ -81,23 +89,23 @@ class SetClearFactory():
         for key, key_type in validator.items():
             # If a key in the validator is part of the 'to assign' values
             if key in values:
-#                 print("Key: %s Value: %s" % (key, values[key]))
-#                 print(json.dumps(output))
+                #                 print("Key: %s Value: %s" % (key, values[key]))
+                #                 print(json.dumps(output))
 
                 # Check if a dictionary needs to be created
                 if values[key] not in output and isinstance(key_type, dict):
                     output[values[key]] = {}
-#                     print(json.dumps(storage))
+                #                     print(json.dumps(storage))
 
                 if key not in output and type(key_type) not in [dict]:
                     # Check if a list needs to be created
                     if isinstance(key_type, list):
                         output[key] = []
-#                         print(json.dumps(storage))
+                    #                         print(json.dumps(storage))
                     else:
                         # If it's not a list or dict, just assign the value
                         output[key] = values[key]
-#                         print(json.dumps(storage))
+                #                         print(json.dumps(storage))
 
                 # If it's a previously created list, append to it
                 if key in output and isinstance(output[key], list):
@@ -111,8 +119,8 @@ class SetClearFactory():
     def remove_rec(self, values, validator, output):
         for key, key_type in validator.items():
             if key in values:
-                #print("Key: %s Value: %s" % (key, values[key]))
-                #print(json.dumps(output))
+                # print("Key: %s Value: %s" % (key, values[key]))
+                # print(json.dumps(output))
 
                 if values[key] in output and isinstance(key_type, dict):
                     if self.remove_rec(values, key_type, output[values[key]]) == False:
@@ -121,15 +129,15 @@ class SetClearFactory():
                     # If the object was emptied, delete it
                     if isinstance(key_type, list) and len(output[values[key]]) == 0:
                         del output[values[key]]
-                    #print(json.dumps(storage))
+                    # print(json.dumps(storage))
 
                 if key in output and isinstance(key_type, list):
                     output[key].remove(values[key])
 
                     # If the array was emptied, delete it
-                    if (len(output[key]) == 0):
+                    if len(output[key]) == 0:
                         del output[key]
-                    #print(json.dumps(storage))
+                    # print(json.dumps(storage))
                     return True
 
         return False
@@ -154,7 +162,9 @@ class SetClearFactory():
         # Validate the data
         valid_data = {}
         for order, element in enumerate(text):
-            valid_data[self.format[order]] = self.kwargs[self.format[order]].validate(element)
+            valid_data[self.format[order]] = self.kwargs[self.format[order]].validate(
+                element
+            )
 
         # Save before and after for comparison
         data_before = json.dumps(self.data[self.name])
@@ -167,12 +177,12 @@ class SetClearFactory():
             self.data.sync()
             return "Added."
         else:
-            raise ValueError("Data not added, probably because the input was not correct.")
+            raise ValueError(
+                "Data not added, probably because the input was not correct."
+            )
 
     def del_thing(self, text):
-        """
-
-        """
+        """ """
         try:
             return self._del_thing(text)
         except Exception as e:
@@ -184,7 +194,9 @@ class SetClearFactory():
 
         valid_data = {}
         for order, element in enumerate(text):
-            valid_data[self.format[order]] = self.kwargs[self.format[order]].validate(element)
+            valid_data[self.format[order]] = self.kwargs[self.format[order]].validate(
+                element
+            )
 
         data_before = json.dumps(self.data[self.name])
         self.remove_rec(valid_data, self.hierarchy, self.data[self.name])
@@ -195,7 +207,9 @@ class SetClearFactory():
             self.data.sync()
             return "Deleted. "
         else:
-            raise ValueError("Data not deleted, probably because the input was not correct.")
+            raise ValueError(
+                "Data not deleted, probably because the input was not correct."
+            )
 
     def get_things(self):
         return self.data[self.name]

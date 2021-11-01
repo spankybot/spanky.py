@@ -3,7 +3,7 @@ import spanky.utils.carousel as carousel
 import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
 
-from spanky.plugin.event import EventType
+from spanky.hook2.event import EventType
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
@@ -42,7 +42,8 @@ class Poll(carousel.Selector):
                     await event.async_send_message(
                         "<@%s> You have already voted!" % event.author.id,
                         timeout=MSG_TIMEOUT,
-                        check_old=False)
+                        check_old=False,
+                    )
                     return
                 else:
                     # Account voter
@@ -52,9 +53,8 @@ class Poll(carousel.Selector):
                 self.score[label] += 1
 
                 await event.async_send_message(
-                    "Thank you for voting!",
-                    timeout=MSG_TIMEOUT,
-                    check_old=False)
+                    "Thank you for voting!", timeout=MSG_TIMEOUT, check_old=False
+                )
                 sync_polls(self.storage)
 
             item_dict[item] = add_vote
@@ -68,9 +68,8 @@ class Poll(carousel.Selector):
 
     def get_link(self):
         return dutils.return_message_link(
-            self.server.id,
-            self.channel.id,
-            self.get_msg_id())
+            self.server.id, self.channel.id, self.get_msg_id()
+        )
 
     async def get_results(self, async_send_message):
         results = []
@@ -83,7 +82,8 @@ class Poll(carousel.Selector):
             send_func=async_send_message,
             description="Poll results for %s" % self.title,
             max_lines=20,
-            no_timeout=True)
+            no_timeout=True,
+        )
 
         await content.get_crt_page()
 
@@ -128,13 +128,7 @@ class Poll(carousel.Selector):
             raise Poll.InvalidMessage("Invalid message ID.")
 
         # Create the object
-        poll = Poll(
-            server,
-            chan,
-            data["title"],
-            data["items"],
-            storage)
-
+        poll = Poll(server, chan, data["title"], data["items"], storage)
 
         # Get the saved message and set it
         msg = await chan.async_get_message(msg_id)
@@ -234,10 +228,8 @@ async def list_polls(async_send_message, storage, server):
         fields["No active polls"] = "Create a poll using `.create_poll`"
 
     embed = dutils.prepare_embed(
-        title="Active polls",
-        description="",
-        fields=fields,
-        inline_fields=None)
+        title="Active polls", description="", fields=fields, inline_fields=None
+    )
 
     await async_send_message(embed=embed)
 
@@ -265,10 +257,9 @@ async def close_poll(text, storage, async_send_message, server):
 
 
 @hook.on_connection_ready()
-async def rebuild_poll_selectors(bot):
+async def rebuild_poll_selectors(bot, storage_getter):
     for server in bot.backend.get_servers():
-        storage = bot.server_permissions[server.id].get_plugin_storage(
-            "plugins_poll.json")
+        storage = storage_getter(server.id)
         if "polls" not in storage:
             continue
 
@@ -280,4 +271,3 @@ async def rebuild_poll_selectors(bot):
                 storage.sync()
             except Exception as e:
                 print(e)
-

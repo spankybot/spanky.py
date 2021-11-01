@@ -1,9 +1,11 @@
 import random
 
-from spanky.plugin import hook
+from spanky.hook2 import Hook
+
+hook = Hook("lurve")
 
 
-@hook.command("lurve")
+@hook.command()
 def lurve(text, event):
     """lurves all over <user>"""
     target = text.strip()
@@ -23,8 +25,8 @@ def lurve(text, event):
         "{N} pulls {T} back into bed for more cuddles ♥~",
         "{N} snuggles {T} for Netflix and chili popcorn",
         "{N} happily kisses {T} on the cheek",
-        "{N} shares a milkshake with {T}"
-    ];
+        "{N} shares a milkshake with {T}",
+    ]
 
     out = "{}".format(random.choice(loving))
     out = out.replace("{N}", event.author.name)
