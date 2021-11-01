@@ -87,7 +87,7 @@ async def s(text, channel, reply, event, bot, storage):
             "\n`"
             + "if only one word is specified, it will be replaced with a blankspace`"
         )
-        reply(msg, timeout=15)
+        reply(msg)
         return
 
     if len(split_text) == 1:

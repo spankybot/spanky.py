@@ -20,12 +20,15 @@ db_conn = None
 def init_db(bot):
     global db_conn
 
-    db_name = bot.config.get("db_name", None)
-    db_user = bot.config.get("db_user", None)
+    db_name = bot.config.get("db_name")
+    db_user = bot.config.get("db_user")
+    db_host = bot.config.get("db_host")
+    db_pass = bot.config.get("db_pass")
+
 
     try:
-        if db_name != None and db_user != None:
-            db_conn = psycopg2.connect("dbname=%s user=%s" % (db_name, db_user))
+        db_conn = psycopg2.connect(
+            "dbname=%s user=%s password=%s host=%s" % (db_name, db_user, db_pass, db_host))
     except:
         import traceback
 
@@ -138,12 +141,13 @@ def log(bot, event):
     args = get_format_args(event)
 
     file_log(event, args)
-    console_log(bot, event, args)
+    #console_log(bot, event, args)
 
     try:
         db_log(event, args)
     except psycopg2.InternalError as e:
         print(e)
+        print(args)
         init_db(bot)
 
 
@@ -220,29 +224,46 @@ def log_msg(msg):
         db_conn.commit()
 
 
-@hook.command()
-def seen_user(text, str_to_id):
+# @hook.command()
+# def seen_user(text, str_to_id):
+#     """
+#     Get the last time when a user was seen saying something on a server where the bot is also present
+#     """
+#     uid = str_to_id(text)
+
+#     cs = db_conn.cursor()
+
+#     try:
+#         cs.execute(
+#             """select * from messages where author_id=%s order by date desc limit 1""", (str(uid),))
+#     except:
+#         db_conn.rollback()
+#         return "Invalid input"
+
+#     data = cs.fetchall()
+#     _, seen, _, _, _, _, _, _, _ = data[0]
+
+#     return "Last seen on: %s UTC" % (str(seen))
+
+def seen_user_in_server(user_id, server_id):
     """
     Get the last time when a user was seen saying something on a server where the bot is also present
     """
-    uid = str_to_id(text)
-
     cs = db_conn.cursor()
 
     try:
         cs.execute(
-            """select * from messages where author_id=%s order by date desc limit 1""",
-            (str(uid),),
-        )
-    except:
+            """select * from messages where author_id=%s and server_id=%s order by date desc""", (str(user_id),str(server_id),))
+    except Exception as e:
         db_conn.rollback()
+        print(e)
         return "Invalid input"
 
     data = cs.fetchall()
-    _, seen, _, _, _, _, _, _, _ = data[0]
+    if len(data) == 0:
+        return None
 
-    return "Last seen on: %s UTC" % (str(seen))
-
+    return data
 
 def get_msg_cnt_for_user(uid):
     cs = db_conn.cursor()
@@ -369,9 +390,3 @@ async def rip_servers(bot):
 @hook.command(permissions=Permission.bot_owner)
 def cntusr(text):
     return get_msg_cnt_for_user(text)
-
-
-#@hook.command()
-#def asdasdasda(server):
-#    for user in server.get_users():
-#        print(user.name)
