@@ -50,8 +50,10 @@ class Init:
         bot = bot_inst
 
     async def do_init(self):
+        print("Connecting to Discord...")
         await client.login(bot.config["discord_token"])
         await client.connect()
+        print("Connected to Discord.")
 
     def get_servers(self):
         servers = []

@@ -16,7 +16,8 @@ import requests
 
 from spanky.plugin import hook
 
-API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
+#API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
+API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&resolution=latest"
 
 
 class Alias:
@@ -30,9 +31,11 @@ ALIASES = (
     Alias("btc", "btc", False),
     Alias("ltc", "ltc", False),
     Alias("eth", "eth", False),
-    Alias("bch", "bch"),
+    Alias("sol", "sol"),
+    Alias("dot", "dot"),
     Alias("xrp", "xrp"),
-    Alias("eos", "eos"),
+    Alias("ada", "ada"),
+    Alias("egld", "egld"),
 )
 
 

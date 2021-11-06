@@ -70,7 +70,7 @@ class Hooklet:
                         f"Hooklet {self.hooklet_id} asked for storage_loc with an action with no server, cancelling execution. This might be a bug!"
                     )
                     return None
-                storage_loc = self.hook.storage.data_location(action.server_id)
+                storage_loc = self.hook.data_location(action.server_id)
                 args.append(storage_loc)
             elif arg == "unique_storage":
                 args.append(self.hook.hook_storage)
@@ -160,12 +160,16 @@ class Periodic(Hooklet):
 
 
 class Event(Hooklet):
-    def __init__(self, hook: Hook, event_type: EventType, func):
+    def __init__(self, hook: Hook, event_type: EventType | list[EventType], func):
         super().__init__(hook, f"{hook.hook_id}_event_{func.__name__}", func)
-        self.event_type = event_type
+        self.event_types: list[EventType] = []
+        if isinstance(event_type, list):
+            self.event_types = event_type
+        else:
+            self.event_types = [event_type]
 
     def __str__(self):
-        return f"EventHooklet[{self.event_type=}]"
+        return f"EventHooklet[{self.event_types=}]"
 
 
 class MiddlewareType(Enum):

@@ -1,12 +1,12 @@
-- [ ] Finish legacy hook1 wrapper
+- [x] Finish legacy hook1 wrapper
 	- [x] @hook.\*
 	- [x] legacy args suppport
 	- [x] remove `bot.server_permissions`/`bot.get_pmgr` hack
-	- [ ] little bit of testing
+	- [x] little bit of testing
 - [x] Rewrite some plugins to better fit current architecture
 	- [x] temp\_role.py / role\_selector.py
 	- [x] help.py
-- [ ] Rewrite admin.py
+- [x] Rewrite admin.py
 - ???
 - After the above, it can be pushed into the bot for more rigurous testing
 - [ ] Better jokes.py/attacks.py

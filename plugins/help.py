@@ -16,7 +16,7 @@ def help(hook, text, event, send_embed):
         "Bot help:",
         "",
         {
-            "Links:": "See <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/gc-plp/spanky-command-doc/blob/master/commands/%s/admin.md>"
+            "Links:": "See <https://github.com/spankybot/commands/blob/master/commands/%s/commands.md> for usable commands\nFor admin commands see <https://github.com/spankybot/commands/blob/master/commands/%s/admin.md>"
             % (event.server.id, event.server.id)
         },
     )
@@ -28,7 +28,7 @@ def prepare_repo(storage_loc):
     os.system("rm -rf %s" % dest)
     os.system("mkdir -p %s" % dest)
     os.system(
-        "git clone git@github.com:gc-plp/spanky-command-doc.git %s"
+        "git clone git@github.com:spankybot/commands.git %s"
         % (storage_loc + "/doc")
     )
 
@@ -45,16 +45,18 @@ def gen_doc(files, fname, header, bot, storage_loc, server_id):
             hook = cmd
             hook_name = cmd.name  # " / ".join(i for i in hook.aliases)
 
-            help_str = cmd.doc
+            help_str = cmd.get_doc()
 
-            if help_str:
-                help_str = help_str.lstrip("\n").lstrip(" ").rstrip(" ").rstrip("\n")
-            else:
-                help_str = "No documentation provided."
-
+            help_str = help_str.lstrip("\n").lstrip(" ").rstrip(" ").rstrip("\n")
             help_str = help_str.replace("\n", "\n\n")
 
-            doc += "**%s**: %s\n\n" % (hook_name, html.escape(help_str))
+            help_str = html.escape(help_str)
+
+            # complex command help text
+            help_str = help_str.replace("\n\n&gt;", "\n>")
+            help_str = help_str.replace("&lt;subcommand&gt;", "<subcommand>")
+
+            doc += "**%s**: %s\n\n" % (hook_name, help_str)
 
     md_dest = "%s/doc/commands/%s/" % (storage_loc, server_id)
     os.system("mkdir -p %s" % (md_dest))
@@ -63,18 +65,20 @@ def gen_doc(files, fname, header, bot, storage_loc, server_id):
     doc_file.write(doc)
 
 
-def commit_changes(storage_loc, server_id):
-    server_path = "%s/doc/commands/%s" % (storage_loc, server_id)
+def commit_changes(storage_loc):
+    repo_path = "%s/doc/" % storage_loc
 
-    os.system("git -C %s add ." % server_path)
+    os.system("git -C %s add ." % repo_path)
+    os.system("git -C %s status" % repo_path)
     os.system(
-        'git -C %s commit -m "Update documentation for %s"' % (server_path, server_id)
+        'git -C %s commit -m "Update documentation"' % repo_path
     )
-    os.system("git -C %s push" % (server_path))
+    os.system("git -C %s push" % repo_path)
 
 
 @hook.command(permissions=Permission.bot_owner)
 def gen_documentation(bot, storage_loc, action, hook):
+    prepare_repo(storage_loc)
     for server in bot.get_servers():
         files = {}
         admin_files = {}
@@ -122,10 +126,9 @@ def gen_documentation(bot, storage_loc, action, hook):
             else:
                 files[file_name].append(cmd)
 
-        prepare_repo(storage_loc)
         gen_doc(files, "commands.md", "Bot commands:", bot, storage_loc, server.id)
         gen_doc(admin_files, "admin.md", "Admin commands:", bot, storage_loc, server.id)
-        commit_changes(storage_loc, server.id)
+    commit_changes(storage_loc)
 
     return "Done."
 

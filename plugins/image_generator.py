@@ -5,7 +5,9 @@ import random
 import spanky.utils.time_utils as tutils
 from spanky.plugin.permissions import Permission
 
-from spanky.plugin import hook
+from spanky.hook2 import Hook, EventType, Command
+
+hook = Hook("image_generator", storage_name="plugins_image_generator")
 
 
 RODDIT_ID = "287285563118190592"
@@ -16,6 +18,7 @@ DISO_SRV = "423964901128536065"
 TZ_SRV = "754550072955371620"
 TZ_SRV2 = "426392328429633542"
 TZ_SRV3 = "881138853765865493"
+TZ_SRV4 = "905470387717021696"
 DRUNKBOYZ_SRV = "418705572511219723"
 CNC_TEST_SRV = "648937029433950218"
 
@@ -29,6 +32,7 @@ SERVERS = [
     TZ_SRV,
     TZ_SRV2,
     TZ_SRV3,
+    TZ_SRV4,
     DRUNKBOYZ_SRV,
     CNC_TEST_SRV,
 ]
@@ -107,11 +111,7 @@ def update_sub(reddit, sub, ustorage):
     else:
         return get_links_from_sub(reddit, sub, ["month"])
 
-@hook.command()
-def count_subs():
-    return f"{len(tracked_subs)}: {', '.join(tracked_subs)}"
-
-@hook.on_start()
+@hook.event(EventType.on_start)
 def init(bot, unique_storage):
     global reddit_inst
 
@@ -204,170 +204,6 @@ def format_output_message(data):
 #             ):
 #                 update_sub(reddit_inst, sub, ustorage)
 
-
-def porn(*args, **kwargs):
-    subs = kwargs.get("subs", False)
-
-    # Add to tracked subs for on_connection_ready work
-    global tracked_subs
-    tracked_subs.extend(subs)
-    tracked_subs = list(set(tracked_subs))
-
-    def wrap_porn(func, params=None):
-        def sub_wrapper():
-            data = get_links_from_subs(subs)
-            return format_output_message(data)
-
-        sub_wrapper.__name__ = func.__name__
-        sub_wrapper.__doc__ = func.__doc__
-        return sub_wrapper
-
-    if len(args) == 1 and callable(
-        args[0]
-    ):  # this decorator is being used directly
-        return wrap_porn(args[0])
-    else:  # this decorator is being used indirectly, so return a decorator function
-        return lambda func: wrap_porn(func, params=args)
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["skinnytail"])
-def skinny():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["ginger", "redheads", "RedheadGifs"])
-def roscate():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["altgonewild"])
-def tatuate():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["nsfwfunny"])
-def nsfwfunny():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["thighhighs", "stockings"])
-def craci():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["ass", "asstastic", "assinthong", "pawg", "SuperDuperAss"])
-def buci():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["boobs", "boobies", "BiggerThanYouThought"])
-def tzatze():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["kinky", "bdsm", "bondage", "collared"])
-def fetish():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["LegalTeens", "Just18", "youngporn", "barelylegal"])
-def teen():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["cumsluts", "GirlsFinishingTheJob"])
-def sloboz():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["anal", "painal"])
-def anal():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["milf"])
-def milf():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["RealGirls", "Amateur", "GoneWild"])
-def amateur():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["Tgirls", "traps", "gonewildtrans", "tgifs"])
-def traps():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["aww"])
-def aww():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["cats"])
-def pisi():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["dogpictures", "TuckedInPuppies"])
-def cutu():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["blep", "blop"])
-def blep():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["doggy"])
-def capre():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["dykesgonewild"])
-def lesbiene():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["pawg", "thick"])
-def thicc():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["AsianNSFW", "AsianPorn", "AsianHotties"])
-def asians():
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["TrashPandas"])
-def raton():
-    pass
-
-
 @hook.command(server_id=SERVERS)
 def fetch_image(text):
     if text:
@@ -379,16 +215,32 @@ def fetch_image(text):
         return "Please specify a sub or a list of subs (e.g.: .fetch_image RomaniaPorn or .fetch_image RomaniaPorn RoGoneWild)"
 
 
-@hook.command(server_id=SERVERS)
-@porn(subs=["randnsfw", "The_Best_NSFW_GIFS"])
-def plsporn():
-    """pls gib porn"""
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(
-    subs=[
+commands = {
+    "skinny": ["skinnytail"],
+    "roscate": ["ginger", "redheads", "RedheadGifs"],
+    "tatuate": ["altgonewild"],
+    "nsfwfunny": ["nsfwfunny"],
+    "craci": ["thighhighs", "stockings"],
+    "buci": ["ass", "asstastic", "assinthong", "pawg", "SuperDuperAss"],
+    "tzatze": ["boobs", "boobies", "BiggerThanYouThought"],
+    "fetish": ["kinky", "bdsm", "bondage", "collared"],
+    "teen": ["LegalTeens", "Just18", "youngporn", "barelylegal"],
+    "sloboz": ["cumsluts", "GirlsFinishingTheJob"],
+    "anal": ["anal", "painal"],
+    "milf": ["milf"],
+    "amateur": ["RealGirls", "Amateur", "GoneWild"],
+    "traps": ["Tgirls", "traps", "gonewildtrans", "tgifs"],
+    "aww": ["aww"],
+    "pisi": ["cats"],
+    "cutu": ["dogpictures", "TuckedInPuppies"],
+    "blep": ["blep", "blop"],
+    "capre": ["doggy"],
+    "lesbiene": ["dykesgonewild"],
+    "thicc": ["pawg", "thick"],
+    "asians": ["AsianNSFW", "AsianPorn", "AsianHotties"],
+    "raton": ["TrashPandas"],
+    "plsporn": ["randnsfw", "The_Best_NSFW_GIFS"],
+    "plsgayporn": [
         "AmateurGayPorn",
         "DickPics4Freedom",
         "foreskin",
@@ -399,37 +251,29 @@ def plsporn():
         "ratemycock",
         "selfservice",
         "totallystraight",
-    ]
-)
-def plsgayporn():
-    """pls gib porn"""
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(
-    subs=[
+    ],
+    "blonde": [
         "Blonde",
         "blondegirlsfucking",
         "nsfwblondeporn",
         "GoneWildBlondes",
         "blondehairblueeyes",
-    ]
-)
-def blonde():
-    """blonde"""
-    pass
+    ],
+    "femboy": ["femboy", "femboys"],
+    "thot": ["tiktokthots"],
+}
 
+@hook.event(EventType.on_start)
+def init_porn_cmds():
+    for cmd_name, subs in commands.items():
+        global tracked_subs
+        tracked_subs.extend(subs)
+        tracked_subs = list(set(tracked_subs))
 
-@hook.command(server_id=SERVERS)
-@porn(subs=["femboy", "femboys"])
-def femboy():
-    """femboy"""
-    pass
-
-
-@hook.command(server_id=SERVERS)
-@porn(subs=["tiktokthots"])
-def thot():
-    """tiktokthots"""
-    pass
+        def gen_wrapper(subs):
+            def wrapper():
+                data = get_links_from_subs(subs)
+                return format_output_message(data)
+            return wrapper
+        
+        hook.add_command(Command(hook, cmd_name, gen_wrapper(subs), server_id=SERVERS))

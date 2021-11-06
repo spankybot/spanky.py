@@ -71,10 +71,13 @@ class ComplexCommand(Command):
             return "> No available subcommands\n"
         return text
 
+    def func_name(self, func):
+        return func.__name__.removeprefix(self.name + "_")
+
     def subcommand(self, **kwargs):
         def make_cmd(func):
             self._sub_commands.append(
-                Command(self.hook, kwargs.get("name", func.__name__), func, **kwargs)
+                Command(self.hook, kwargs.get("name", self.func_name(func)), func, **kwargs)
             )
             return func
 

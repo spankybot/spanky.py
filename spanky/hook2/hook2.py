@@ -252,7 +252,7 @@ class Hook:
             in [EventType.message, EventType.message_del, EventType.message_edit]
         ):
             for event_hooklet in self.events.values():
-                if event_hooklet.event_type == action.event_type:
+                if action.event_type in event_hooklet.event_types:
                     tasks.append(asyncio.create_task(event_hooklet.handle(action)))
 
         # Gobble children dispatch coroutines
@@ -272,7 +272,7 @@ class Hook:
     def add_periodic(self, func, periodic: float):
         self.periodics[func.__name__] = Periodic(self, func, periodic)
 
-    def add_event(self, func, event_type: EventType):
+    def add_event(self, func, event_type: EventType | list[EventType]):
         self.events[func.__name__] = Event(self, event_type, func)
 
     def add_middleware(
@@ -288,6 +288,11 @@ class Hook:
         if not server_id:
             return None
         return storage.server_storage(server_id, self.storage_name)
+
+    def data_location(self, server_id: Optional[str]):
+        if not server_id:
+            return None
+        return storage.data_location(server_id, self.storage_name)
 
     @property
     def hook_storage(self):
@@ -321,7 +326,7 @@ class Hook:
 
         return wrap
 
-    def event(self, event_type: EventType):
+    def event(self, event_type: EventType | list[EventType]):
         if callable(event_type):
             raise TypeError(
                 "Hook.event must be used as a function that returns a decorator."

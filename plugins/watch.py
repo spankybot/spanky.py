@@ -3,7 +3,6 @@ import time
 from spanky.hook2 import Hook, EventType
 from spanky.plugin.permissions import Permission
 
-tstamps = {}
 g_db = None
 
 storages = {}
@@ -12,19 +11,15 @@ servers = {}
 hook = Hook("watcher", storage_name="plugins_watch")
 
 
-def set_crt_timestamps():
-    global tstamps
-
+def set_crt_timestamp(storage):
     epoch = int(time.time())
 
-    for _, storage in storages.items():
-        if not storage["subs"]:
-            storage["subs"] = {}
+    if not storage["subs"]:
+        storage["subs"] = {}
 
-        for sub in storage["subs"].keys():
-            storage["subs"][sub]["timestamp"] = epoch
-        storage.sync()
-
+    for sub in storage["subs"].keys():
+        storage["subs"][sub]["timestamp"] = epoch
+    storage.sync()
 
 @hook.event(EventType.on_ready)
 def ready(server, storage):
@@ -32,7 +27,7 @@ def ready(server, storage):
     servers[server.id] = server
 
     # Set the current time for each subreddit
-    set_crt_timestamps()
+    set_crt_timestamp(storage)
 
 
 def do_it(thread):
@@ -127,12 +122,12 @@ def subwatch_del(text, event):
 
 
 @hook.command(permissions=Permission.admin)
-def startwatch(event):
+def startwatch(event, storage):
     """
     Start watching subreddits.
     """
     storages[event.server.id]["watching"] = True
-    set_crt_timestamps()
+    set_crt_timestamp(storage)
     return "Started watching"
 
 

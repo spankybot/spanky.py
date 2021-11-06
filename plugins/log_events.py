@@ -1,10 +1,10 @@
 import re
-from spanky.plugin import hook
-from spanky.hook2.event import EventType
+from spanky.hook2 import Hook, EventType, ComplexCommand
 from spanky.plugin.permissions import Permission
 
+hook = Hook("log_events", storage_name="plugins_log_events")
 
-@hook.on_ready()
+@hook.event(EventType.on_ready)
 def log_prepare(storage):
     if "chan_filter_list" not in storage.keys():
         storage["chan_filter_list"] = []
@@ -206,10 +206,13 @@ def log_member_unban(event, send_message, storage):
         text="`Unban`: %s %s" % (event.user.name, event.user.id),
     )
 
+bad_word = ComplexCommand(hook, "bad_word", permissions="admin")
 
-@hook.command(permissions=Permission.admin)
-def add_bad_word(storage, text):
+@bad_word.subcommand()
+def bad_word_add(storage, text):
     """<word> - remove a message it contains 'word'"""
+    if text == "":
+        return "You were about to do something stupid, please specify a word"
     if storage["bad"] == None:
         storage["bad"] = []
     storage["bad"].append(text)
@@ -218,9 +221,8 @@ def add_bad_word(storage, text):
 
     return "Done."
 
-
-@hook.command(permissions=Permission.admin)
-def list_bad_words(storage):
+@bad_word.subcommand()
+def bad_word_list(storage):
     """List bad words"""
     if storage["bad"]:
         return ", ".join(i for i in storage["bad"])
@@ -228,8 +230,8 @@ def list_bad_words(storage):
         return "Empty."
 
 
-@hook.command(permissions=Permission.admin)
-def remove_bad_word(storage, text):
+@bad_word.subcommand()
+def bad_word_remove(storage, text):
     """<word> - Remove a bad word"""
     if not storage["bad"]:
         return
@@ -242,7 +244,7 @@ def remove_bad_word(storage, text):
     return "Couldn't find it."
 
 
-@hook.event(EventType.message)
+@hook.event([EventType.message, EventType.message_edit])
 def check_bad_words(storage, event, bot):
     if event.channel.id == storage["evt_chan"]:
         return

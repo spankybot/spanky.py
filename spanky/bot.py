@@ -91,6 +91,7 @@ class Bot:
         # Run on connection ready hooks
         await self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
 
+
     async def ready(self):
         await self.run_on_ready_work()
 
@@ -107,10 +108,6 @@ class Bot:
 
     def get_bot_roles_in_server(self, server):
         return self.backend.get_bot_roles_in_server(server)
-
-    def run_in_thread(self, target, args=()):
-        thread = threading.Thread(target=target, args=args)
-        thread.start()
 
     async def dispatch_action(self, action: Action):
         await self.hook2.dispatch_action(action)
@@ -233,15 +230,6 @@ class Bot:
         logger.debug("Got command %s" % str(command))
         if len(cmd_split) == 1:
             cmd_split.append("")
-
-        # Hook2
-        # if command in self.hook2.all_commands.keys():
-        # hooklet = self.hook2.all_commands[command]
-        # TODO: Move to middleware and make command-agnostic
-        # if event.is_pm and not hooklet.can_pm:
-        #    return
-        # if not event.is_pm and hooklet.pm_only:
-        #    return
 
         await self.dispatch_action(ActionCommand(self, event, cmd_split[1], command))
 
