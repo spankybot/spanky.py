@@ -250,6 +250,7 @@ class DiscordUtils(abc.ABC):
 
                     return Message(old_reply._raw)
 
+            msg = None
             # Send anything that we should send
             if text != None:
                 msg = Message(
@@ -752,6 +753,9 @@ class Channel:
 
         self._raw = obj
 
+    def get_threads(self):
+        return self._raw.threads
+
     def delete_messages(self, number):
         async def do_delete(channel, num):
             async def del_bulk(channel, num):
@@ -899,7 +903,7 @@ class Server:
     def get_chans(self):
         chans = []
 
-        for chan in self._raw.channels:
+        for chan in self._raw.text_channels:
             chans.append(Channel(chan))
 
         return chans
