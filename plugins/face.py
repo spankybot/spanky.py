@@ -1,14 +1,13 @@
 import numpy as np
 import face_recognition
 import json
-import requests
 import glob
 import random
 import PIL
 import os
 
 from PIL import Image, ImageDraw
-from math import hypot, sin, cos
+from math import sin, cos, dist
 from spanky.plugin import hook
 
 
@@ -16,10 +15,6 @@ def get_angle(p1, p2):
     dY = p1[1] - p2[1]
     dX = p1[0] - p2[0]
     return np.degrees(np.arctan2(dY, dX)) - 180
-
-
-def dist_ab(p1, p2):
-    return hypot(p1[0] - p2[0], p1[1] - p2[1])
 
 
 def avg_pos_rel_p1(p1, p2):
@@ -35,11 +30,10 @@ def rotate_origin_only(xy, angle):
     if angle > 180:
         angle -= 360
 
-    radians = angle / 180
-
+    radians = np.deg2rad(angle)
     x, y = xy
-    xx = x * cos(radians) + y * sin(radians)
-    yy = -x * sin(radians) + y * cos(radians)
+    xx = x * cos(radians) - y * sin(radians)
+    yy = x * sin(radians) + y * cos(radians)
 
     return int(xx), int(yy)
 
@@ -134,7 +128,7 @@ def add_glasses(image, glasses_img, debug=False):
         eyes_angle = get_angle(avg_left, avg_right)
 
         # Get distance between eyes
-        eyes_dist = dist_ab(avg_left, avg_right)
+        eyes_dist = dist(avg_left, avg_right)
 
         # What's the center point between the eyes
         eyes_avg = avg_pos_rel_p1(avg_left, avg_right)
@@ -206,7 +200,7 @@ def add_moustache(image, moustache_img, debug=False):
         lip_angle = get_angle(top_lip[0], top_lip[6])
 
         # Get size of lip
-        lip_sizex = dist_ab(top_lip[0], top_lip[6])
+        lip_sizex = dist(top_lip[0], top_lip[6])
 
         # Rotate the moustache
         moustache = moustache.rotate(-lip_angle, expand=True)
@@ -282,37 +276,31 @@ def add_hat(image, hat_img, debug=False):
         avg_left = get_average_pos(left_eye)
         avg_right = get_average_pos(right_eye)
 
-        # Get angle - if face is rotated
-        chin_angle = get_angle(avg_left, avg_right)
+        # Get eyes angle - if face is rotated
+        eyes_angle = get_angle(avg_left, avg_right)
 
         # Get size
-        chin_sizex = dist_ab(avg_left, avg_right)
+        eyes_sizex = dist(avg_left, avg_right)
+        # print(eyes_sizex)
 
         # Rotate the moustache
-        hat = hat.rotate(-chin_angle, expand=True)
+        hat = hat.rotate(-eyes_angle, expand=True)
 
         # Calculate the scaling
-        x_scale_ratio = hat.size[0] / chin_sizex / hat_json["scale"]
+        x_scale_ratio = hat.size[0] / eyes_sizex / hat_json["scale"]
 
-        # Resize the glasses
-        hat = hat.resize(
-            (int(hat.size[0] / x_scale_ratio), int(hat.size[1] / x_scale_ratio)),
-            resample=PIL.Image.BICUBIC,
-        )
+        # Resize the hat
+        hat = hat.resize((int(hat.size[0] / x_scale_ratio),
+                         int(hat.size[1] / x_scale_ratio)))
 
-        avg_pos = avg_pos_rel_p1(avg_left, avg_right)
-        print(-chin_angle)
+        # Average position for the eyes
+        avg_pos = get_average_pos((avg_left, avg_right))
 
-        offset = rotate_origin_only(
-            (hat_json["offset_x"], hat_json["offset_y"]), -chin_angle
-        )
+        offset = rotate_origin_only((hat_json["offset_x"], hat_json["offset_y"]), eyes_angle)
 
-        moustache_paste = (
-            avg_pos[0] - hat.size[0] // 2 + offset[0],
-            avg_pos[1] - hat.size[1] // 2 + offset[1],
-        )
-
-        image.paste(hat, moustache_paste, hat)
+        hat_paste = (avg_pos[0] - hat.size[0] // 2 + int(offset[0] / x_scale_ratio),
+                           avg_pos[1] - hat.size[1] // 2 + int(offset[1] / x_scale_ratio))
+        image.paste(hat, hat_paste, hat)
 
         if debug:
             ImageDraw.Draw(image).polygon(face_landmarks["chin"])
@@ -364,7 +352,7 @@ def add_eyes(image, eyes_img, debug=False):
         eyes_angle = get_angle(avg_left, avg_right)
 
         # Get distance between eyes
-        eyes_dist = dist_ab(avg_left, avg_right)
+        eyes_dist = dist(avg_left, avg_right)
 
         # Rotate the moustache
         eye_l = eye_l.rotate(-eyes_angle, expand=True)
