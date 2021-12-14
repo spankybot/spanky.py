@@ -179,7 +179,7 @@ class Hook:
         # print(mds.keys())
         for md in mds.values():
             rez, msg = await md.handle(action, hooklet)
-            if rez == MiddlewareResult.DENY:
+            if rez == MiddlewareResult.DENY and len(msg) > 1:
                 action.reply(msg, timeout=15)
                 return
         # Run middleware for the subcommand

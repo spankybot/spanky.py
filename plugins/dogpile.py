@@ -18,12 +18,14 @@ class CSEResult:
 
     @property
     def image_url(self):
-        if "cse_image" in self.data["pagemap"]:
-            return self.data["pagemap"]["cse_image"][0]["src"]
-        elif "cse_thumbnail" in self.data["pagemap"]:
+        # startswith("http") because if you search, for example, "ochelari de cal", it doesnt give a correct URL
+        if "cse_image" in self.data["pagemap"] and self.data["pagemap"]["cse_image"][0]["src"].startswith("http"):
+            for img in self.data["pagemap"]["cse_image"]:
+                if img["src"].startswith("http"):
+                    return img["src"]
+        if "cse_thumbnail" in self.data["pagemap"] and self.data["pagemap"]["cse_thumbnail"].startswith("http"):
             return self.data["pagemap"]["cse_thumbnail"][0]["src"]
-        else:
-            return self.data["link"]
+        return self.data["link"]
 
     @property
     def image_thumb(self):
@@ -126,7 +128,7 @@ class SearchResult:
 def load_key(bot):
     global dev_key
     global dev_cx
-    
+
     dev_key = bot.config.get("api_keys", {}).get("google_dev_key", None)
     dev_cx = bot.config.get("api_keys", {}).get("google_cx", None)
 
@@ -172,7 +174,7 @@ async def parse_react(bot, event):
     # Check if the reaction was made on a message that contains a search result
     found = None
     for res in search_results:
-        if res.msg.id == event.msg.id:
+        if res.msg and res.msg.id == event.msg.id:
             found = res
             break
 

@@ -149,8 +149,6 @@ def add_selector_roles(server, storage, text, bot, str_to_id):
 
     storage.sync()
 
-    reload_file(bot)
-
     return "Done"
 
 
@@ -182,8 +180,6 @@ def add_selector_role_interval(server, storage, text, bot, str_to_id):
     )
 
     storage.sync()
-
-    reload_file(bot)
 
     return "Done"
 
@@ -221,8 +217,6 @@ def remove_selector_role_interval(server, storage, text, bot, str_to_id):
 
     storage.sync()
 
-    reload_file(bot)
-
     return "Done"
 
 
@@ -255,8 +249,6 @@ def remove_selector_roles(server, storage, text, bot, str_to_id):
     )
 
     storage.sync()
-
-    reload_file(bot)
 
     return "Done"
 
@@ -331,8 +323,6 @@ def delete_selector(storage, text, bot):
             del storage["selectors"][cmd["name"]]
 
             storage.sync()
-
-            reload_file(bot)
 
             return f"Selector {text} removed."
 

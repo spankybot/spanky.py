@@ -3,8 +3,6 @@ import time
 from spanky.hook2 import Hook, EventType
 from spanky.plugin.permissions import Permission
 
-g_db = None
-
 storages = {}
 servers = {}
 

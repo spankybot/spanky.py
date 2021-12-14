@@ -153,16 +153,22 @@ async def set_server_banner(event, server, storage, reply):
     """
     Sets the server banner to a given URL
     """
-    if not server.can_have_banner:
-        reply("Server can't have banner")
-        return
+    try:
+        if not server.can_have_banner:
+            reply("Server can't have banner")
+            return
 
-    for img in event.image:
-        storage["banner_url"] = img.url
-        storage.sync()
+        for img in event.image:
+            storage["banner_url"] = img.url
+            storage.sync()
 
-        await update_banner(server, storage)
-        return
+            await update_banner(server, storage)
+            return "Done"
+        return "No image set."
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return "Error"
 
 
 @hook.command(permissions=Permission.admin)

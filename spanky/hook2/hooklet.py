@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import time
+import discord
 
 if TYPE_CHECKING:
     from .hook2 import Hook
@@ -107,6 +108,8 @@ class Hooklet:
                     realRez = "\n".join(realRez)
                 except:
                     pass
+            elif type(rez) is discord.File:
+                await action.channel._raw.send(file=rez)
             elif rez != None:
                 print(f"Unknown type {type(rez)} returned by hooklet {self.hooklet_id}")
 
