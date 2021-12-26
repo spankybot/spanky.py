@@ -52,7 +52,7 @@ def perm_admin(action: ActionCommand, hooklet: Command):
     if "admin_roles" not in storage or len(storage["admin_roles"]) == 0:
         if hooklet.args.get("permissions", None) != None:
             action.reply(
-                "Warning! Admin not set! Use .admin_role add to set an administrator.",
+                "Warning! Admin not set! Use `admin_config admin_roles add` add to set an administrator.",
                 check_old=False,
             )
             action.context["perms"]["creds"].append("admin")
