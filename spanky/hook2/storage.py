@@ -100,6 +100,9 @@ _server_cache: dict[(str, str), dsdict] = {}
 
 
 def server_storage(server_id: str, hook_id: str) -> dsdict:
+    if not hook_id.endswith(".json"):
+        hook_id += ".json"
+
     if (server_id, hook_id) not in _server_cache:
         _server_cache[(server_id, hook_id)] = dsdict(server_id, hook_id)
     return _server_cache[(server_id, hook_id)]
