@@ -163,3 +163,9 @@ def list_bot_servers(bot):
         msg += "Name: %s, ID: %s\n" % (server.name, server.id)
 
     return msg
+
+
+@hook.command(permissions=Permission.bot_owner)
+def list_storage_cache(bot):
+    from spanky.hook2.storage import _server_cache
+    return str(_server_cache)
