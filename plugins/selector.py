@@ -1,4 +1,4 @@
-import discord
+import nextcord
 import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
 
@@ -229,7 +229,7 @@ async def rebuild_selectors(bot, storage_getter):
 
                     # Add it to the permanent message list
                     permanent_messages.append(selector)
-                except discord.errors.NotFound:
+                except nextcord.errors.NotFound:
                     storage["role_selectors"].remove(element)
                     storage.sync()
                 except:
@@ -244,7 +244,7 @@ async def rebuild_selectors(bot, storage_getter):
                     selector = await roddit.ChanSelector.deserialize(bot, element)
                     # Add it to the permanent message list
                     permanent_messages.append(selector)
-                except discord.errors.NotFound:
+                except nextcord.errors.NotFound:
                     storage["chan_selectors"].remove(element)
                     storage.sync()
                 except:
@@ -259,7 +259,7 @@ async def rebuild_selectors(bot, storage_getter):
                     selector = await carousel.RoleSelector.deserialize(bot, element)
                     # Add it to the permanent message list
                     permanent_messages.append(selector)
-                except discord.errors.NotFound:
+                except nextcord.errors.NotFound:
                     storage["simple_selectors"].remove(element)
                     storage.sync()
                 except:
@@ -275,7 +275,7 @@ async def rebuild_selectors(bot, storage_getter):
                     selector = await roddit.EverythingChanSel.deserialize(bot, element)
                     # Add it to the permanent message list
                     permanent_messages.append(selector)
-                except discord.errors.NotFound:
+                except nextcord.errors.NotFound:
                     storage["all_chan_selectors"].remove(element)
                     storage.sync()
                 except:

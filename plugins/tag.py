@@ -7,7 +7,7 @@ import os
 import re
 import random
 import string
-import discord
+import nextcord
 
 LARROW = u"⬅"
 RARROW = u"➡"
@@ -151,7 +151,7 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
 
                 content = storage[tag]["content"]
                 await async_send_message(
-                    msg + content, allowed_mentions=discord.AllowedMentions.none()
+                    msg + content, allowed_mentions=nextcord.AllowedMentions.none()
                 )
             elif storage[tag]["type"] == "picture":
                 send_file(storage_loc + storage[tag]["location"])

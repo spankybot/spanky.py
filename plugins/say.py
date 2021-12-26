@@ -1,5 +1,5 @@
 import spanky.utils.discord_utils as dutils
-from discord import AllowedMentions
+from nextcord import AllowedMentions
 
 from spanky.plugin.permissions import Permission
 from spanky.plugin import hook, permissions

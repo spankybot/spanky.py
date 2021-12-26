@@ -5,13 +5,13 @@ from spanky.utils.cmdparser import CmdParser
 from spanky.plugin.permissions import Permission
 import spanky.utils.discord_utils as dutils
 import pytz
-import discord
+import nextcord
 from collections import OrderedDict
 
 ro = pytz.timezone("Europe/Bucharest")
 print(ro)
 
-debug = False 
+debug = False
 
 SERVERS = [
     "648937029433950218",  # CNC test server
@@ -124,7 +124,7 @@ def send_messages(server, storage, now, send_message, dbg_srv):
                 server=server,
                 target=chan.id,
                 check_old=False,
-                allowed_mentions=discord.AllowedMentions(
+                allowed_mentions=nextcord.AllowedMentions(
                     everyone=False, users=[user._raw], roles=False
                 ),
             )

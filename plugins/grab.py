@@ -6,7 +6,7 @@ import spanky.utils.discord_utils as dutils
 from spanky.plugin import hook
 from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
-import discord
+import nextcord
 
 
 @hook.command()
@@ -38,7 +38,7 @@ async def grab(text, channel, storage, reply, event):
                 msg_id = text
             try:
                 to_grab = await channel.async_get_message(msg_id)
-            except discord.errors.NotFound:
+            except nextcord.errors.NotFound:
                 pass
             except:
                 import traceback

@@ -4,7 +4,7 @@ sqlalchemy
 aiohttp
 praw
 asyncpraw
-git+https://github.com/Rapptz/discord.py.git@1e17b7fceaf7173b1666465e639d1bebaa126683
+nextcord
 markovify
 cleverwrap
 bs4

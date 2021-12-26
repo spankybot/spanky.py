@@ -7,7 +7,7 @@ from spanky.hook2 import (
     MiddlewareResult,
 )
 
-from discord import AllowedMentions
+from nextcord import AllowedMentions
 from spanky.utils import discord_utils as dutils
 
 no_mention = AllowedMentions.none()

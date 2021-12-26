@@ -1,6 +1,5 @@
 import enum
 import logging
-import discord
 
 logger = logging.getLogger("spanky")
 

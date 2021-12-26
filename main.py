@@ -1,7 +1,7 @@
 from spanky.bot import Bot
 import asyncio
 
-bot = Bot("discord_py")
+bot = Bot("nextcord")
 bot.loop.run_until_complete(bot.start())
 
 try:

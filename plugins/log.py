@@ -371,14 +371,14 @@ async def ripmusic(event, reply):
 
 @hook.command(permissions=Permission.bot_owner)
 async def rip_servers(bot):
-    import discord
+    import nextcord
 
     client = bot.backend.client
 
     gen = client.get_all_channels()
 
     for ch in gen:
-        if ch.type == discord.ChannelType.text:
+        if ch.type == nextcord.ChannelType.text:
             print("Ripping " + str(ch))
             try:
                 await rip_channel(client, ch)

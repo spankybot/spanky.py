@@ -3,7 +3,7 @@ import datetime
 import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
 import io
-import discord
+import nextcord
 import csv
 import sys
 
@@ -817,7 +817,7 @@ async def export_cases(storage, event, reply):
             writer.writerow(reason)
 
         await event.channel._raw.send(
-            file=discord.File(
+            file=nextcord.File(
                 fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"
             )
         )

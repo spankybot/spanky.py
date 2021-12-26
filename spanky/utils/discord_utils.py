@@ -1,4 +1,4 @@
-import discord
+import nextcord
 import io
 
 
@@ -355,9 +355,9 @@ def prepare_embed(
     em = None
 
     if description:
-        em = discord.Embed(title=title, description=description)
+        em = nextcord.Embed(title=title, description=description)
     else:
-        em = discord.Embed(title=title)
+        em = nextcord.Embed(title=title)
 
     if fields:
         for el in fields:
@@ -404,7 +404,7 @@ def pil_to_dfile(image, name="unnamed.png"):
     bio = io.BytesIO()
     image.save(bio, "PNG")
     bio.seek(0)
-    return discord.File(bio, name)
+    return nextcord.File(bio, name)
 
 
 def pil_to_bytes(image):

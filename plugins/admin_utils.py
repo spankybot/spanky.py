@@ -4,7 +4,7 @@ from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
 from spanky.utils import time_utils
 from plugins.log import get_msg_cnt_for_user
-import discord
+import nextcord
 
 # I don't know any better way to do this, since it needs to auto increment in a join call
 
@@ -214,7 +214,7 @@ def list_join_events(storage, id_to_chan, id_to_role_name, reply):
             for i in roles
         )
 
-    reply(msg, allowed_mentions=discord.AllowedMentions.none())
+    reply(msg, allowed_mentions=nextcord.AllowedMentions.none())
 
 
 @hook.command(permissions=Permission.admin)

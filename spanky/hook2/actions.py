@@ -1,6 +1,6 @@
 from .event import EventType
 
-from spanky.inputs.discord_py import EventPeriodic
+from spanky.inputs.nextcord import EventPeriodic
 
 
 class Action:
