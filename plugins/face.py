@@ -107,14 +107,14 @@ def glasses(event, send_file, send_message, cmd_args):
 def add_glasses(image, glasses_img, debug=False):
     image = prepare_image(image)
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image))
+    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
 
-    glasses = Image.open(glasses_img)
     glasses_json = json.load(open(glasses_img + ".json"))
 
     modified = False
     # Cycle through each face
     for face_landmarks in face_landmarks_list:
+        glasses = Image.open(glasses_img)
         modified = True
 
         left_eye = face_landmarks["left_eye"]
@@ -182,17 +182,17 @@ def moustache(event, send_file, send_message, cmd_args):
 def add_moustache(image, moustache_img, debug=False):
     image = prepare_image(image)
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image))
+    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
 
     if debug:
         print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
 
-    moustache = Image.open(moustache_img)
     moustache_json = json.load(open(moustache_img + ".json"))
 
     modified = False
     # Cycle through each face
     for face_landmarks in face_landmarks_list:
+        moustache = Image.open(moustache_img)
         modified = True
         top_lip = face_landmarks["top_lip"]
 
@@ -222,12 +222,15 @@ def add_moustache(image, moustache_img, debug=False):
         )
 
         offset = rotate_origin_only(
-            (moustache_json["offset_x"], moustache_json["offset_y"]), -lip_angle
+            (moustache_json["offset_x"], moustache_json["offset_y"]), lip_angle
         )
 
+        print(moustache_json)
+        print(offset)
+
         moustache_paste = (
-            avg_pos[0] - moustache.size[0] // 2 + offset[0],
-            avg_pos[1] - moustache.size[1] // 2 + offset[1],
+            avg_pos[0] - moustache.size[0] // 2 + int(offset[0] / x_scale_ratio),
+            avg_pos[1] - moustache.size[1] // 2 + int(offset[1] / x_scale_ratio)
         )
 
         image.paste(moustache, moustache_paste, moustache)
@@ -257,17 +260,18 @@ def add_hat(image, hat_img, debug=False):
     image = prepare_image(image)
 
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image))
+    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
 
     if debug:
         print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
 
-    hat = Image.open(hat_img)
     hat_json = json.load(open(hat_img + ".json"))
 
     modified = False
     # Cycle through each face
     for face_landmarks in face_landmarks_list:
+        hat = Image.open(hat_img)
+
         modified = True
         left_eye = face_landmarks["left_eye"]
         right_eye = face_landmarks["right_eye"]
@@ -328,18 +332,19 @@ def add_eyes(image, eyes_img, debug=False):
     image = prepare_image(image)
 
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image))
+    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
 
     if debug:
         print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
 
-    eye_l = Image.open(eyes_img.replace(".png", "_l.png"))
-    eye_r = Image.open(eyes_img.replace(".png", "_r.png"))
     eyes_json = json.load(open(eyes_img + ".json"))
 
     modified = False
     # Cycle through each face
     for face_landmarks in face_landmarks_list:
+        eye_l = Image.open(eyes_img.replace(".png", "_l.png"))
+        eye_r = Image.open(eyes_img.replace(".png", "_r.png"))
+
         modified = True
         left_eye = face_landmarks["left_eye"]
         right_eye = face_landmarks["right_eye"]

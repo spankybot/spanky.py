@@ -17,7 +17,9 @@ from PIL import ImageSequence as pil_imagesequence
 from PIL import ImageDraw as pil_imagedraw
 from PIL import GifImagePlugin
 
-MAX_IMG_SIZE = 10 * 1024 * 1024
+from pathlib import Path
+
+MAX_IMG_SIZE = 20 * 1024 * 1024
 MAX_RES_SIZE = 1024 * 1024 * 1024
 
 
@@ -35,6 +37,13 @@ class Image:
         self._pil = None
         self._url = url
         self._first_frame_sz = 0
+
+    def new_pil(self, mode, size, color=0):
+        """
+        Initializes a new PIL image
+        """
+
+        self._pil = pil_image.new(mode, size, color)
 
     @property
     def url(self):
@@ -137,7 +146,7 @@ class Image:
         Create a PIL image
         """
 
-        if len(self._raw) == 0:
+        if len(self._raw) == 0 and self._url is not None:
             self.fetch_url()
 
         if self._pil == None:
@@ -204,6 +213,29 @@ class Image:
                 raise PermissionError("Image too large")
 
         self.set_raw_data(content)
+
+    def fetch_and_save(self, path, name=None):
+        """
+        Save the given URL to a file.
+        """
+        if self._url:
+            self.fetch_url()
+
+        dest_folder = Path(path)
+        if not dest_folder.exists():
+            dest_folder.mkdir(parents=True, exist_ok=True)
+
+        if not name:
+            if type(self._raw) == list and len(self._raw) > 1:
+                ext = ".gif"
+            else:
+                ext = ".png"
+
+            name = self.fname_generator(size=32) + ext
+
+        self.pil().save(dest_folder / name)
+
+        return dest_folder / name
 
     def print_memusage(self, text):
         """
@@ -314,7 +346,7 @@ class Image:
             modified_frames = False
             for idx, frame in enumerate(pil_imagesequence.Iterator(img)):
                 # For each frame, call the image processor
-                result = func(frame.convert("RGB"), **args)
+                result = func(frame.convert("RGBA"), **args)
                 if result != None:
                     modified_frames = True
                 else:
