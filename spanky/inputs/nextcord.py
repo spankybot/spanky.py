@@ -275,6 +275,7 @@ class DiscordUtils(abc.ABC):
             return msg
 
         except:
+            print(f"Error sending {text} to {server}")
             print(traceback.format_exc())
 
     def send_message(
@@ -628,7 +629,11 @@ class User:
         self.id = str(obj.id)
         self.bot = obj.bot
 
-        self.avatar_url = obj.avatar.url
+        try:
+            self.avatar_url = obj.avatar.url
+        except:
+            # TODO
+            pass
 
         self.roles = []
         if hasattr(obj, "roles"):
@@ -643,6 +648,16 @@ class User:
             self.bot_owner = True
 
         self._raw = obj
+
+    @property
+    def timeout(self):
+        return self._raw.timeout
+    
+    async def set_timeout(self, deadline):
+        """
+        Set timeout for user.
+        """
+        await self._raw.edit(timeout=deadline)
 
     def add_role(self, role):
         async def do_add_role(user, role):
