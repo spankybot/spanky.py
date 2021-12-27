@@ -8,3 +8,4 @@ logs
 .*
 !.gitignore
 !.github
+storage_christmas
