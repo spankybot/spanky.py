@@ -96,27 +96,20 @@ def resize_to_fit(image, max_width, max_height):
 
     return canvas
 
-
-async def update_banner(server, storage):
+def fit_text_on_image(text):
     """
-    Refreshes the banner content
+    Finds best fit for how the text fits in the banner.
     """
+    img = Image()
+    img.new_pil(mode="RGB", size=(BANNER_W, BANNER_H))
+    img_draw = ImageDraw.Draw(img.pil())
 
-    # Current image
-    crt_banner = Image(url=storage["banner_url"])
-
-    # Resize it
-    resized = resize_to_fit(crt_banner.pil(), BANNER_W, BANNER_H)
-    img_draw = ImageDraw.Draw(resized)
-
-    # Find a good font size that fits the width
-    font = None
+    # Start from the default size and decrease font size.
     text_size = DEFAULT_TEXT_SIZE
-    banner_text = storage["banner_text"].replace("`", "")
     while True:
         font = ImageFont.truetype("plugin_data/fonts/plp.ttf", text_size)
         bbox = img_draw.textbbox(
-            (0, 0), banner_text, font=font, align="center", direction="ltr"
+            (0, 0), text, font=font, align="center", direction="ltr"
         )
         text_width, text_height = bbox[2], bbox[3]
 
@@ -132,24 +125,57 @@ async def update_banner(server, storage):
         if text_size <= 0:
             raise ValueError("Cannot fit text")
 
-    print(BANNER_H)
-    print(text_height)
-    print(TEXT_SPACE_H)
+    print(text_size)
+    return font
 
-    img_draw.text(
-        (BANNER_W // 2, BANNER_H // 2),
-        storage["banner_text"],
-        font=font,
-        fill=(255, 255, 255, 255),
-        anchor="mm",
-        align="center",
-    )
 
-    await dutils.banner_from_pil(server, resized)
+def update_banner(server, storage):
+    """
+    Refreshes the banner content.
+    """
+    def process_one_frame(image):
+        # Resize it
+        resized = resize_to_fit(image, BANNER_W, BANNER_H)
+        img_draw = ImageDraw.Draw(resized)
+        img_draw.text(
+            (BANNER_W // 2, BANNER_H // 2),
+            banner_text,
+            font=font,
+            fill=(0, 0, 0, 255),
+            anchor="mm",
+            align="center",
+        )
+
+        return resized
+
+    def send_file(to_send):
+        print("setting " + to_send)
+
+        import os
+        print(os.stat(to_send).st_size)
+
+        # Optimize gif using mogrify
+        os.system(f"mogrify -layers 'optimize' -fuzz 7% {to_send}")
+        print(os.stat(to_send).st_size)
+
+        server.set_banner(open(to_send, "rb").read())
+
+    def send_message(msg):
+        print(msg)
+
+    # Current image
+    crt_banner = Image(url=storage["banner_url"])
+
+    # Find a good font size that fits the width
+    banner_text = storage["banner_text"].replace("`", "")
+    font = fit_text_on_image(banner_text)
+
+    # It could be a gif, so iterate through each frame
+    crt_banner.proc_each_pil_frame(process_one_frame, send_file, send_message)
 
 
 @hook.command(permissions=Permission.admin)
-async def set_server_banner(event, server, storage, reply):
+def set_server_banner(event, server, storage, reply):
     """
     Sets the server banner to a given URL
     """
@@ -162,7 +188,7 @@ async def set_server_banner(event, server, storage, reply):
             storage["banner_url"] = img.url
             storage.sync()
 
-            await update_banner(server, storage)
+            update_banner(server, storage)
             return "Done"
         return "No image set."
     except Exception as e:
@@ -172,7 +198,7 @@ async def set_server_banner(event, server, storage, reply):
 
 
 @hook.command(permissions=Permission.admin)
-async def set_banner_text(server, storage, text, reply):
+def set_banner_text(server, storage, text, reply):
     """
     Sets the server banner text to a given content
     """
@@ -183,4 +209,4 @@ async def set_banner_text(server, storage, text, reply):
     storage["banner_text"] = text
     storage.sync()
 
-    await update_banner(server, storage)
+    update_banner(server, storage)
