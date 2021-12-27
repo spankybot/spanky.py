@@ -27,7 +27,7 @@ def invite_me():
     """
     Get invitation for bot
     """
-    return "Use the invite link here <https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0> and join the bot support channel at https://discord.gg/qS2JZ62 #spanky"
+    return "Click on the bot profile add click the 'Add to Server button' or use the invite link here <https://discordapp.com/oauth2/authorize?&client_id=295665055117344769&scope=bot&permissions=0> and join the bot support channel at <https://discord.gg/qS2JZ62> -> #spanky"
 
 
 @hook.command(permissions=Permission.bot_owner)
