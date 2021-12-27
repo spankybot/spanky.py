@@ -1,5 +1,7 @@
 import nextcord
 import io
+import random
+import string
 
 
 def get_user_by_id(server, uid):
@@ -421,3 +423,9 @@ async def banner_from_pil(server, pil_picture):
         return
 
     await server.async_set_banner(pil_to_bytes(pil_picture))
+
+def fname_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    """
+    Generate a random string containing uppercase ascii and digits
+    """
+    return "".join(random.choice(chars) for _ in range(size))
