@@ -5,7 +5,10 @@ import plugins.paged_content as paged
 import io
 import nextcord
 import csv
-import sys
+from spanky.hook2 import (
+    Hook,
+    Command,
+    ComplexCommand)
 
 from spanky.utils import time_utils
 from spanky.utils.volatile import set_vdata, get_vdata
@@ -816,11 +819,9 @@ async def export_cases(storage, event, reply):
         for reason in all_reasons:
             writer.writerow(reason)
 
-        await event.channel._raw.send(
-            file=nextcord.File(
-                fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"
-            )
-        )
+        await event.channel.async_send_file(nextcord.File(
+            fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"
+        ))
     except Exception as e:
         reply("Couldn't export cases: %s" % repr(e))
 
@@ -1032,3 +1033,65 @@ def check_exp_time(rstorage, command_name, role, server):
 
         rstorage[command_name].remove(elem)
         rstorage.sync()
+
+
+###
+# Timeout
+###
+@hook.command(permissions=Permission.admin)
+async def timeout(text, server, storage, event, send_embed):
+    """
+    Timeout an user:
+    timeout @plp 1m - timeouts plp for one minute
+    timeout @plp - displays timeout for plp
+    If the user is timeouted, the timeout can be modified by issuing the timeout command again.
+    """
+    text = text.split(" ")
+    if len(text) == 0:
+        return "Please specify a parameter:\n" + timeout.__doc__
+
+    user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
+    if not user:
+        return "Could not find user"
+    
+    crt_timeout = user.timeout
+    # User info needed
+    if len(text) == 1:
+        if crt_timeout == None:
+            return "User does not have a timeout set."
+        else:
+            return f"Timeout will expire in: {time_utils.sec_to_human(crt_timeout.timestamp() - time_utils.tnow())}"
+
+    # Set a timeout
+    elif len(text) >= 2:
+        tosec = time_utils.timeout_to_sec(text[1])
+        texp = time_utils.tnow() + tosec
+
+        reason = "Not given"
+        if len(text) >= 3:
+            reason = " ".join(text[2:])
+
+        await user.set_timeout(time_utils.time_to_date(texp))
+
+        if crt_timeout != None:
+            return f"Adjusted timeout to {time_utils.sec_to_human(tosec)}"
+        else:
+            # Create reason
+            reason = add_reason(
+                storage, 
+                event, 
+                user, 
+                reason, 
+                server, 
+                texp, 
+                "timeout")
+
+            # Log the action
+            log_action(
+                storage,
+                reason,
+                send_embed,
+                "User given timeout",
+            )
+
+            return f"Set timeout to {time_utils.sec_to_human(tosec)}"
