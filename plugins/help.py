@@ -131,13 +131,3 @@ def gen_documentation(bot, storage_loc, action, hook):
     commit_changes(storage_loc)
 
     return "Done."
-
-
-@hook.command(permissions=Permission.bot_owner)
-def list_bot_servers(bot):
-    msg = ""
-    for server in bot.backend.get_servers():
-        msg += "Name: %s, ID: %s\n" % (server.name, server.id)
-
-    return msg
-
