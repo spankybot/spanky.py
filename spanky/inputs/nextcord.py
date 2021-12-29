@@ -15,7 +15,11 @@ from spanky.utils.image import Image
 from spanky.utils import time_utils
 from spanky.utils import discord_utils as dutils
 
-logger = logging.getLogger("discord")
+from nextcord.interactions import Interaction
+import nextcord.application_command as ac
+
+
+logger = logging.getLogger("nextcord")
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
 handler.setFormatter(
@@ -40,12 +44,21 @@ with open("plugin_data/twemoji_800x800.json") as f:
 raw_msg_cache = {}  # message cache that we use to map msg_id to msg
 
 
+# TODO plp
+# slash commands
+# 1. Move all print statements to a logger
+# 2. Handle slash message timeouts
+
 class Init:
     def __init__(self, bot_inst):
         global client
         global bot
 
         self.client = client
+
+        # Server ID -> Hook list
+        # Maps what slash commands are mapped a server
+        self._slash_cmds: dict[str, dict[str, ac.ApplicationCommand]] = {}
 
         bot = bot_inst
 
@@ -77,6 +90,93 @@ class Init:
     def add_msg_to_cache(self, msg):
         raw_msg_cache[msg.id] = msg
 
+
+    def get_server_by_id(self, server_id: str):
+        """
+        Gets a server by given ID.
+        """
+        for server in self.get_servers():
+            if server.id == str(server_id):
+               return server 
+
+    async def do_register_slashes(self):
+        """
+        Registers all slash commands.
+        """
+        for server_id, cmd_dict in self._slash_cmds.items():
+            for server in self.get_servers():
+                if server.id != str(server_id):
+                    continue
+
+                server = self.get_server_by_id(server_id)
+
+                # If the bot is not online, the list is empty
+                crt_apps = server._raw._state.get_guild_application_commands(server._raw.id)
+
+                # Unregister inexistent commands
+                for app in crt_apps:
+                    if app.name not in cmd_dict.keys():
+                        print(f"Unregistering app {app.name}")
+                        for cmd_id in app.command_ids.values():
+                            appcmd = server._raw._state.get_application_command(int(cmd_id))
+                            if appcmd:
+                                print("Found a signature")
+                                server._raw._state.remove_application_command(appcmd)
+                            else:
+                                print("Didn't find signature")
+
+                # Rematch existing commands
+                # TODO plp: this calls discord again as done above
+                # maybe it's not needed somehow?
+                await server._raw._state.deploy_application_commands(guild_id=server._raw.id)
+
+                app_ids = []
+                for capp in crt_apps:
+                    app_ids.extend(capp.command_ids.values())
+
+                for hook_name, appcmd in cmd_dict.items():
+                    # If command is already registered, skip it
+                    app_ids = set(appcmd.command_ids.values())
+                    if len(appcmd.command_ids) != 0 and set(appcmd.command_ids.values()).issubset(app_ids):
+                        print(f"App {hook_name} already registered")
+                        continue
+
+                    # Register the new application
+                    print(f"Registering app {hook_name}")
+                    await server._raw._state.register_application_command(appcmd, server._raw.id)
+
+        print("Done registering slashes")
+
+    async def register_slash(self, hooks: list, server_id: str):
+        try:
+            if server_id not in self._slash_cmds:
+                self._slash_cmds[server_id] = {}
+
+            for hook in hooks:
+                if hook.name in self._slash_cmds[server_id]:
+                    continue
+
+                print("Registering slash " + hook.name)
+
+                # Declare the command
+                async def cmd(interaction: Interaction):
+                    await call_func(bot.on_slash, interaction)
+                cmd.__name__ = hook.name
+
+                # map the hook to the server ID list
+                self._slash_cmds[server_id][hook.name] = ac.slash_command(name=hook.name, guild_ids=[int(server_id)])(cmd)
+
+            # Remove missing commands (i.e. if something was renamed in the bot)
+            for missing_hook in set(self._slash_cmds[server_id]).difference(set(i.name for i in hooks)):
+                print(f"Removing missing command {missing_hook}")
+                del self._slash_cmds[server_id][missing_hook]
+
+            # If logged in, update slash list
+            if client.user:
+                await self.do_register_slashes()
+
+        except:
+            traceback.print_exc()
 
 class DiscordUtils(abc.ABC):
     @abc.abstractmethod
@@ -214,6 +314,16 @@ class DiscordUtils(abc.ABC):
         check_old=True,
         allowed_mentions=allowed_mentions,
     ):
+        # Handle slash commands
+        # TODO plp: handle timeouts
+        if type(self) is EventSlash:
+            msg = None
+            if text:
+                msg = await self._raw.response.send_message(content=text)
+            elif embed:
+                msg = await self._raw.response.send_message(embed=embed)
+            return msg
+
         # Get target, if given
         channel = self.get_channel(target, server)
 
@@ -560,6 +670,47 @@ class EventMessage(DiscordUtils):
                     yield strip_url(reply.text.split()[-1])
                     return
 
+class EventSlash(DiscordUtils):
+    def __init__(self, event_type, event):
+        self.type = event_type
+        self._raw = event
+
+        self.do_trigger = True
+        self.is_pm = False
+
+        self.author = User(event.user)
+        self.server = Server(event.guild)
+        self.channel = Channel(event.channel)
+        self.msg = SlashMessage(event)
+
+    @property
+    def text(self) -> str:
+        return str(self.msg)
+
+    def get_server(self):
+        return self.server
+
+    def get_msg(self):
+        return None
+
+class SlashMessage():
+    def __init__(self, event) -> None:
+        self._raw = None
+
+        self.id = event.id
+        self.author = User(event.user)
+        self.timeout = 0
+
+        self.text = event.data["name"]
+        for option in event.data.get("options", []):
+            self.text += " " + option["value"]
+
+    def __str__(self) -> str:
+        return self.text
+
+    def delete_message(self):
+        print("Attempted to delete slash message.")
+        pass
 
 class Message:
     def __init__(self, obj, timeout=0):
@@ -572,6 +723,9 @@ class Message:
 
         # Delete the message `timeout` seconds after it was created
         self.timeout = timeout
+
+    def __str__(self) -> str:
+        return self.text
 
     def reactions(self):
         for react in self._raw.reactions:

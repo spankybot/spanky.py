@@ -25,6 +25,8 @@ class EventType(enum.Enum):
 
     msg_bulk_del = 13
 
+    slash = 14
+
     # Bot events
     command = 100
     periodic = 101

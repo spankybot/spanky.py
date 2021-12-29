@@ -94,6 +94,7 @@ class Bot:
 
     async def ready(self):
         await self.run_on_ready_work()
+        await self.backend.do_register_slashes()
 
         self.is_ready = True
 
@@ -175,6 +176,15 @@ class Bot:
         pass
 
     # ----------------
+    # Slash commands
+    # ----------------
+    async def on_slash(self, interaction):
+        """On message external hook"""
+        evt = self.input.EventSlash(EventType.slash, interaction)
+
+        await self.do_text_event(evt)
+
+    # ----------------
     # Reaction events
     # ----------------
     async def on_reaction_add(self, reaction, user):
@@ -217,9 +227,14 @@ class Bot:
         if event.author.bot or not event.do_trigger:
             return
 
-        cmd_text = event.msg.text.lstrip()
+        cmd_text = str(event.msg).lstrip()
 
-        # Check if the command starts with .
+        # Append the prefix for slash commands
+        # TODO: this is a workaround
+        if event.type == EventType.slash:
+            cmd_text = self._prefix + cmd_text
+
+        # Check if the command starts with prefix
         if not (len(cmd_text) > 1 and cmd_text[0] == self._prefix):
             return
 

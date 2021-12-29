@@ -37,6 +37,26 @@ class HookManager:
             tasks.append(asyncio.create_task(d.load(), name="hook_mgr"))
         await asyncio.gather(*tasks)
 
+        await self.notify_backend_for_cmds()
+
+    async def notify_backend_for_cmds(self):
+        # Send all commands to the backend because if one command is renamed
+        # it needs to unregister the old name
+        slash_commands = []
+
+        # TODO plp: 4 nested loops wtf
+        for pdir in self.directories.values():
+            for plugin in pdir.plugins.values():
+                for hook in plugin.hooks:
+                    for command in hook.commands.values():
+                        if not "slash" in command.args:
+                            continue
+
+                        slash_commands.append(command)
+
+        # TODO plp: fetch the server ID from somewhere
+        await self.bot.backend.register_slash(slash_commands, 297483005763780613)
+
 
 class Plugin:
     def __init__(self, path: str, mgr: PluginManager, parent_hook: Hook):
@@ -221,6 +241,8 @@ class PluginDirectory:
                 await self.plugins[path].reload()
             else:
                 await self._load_file(path)
+
+            await self.mgr.notify_backend_for_cmds()
 
 
 class PluginDirectoryEventHandler:
