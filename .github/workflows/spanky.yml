@@ -8,5 +8,6 @@ jobs:
     steps:
       - name: unit tests
         run: |
+          cd ${GITHUB_WORKSPACE}
           ./Dockerfile/build.sh && ./Dockerfile/run_tests.sh
         
