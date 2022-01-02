@@ -4,6 +4,7 @@ from .actions import Action, ActionCommand
 from .hooklet import Hooklet, Command, Event, Periodic, MiddlewareResult
 from .complex_cmd import ComplexCommand
 from .storage import server_storage
+from .slash import SArg
 
 __all__ = (
     Hook,
@@ -17,4 +18,5 @@ __all__ = (
     ComplexCommand,
     MiddlewareResult,
     server_storage,
+    SArg
 )
