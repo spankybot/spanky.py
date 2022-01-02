@@ -141,5 +141,8 @@ hook = Hook("example")
 
 @hook.command(slash_servers=["123456"])
 def example3(event):
+    """
+    :sarg example_arg [1, 2]: int = 1 | some arg
+    """
     return "example3 called with " + str(event.args)
 ```
