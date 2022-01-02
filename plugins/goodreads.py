@@ -11,10 +11,12 @@ SEARCH_URL = "https://www.goodreads.com/search?q={}"
 
 # Goodreads doesn't have an API, so parse HTML crap
 
-class BookDataSearch():
+
+class BookDataSearch:
     """
     Book data returned from a search.
     """
+
     def __init__(self, data):
         self.data = data
 
@@ -30,10 +32,12 @@ class BookDataSearch():
 
         return "https://www.goodreads.com" + link[:pos]
 
-class BookData():
+
+class BookData:
     """
     Book data returned from a search.
     """
+
     def __init__(self, data, link):
         self.data = data
         self.book_link = link
@@ -64,7 +68,9 @@ class BookData():
     @property
     def description(self):
         try:
-            text = self.data.find("span", {"id": re.compile('freeText.*'), "style": "display:none"}).get_text()
+            text = self.data.find(
+                "span", {"id": re.compile("freeText.*"), "style": "display:none"}
+            ).get_text()
             if len(text) > 1024:
                 text = text[:1020] + "..."
 
@@ -72,12 +78,13 @@ class BookData():
         except:
             return "Could not fetch description."
 
+
 def search(text):
     """
     Search for multiple books.
     """
     headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1',
+        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1",
     }
     response = requests.get(SEARCH_URL.format(text), headers=headers)
 
@@ -86,17 +93,19 @@ def search(text):
 
     return [BookDataSearch(i) for i in books]
 
+
 def getbook(link):
     """
     Search for one book.
     """
     headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1',
+        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1",
     }
     response = requests.get(link, headers=headers)
 
     bf = BeautifulSoup(response.content, "html.parser")
     return BookData(bf, link)
+
 
 @hook.command()
 async def goodreads_search(text, async_send_message):
@@ -120,7 +129,7 @@ async def goodreads_search(text, async_send_message):
         title="Goodreads search",
         description=f"Result for {text}",
         fields=results,
-        inline_fields=False
+        inline_fields=False,
     )
 
     await async_send_message(embed=embed)
@@ -160,7 +169,7 @@ async def goodreads(text, async_send_message):
             "Description": item.description,
         },
         image_url=item.cover,
-        inline_fields=False
+        inline_fields=False,
     )
 
     await async_send_message(embed=embed)

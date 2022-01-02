@@ -65,7 +65,7 @@ class HookManager:
                             server_ids = command.args["slash_servers"]
                         else:
                             raise ValueError("Unhandled server_id type.")
-                        
+
                         for server_id in server_ids:
                             if server_id not in slash_commands:
                                 slash_commands[server_id] = []

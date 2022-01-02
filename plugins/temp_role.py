@@ -5,10 +5,7 @@ import plugins.paged_content as paged
 import io
 import nextcord
 import csv
-from spanky.hook2 import (
-    Hook,
-    Command,
-    ComplexCommand)
+from spanky.hook2 import Hook, Command, ComplexCommand
 
 from spanky.utils import time_utils
 from spanky.utils.volatile import set_vdata, get_vdata
@@ -42,6 +39,7 @@ def register_cmd(cmd, server):
     """
 
     cmd_name = cmd["name"]
+
     def do_cmd(text, server, storage, event, send_embed):
         """
         Temporary role assignment command as defined by server ops.
@@ -72,7 +70,9 @@ def register_cmd(cmd, server):
 
         return "Done."
 
-    hook.add_command(Command(hook, cmd_name, do_cmd, server_id=server.id, permissions="admin"))
+    hook.add_command(
+        Command(hook, cmd_name, do_cmd, server_id=server.id, permissions="admin")
+    )
 
 
 @hook.event(EventType.on_conn_ready)
@@ -90,6 +90,7 @@ def init_cmds(bot, storage_getter):
         for cmd in storage["cmds"]:
             print("[%s] Registering %s" % (server.id, cmd))
             register_cmd(storage["cmds"][cmd], server)
+
 
 @hook.command(permissions=Permission.admin)
 def create_temp_role_cmd(text, hook, str_to_id, server, bot, storage):
@@ -819,9 +820,11 @@ async def export_cases(storage, event, reply):
         for reason in all_reasons:
             writer.writerow(reason)
 
-        await event.channel.async_send_file(nextcord.File(
-            fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"
-        ))
+        await event.channel.async_send_file(
+            nextcord.File(
+                fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"
+            )
+        )
     except Exception as e:
         reply("Couldn't export cases: %s" % repr(e))
 
@@ -1053,7 +1056,7 @@ async def timeout(text, server, storage, event, send_embed):
     user = dutils.get_user_by_id(server, dutils.str_to_id(text[0]))
     if not user:
         return "Could not find user"
-    
+
     crt_timeout = user.timeout
     # User info needed
     if len(text) == 1:
@@ -1077,14 +1080,7 @@ async def timeout(text, server, storage, event, send_embed):
             return f"Adjusted timeout to {time_utils.sec_to_human(tosec)}"
         else:
             # Create reason
-            reason = add_reason(
-                storage, 
-                event, 
-                user, 
-                reason, 
-                server, 
-                texp, 
-                "timeout")
+            reason = add_reason(storage, event, user, reason, server, texp, "timeout")
 
             # Log the action
             log_action(

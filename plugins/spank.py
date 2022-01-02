@@ -9,7 +9,7 @@ from spanky.utils import textgen
 
 
 def is_valid(target):
-    """ Checks if a string is a valid IRC nick. """
+    """Checks if a string is a valid IRC nick."""
     if nick_re.match(target):
         return True
     else:

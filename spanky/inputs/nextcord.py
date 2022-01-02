@@ -49,6 +49,7 @@ raw_msg_cache = {}  # message cache that we use to map msg_id to msg
 # 1. Move all print statements to a logger
 # 2. Handle slash message timeouts
 
+
 class Init:
     def __init__(self, bot_inst):
         global client
@@ -90,14 +91,13 @@ class Init:
     def add_msg_to_cache(self, msg):
         raw_msg_cache[msg.id] = msg
 
-
     def get_server_by_id(self, server_id: str):
         """
         Gets a server by given ID.
         """
         for server in self.get_servers():
             if server.id == str(server_id):
-               return server 
+                return server
 
     async def do_register_slashes(self):
         """
@@ -109,14 +109,18 @@ class Init:
                     continue
 
                 # If the bot is not online, the list is empty
-                crt_apps = server._raw._state.get_guild_application_commands(server._raw.id)
+                crt_apps = server._raw._state.get_guild_application_commands(
+                    server._raw.id
+                )
 
                 # Unregister nonexistent commands
                 for app in crt_apps:
                     if app.name not in cmd_dict.keys():
                         print(f"Unregistering app {app.name}")
                         for cmd_id in app.command_ids.values():
-                            appcmd = server._raw._state.get_application_command(int(cmd_id))
+                            appcmd = server._raw._state.get_application_command(
+                                int(cmd_id)
+                            )
                             if appcmd:
                                 print("Found a signature")
                                 server._raw._state.remove_application_command(appcmd)
@@ -126,7 +130,9 @@ class Init:
                 # Rematch existing commands
                 # TODO plp: this calls discord again as done above
                 # maybe it's not needed somehow?
-                await server._raw._state.deploy_application_commands(guild_id=server._raw.id)
+                await server._raw._state.deploy_application_commands(
+                    guild_id=server._raw.id
+                )
 
                 app_ids = []
                 for capp in crt_apps:
@@ -135,23 +141,35 @@ class Init:
                 for hook_name, appcmd in cmd_dict.items():
                     # If command is already registered, skip it
                     app_ids = set(appcmd.command_ids.values())
-                    if len(appcmd.command_ids) != 0 and set(appcmd.command_ids.values()).issubset(app_ids):
+                    if len(appcmd.command_ids) != 0 and set(
+                        appcmd.command_ids.values()
+                    ).issubset(app_ids):
                         print(f"App {hook_name} already registered")
                         continue
 
                     # Register the new application
                     print(f"Registering app {hook_name}")
-                    await server._raw._state.register_application_command(appcmd, server._raw.id)
+                    await server._raw._state.register_application_command(
+                        appcmd, server._raw.id
+                    )
 
         print("Done registering slashes")
 
-    def decorate_command(self, cmd: ac.ApplicationCommand, hook) -> ac.ApplicationCommand:
+    def decorate_command(
+        self, cmd: ac.ApplicationCommand, hook
+    ) -> ac.ApplicationCommand:
         """
         Decorates a command or subcommand with the hook properties.
         """
 
         # interaction has to be the first parameter
-        params = [inspect.Parameter("interaction", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=Interaction)]
+        params = [
+            inspect.Parameter(
+                "interaction",
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=Interaction,
+            )
+        ]
 
         for param in hook.slash_args:
             default = ac.SlashOption()
@@ -160,7 +178,7 @@ class Init:
             default.required = True
 
             default.name = param.name
-            
+
             if param.description:
                 default.description = param.description
 
@@ -176,7 +194,9 @@ class Init:
                     name=param.name,
                     default=default,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=param.type))
+                    annotation=param.type,
+                )
+            )
 
         cmd.__signature__ = inspect.Signature(params)
         cmd.__annotations__ = hook.args
@@ -188,26 +208,27 @@ class Init:
 
         Returns True on error, False othewise.
         """
-        prefix = '\t' * level
+        prefix = "\t" * level
         print(f"Tree: {prefix} {node.name}")
 
         if level >= 3:
-            print(f"Cannot register slash commands more than 3 levels deep: error when adding {parent_func.name}/{node.name}")
+            print(
+                f"Cannot register slash commands more than 3 levels deep: error when adding {parent_func.name}/{node.name}"
+            )
             return True
 
         if level != 0:
+
             async def cmd(interaction, **kwargs):
                 await call_func(bot.on_slash, interaction, kwargs)
+
             print(f"Adding {node.name} to {parent_func.name}")
             self.decorate_command(cmd, node)
 
             parent_func = parent_func.subcommand(name=node.name)(cmd)
 
         for scmd in node.get_subcommands():
-            err = self.fill_tree(
-                parent_func,
-                scmd, 
-                level + 1)
+            err = self.fill_tree(parent_func, scmd, level + 1)
 
             if err:
                 return err
@@ -227,10 +248,13 @@ class Init:
 
                 async def cmd(interaction, **kwargs):
                     await call_func(bot.on_slash, interaction, kwargs)
+
                 self.decorate_command(cmd, hook)
 
                 # map the hook to the server ID list - this is the root command
-                self._slash_cmds[server_id][hook.name] = ac.slash_command(name=hook.name, guild_ids=[int(server_id)])(cmd)
+                self._slash_cmds[server_id][hook.name] = ac.slash_command(
+                    name=hook.name, guild_ids=[int(server_id)]
+                )(cmd)
 
                 err = self.fill_tree(self._slash_cmds[server_id][hook.name], hook, 0)
                 if err:
@@ -238,7 +262,9 @@ class Init:
                     return
 
             # Remove missing commands (i.e. if something was renamed in the bot)
-            for missing_hook in set(self._slash_cmds[server_id]).difference(set(i.name for i in hooks)):
+            for missing_hook in set(self._slash_cmds[server_id]).difference(
+                set(i.name for i in hooks)
+            ):
                 print(f"Removing missing command {missing_hook}")
                 del self._slash_cmds[server_id][missing_hook]
 
@@ -248,6 +274,7 @@ class Init:
 
         except:
             traceback.print_exc()
+
 
 class DiscordUtils(abc.ABC):
     @abc.abstractmethod
@@ -389,6 +416,7 @@ class DiscordUtils(abc.ABC):
         channel = None
 
         if type(self) is EventSlash:
+
             async def send(*args, **kwargs):
                 # slashes don't accept allowed_mentions, so we need to remove it...
                 # this is shit code
@@ -423,7 +451,10 @@ class DiscordUtils(abc.ABC):
             if check_old:
                 # Find if this message has been replied to before
                 old_reply = None
-                if type(self) in [EventMessage, EventSlash] and self.get_server().id in bot_replies:
+                if (
+                    type(self) in [EventMessage, EventSlash]
+                    and self.get_server().id in bot_replies
+                ):
                     old_reply = bot_replies[self.get_server().id].get_old_reply(
                         self.msg
                     )
@@ -436,11 +467,15 @@ class DiscordUtils(abc.ABC):
                 # If it was replied within the same channel (no chances of this not being true)
                 if old_reply and old_reply._raw.channel.id == channel.id:
                     # TODO editing slash replies throws an exception because that's not possible
-                    await old_reply._raw.edit(content=text, embed=embed, allowed_mentions=allowed_mentions)
+                    await old_reply._raw.edit(
+                        content=text, embed=embed, allowed_mentions=allowed_mentions
+                    )
                     return Message(old_reply._raw)
 
             msg = None
-            reply = await func_send_message(content=text, embed=embed, allowed_mentions=allowed_mentions)
+            reply = await func_send_message(
+                content=text, embed=embed, allowed_mentions=allowed_mentions
+            )
             if type(self) is EventSlash:
                 msg = SlashMessage(self._raw, timeout)
             else:
@@ -742,6 +777,7 @@ class EventMessage(DiscordUtils):
                     yield strip_url(reply.text.split()[-1])
                     return
 
+
 class EventSlash(DiscordUtils):
     def __init__(self, event_type, event, args):
         self.type = event_type
@@ -766,7 +802,8 @@ class EventSlash(DiscordUtils):
     def get_msg(self):
         return None
 
-class SlashMessage():
+
+class SlashMessage:
     def __init__(self, event, timeout=0) -> None:
         self._raw = event
 
@@ -780,7 +817,7 @@ class SlashMessage():
         """
         Recursively extract slash arguments.
         """
-        result = ''
+        result = ""
         for rec_option in option.get("options", []):
             result = self.recursive_extact(rec_option)
 
@@ -893,7 +930,7 @@ class User:
     @property
     def timeout(self):
         return self._raw.timeout
-    
+
     async def set_timeout(self, deadline):
         """
         Set timeout for user.
@@ -1296,7 +1333,7 @@ class Role:
         self.id = str(obj.id)
         self.position = obj.position
         self.booster = False
-        if hasattr(obj, 'is_premium_subscriber'):
+        if hasattr(obj, "is_premium_subscriber"):
             self.booster = obj.is_premium_subscriber()
         self._raw = obj
 
@@ -1505,6 +1542,7 @@ async def on_member_unban(server, user):
 # async def on_reaction_add(reaction, user):
 #     if user.id != client.user.id:
 #         await call_func(bot.on_reaction_add, reaction, user)
+
 
 async def on_reaction_remove(reaction, user):
     if user.id != client.user.id:

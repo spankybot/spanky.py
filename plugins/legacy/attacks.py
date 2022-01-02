@@ -144,8 +144,7 @@ def nk():
 
 @hook.command()
 def insult(text):
-    """<user> - insults <user>
-    """
+    """<user> - insults <user>"""
     target = text.strip()
 
     return "{}, {}".format(target, random.choice(insults))

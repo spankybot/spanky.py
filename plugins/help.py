@@ -9,7 +9,7 @@ def help(hook, text, event, send_embed):
     """Get help for a command or the help document"""
     cmd = hook.root.get_command(text)
     if cmd != None:
-        send_embed(cmd.name, "**Usage:**\n"+ hook.root.get_command(text).get_doc())
+        send_embed(cmd.name, "**Usage:**\n" + hook.root.get_command(text).get_doc())
         return
 
     send_embed(
@@ -28,8 +28,7 @@ def prepare_repo(storage_loc):
     os.system("rm -rf %s" % dest)
     os.system("mkdir -p %s" % dest)
     os.system(
-        "git clone git@github.com:spankybot/commands.git %s"
-        % (storage_loc + "/doc")
+        "git clone git@github.com:spankybot/commands.git %s" % (storage_loc + "/doc")
     )
 
 
@@ -70,9 +69,7 @@ def commit_changes(storage_loc):
 
     os.system("git -C %s add ." % repo_path)
     os.system("git -C %s status" % repo_path)
-    os.system(
-        'git -C %s commit -m "Update documentation"' % repo_path
-    )
+    os.system('git -C %s commit -m "Update documentation"' % repo_path)
     os.system("git -C %s push" % repo_path)
 
 

@@ -14,7 +14,7 @@ def getFormat(author, storage):
 
 @hook.command()
 def corona(text, reply, storage, author):
-    """<option> - available options: [all, <country name>]. If option is <country name>, you must specify a country from <https://worldometers.info/coronavirus#countries>. """
+    """<option> - available options: [all, <country name>]. If option is <country name>, you must specify a country from <https://worldometers.info/coronavirus#countries>."""
 
     args = text.split(" ")
     if len(args) == 0:
@@ -24,11 +24,13 @@ def corona(text, reply, storage, author):
     if args[0] == "all" or args[0] == "total" or text == "":
         country_data = requests.get(base + "all").json()
         vaccine_data = requests.get(base_vacc + "?lastdays=1&fullData=true").json()
-        vaccines = vaccine_data[0]['total']
+        vaccines = vaccine_data[0]["total"]
     else:
         country_data = requests.get(base + "countries/" + text).json()
-        vaccine_data = requests.get(base_vacc + "countries/" + text + "?lastdays=1&fullData=true").json()
-        vaccines = vaccine_data['timeline'][0]['total']
+        vaccine_data = requests.get(
+            base_vacc + "countries/" + text + "?lastdays=1&fullData=true"
+        ).json()
+        vaccines = vaccine_data["timeline"][0]["total"]
 
     # if the return data has a message field, it means something occured and we should print it
     if "message" in country_data:
@@ -59,7 +61,7 @@ def corona(text, reply, storage, author):
         "LUpdated": datetime.utcfromtimestamp(country_data["updated"] // 1000).strftime(
             "%Y-%m-%d at %H:%M:%S UTC"
         ),
-        "Vaccines": f"Vaccines: {vaccines:,}"
+        "Vaccines": f"Vaccines: {vaccines:,}",
     }
 
     for key, value in data.items():

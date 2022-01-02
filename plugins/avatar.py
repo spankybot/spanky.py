@@ -96,6 +96,7 @@ def resize_to_fit(image, max_width, max_height):
 
     return canvas
 
+
 def fit_text_on_image(text):
     """
     Finds best fit for how the text fits in the banner.
@@ -133,6 +134,7 @@ def update_banner(server, storage):
     """
     Refreshes the banner content.
     """
+
     def process_one_frame(image):
         # Resize it
         resized = resize_to_fit(image, BANNER_W, BANNER_H)
@@ -152,6 +154,7 @@ def update_banner(server, storage):
         print("setting " + to_send)
 
         import os
+
         print(os.stat(to_send).st_size)
 
         # Optimize gif using mogrify
@@ -193,6 +196,7 @@ def set_server_banner(event, server, storage, reply):
         return "No image set."
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         return "Error"
 

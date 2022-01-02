@@ -17,8 +17,8 @@ bias = None
 
 
 def check_status(status, api):
-    """ A little helper function that checks an API error code and returns a nice message.
-        Returns None if no errors found """
+    """A little helper function that checks an API error code and returns a nice message.
+    Returns None if no errors found"""
     if status == "REQUEST_DENIED":
         return "The " + api + " API is off in the Google Developers Console."
     elif status == "ZERO_RESULTS":
@@ -38,7 +38,7 @@ def check_status(status, api):
 
 @hook.on_start()
 def load_key(bot):
-    """ Loads the API key for Google APIs """
+    """Loads the API key for Google APIs"""
     global dev_key
     dev_key = bot.config.get("api_keys", {}).get("google_dev_key", None)
 

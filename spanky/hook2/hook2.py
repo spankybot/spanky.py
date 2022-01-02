@@ -223,7 +223,7 @@ class Hook:
     # Event propagation
     # The return of this function marks the finalization of propagating across the entire subtree
     async def dispatch_action(self, action: Action):
-        #if self.hook_id == "bot_hook" and not isinstance(action, ActionPeriodic):
+        # if self.hook_id == "bot_hook" and not isinstance(action, ActionPeriodic):
         #    print(self.hook_id, action)
 
         tasks = []

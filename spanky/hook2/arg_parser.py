@@ -7,18 +7,18 @@ MAGIC_START = ":sarg"
 
 
 @dataclass
-class PTok():
+class PTok:
     """
     Generic token class for handling types.
     """
 
-    valid_type: list        # What values are valid - taken from token.*
-    next_state: list        # What the next state should be
-    start: str = None       # Marks start of type
-    end: str = None         # Marks end of type
-    delimiter: str = None   # type delimiter
+    valid_type: list  # What values are valid - taken from token.*
+    next_state: list  # What the next state should be
+    start: str = None  # Marks start of type
+    end: str = None  # Marks end of type
+    delimiter: str = None  # type delimiter
 
-    is_done: bool = False   # type has been filled
+    is_done: bool = False  # type has been filled
 
     # Accumulate values
     _accumulator: list = field(default_factory=list)
@@ -71,7 +71,7 @@ class PTok():
         return False
 
     def is_type(self, tok_type):
-        """"
+        """ "
         Checks whether the given token is a valid type for this type.
         """
         return tok_type in self.valid_type
@@ -80,7 +80,7 @@ class PTok():
         """
         Cycles through potential next states and returns the next state instance if found.
 
-        The next state is returned when the next type start has been identified OR 
+        The next state is returned when the next type start has been identified OR
         the token is of the given type. The second statement is needed because some
         types may not have a start delimiter.
         """
@@ -108,20 +108,21 @@ class PTok():
 
     # Removes quotes around strings
     def validate_str(self, data):
-        if data.startswith('\''):
+        if data.startswith("'"):
             data = data[1:]
 
-        if data.endswith('\''):
+        if data.endswith("'"):
             data = data[:-1]
 
         return str(data)
 
 
 @dataclass
-class PDel():
+class PDel:
     """
     Basic delimiter container that holds a token type and a value.
     """
+
     valid_type: int
     value: str = ""
 
@@ -151,9 +152,7 @@ class PStart(PTok):
     name = "start"
 
     def __init__(self):
-        super().__init__(
-            valid_type=[ENCODING],
-            next_state=[PName])
+        super().__init__(valid_type=[ENCODING], next_state=[PName])
 
 
 class PName(PTok):
@@ -162,7 +161,8 @@ class PName(PTok):
     def __init__(self):
         super().__init__(
             valid_type=[NAME],
-            next_state=[PChoice, PArgType, PDefaultVal, PDescription, PEnd])
+            next_state=[PChoice, PArgType, PDefaultVal, PDescription, PEnd],
+        )
 
     def validate(self):
         return str(self._accumulator[0])
@@ -177,7 +177,8 @@ class PChoice(PTok):
             next_state=[PArgType, PDefaultVal, PDescription, PEnd],
             start=PDel(OP, "["),
             end=PDel(OP, "]"),
-            delimiter=PDel(OP, ","))
+            delimiter=PDel(OP, ","),
+        )
 
     def validate(self, argtype) -> list:
         if argtype == str:
@@ -193,7 +194,8 @@ class PArgType(PTok):
         super().__init__(
             valid_type=[NAME],
             next_state=[PDefaultVal, PDescription, PEnd],
-            start=PDel(OP, ":"))
+            start=PDel(OP, ":"),
+        )
 
     def validate(self):
         tok_type = self.get_content_no_delim()[0]
@@ -222,7 +224,8 @@ class PDefaultVal(PTok):
             valid_type=[NUMBER, STRING, NAME],
             next_state=[PDescription, PEnd],
             start=PDel(OP, "="),
-            delimiter=PDel(OP, "-"))
+            delimiter=PDel(OP, "-"),
+        )
 
     def validate(self, argtype) -> list:
         if argtype == str:
@@ -236,9 +239,8 @@ class PDescription(PTok):
 
     def __init__(self):
         super().__init__(
-            valid_type=[NAME, STRING],
-            next_state=[PEnd],
-            start=PDel(OP, "|"))
+            valid_type=[NAME, STRING], next_state=[PEnd], start=PDel(OP, "|")
+        )
 
     def validate(self):
         return " ".join(self.get_content_no_delim())
@@ -248,12 +250,10 @@ class PEnd(PTok):
     name = "end"
 
     def __init__(self):
-        super().__init__(
-            valid_type=[ENDMARKER, NEWLINE],
-            next_state=[])
+        super().__init__(valid_type=[ENDMARKER, NEWLINE], next_state=[])
 
 
-class Parser():
+class Parser:
     """
     Parses a token list and returns the result.
 
@@ -345,15 +345,18 @@ class Parser():
 
         if PName.name not in results:
             raise ValueError("Missing variable name.")
-            
+
         results[PName.name] = results[PName.name].validate()
 
         if PChoice.name in results:
-            results[PChoice.name] = results[PChoice.name].validate(results[PArgType.name])
+            results[PChoice.name] = results[PChoice.name].validate(
+                results[PArgType.name]
+            )
 
         if PDefaultVal.name in results:
             results[PDefaultVal.name] = results[PDefaultVal.name].validate(
-                results[PArgType.name])
+                results[PArgType.name]
+            )
 
         if PDescription.name in results:
             results[PDescription.name] = results[PDescription.name].validate()
@@ -363,7 +366,7 @@ class Parser():
 
 def parse(data, magic_start=MAGIC_START) -> dict:
     """
-    Parse a line and return the results in a dict that contains 
+    Parse a line and return the results in a dict that contains
     parsed and validated values.
     """
     states = []
@@ -384,4 +387,3 @@ def parse(data, magic_start=MAGIC_START) -> dict:
         states.append(state)
 
     return states
-

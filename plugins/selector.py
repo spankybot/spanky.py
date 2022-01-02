@@ -75,7 +75,9 @@ async def parse_react(bot, event, storage):
         if "all_chan_selectors" in storage:
             for element in list(storage["all_chan_selectors"]):
                 if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(bot, element, "all_chan_selectors")
+                    found_selector = await rebuild_one_selector(
+                        bot, element, "all_chan_selectors"
+                    )
                     break
 
         if found_selector:
@@ -268,7 +270,6 @@ async def rebuild_selectors(bot, storage_getter):
                     traceback.print_exc()
                     print(element)
 
-
         if "all_chan_selectors" in storage:
             for element in list(storage["all_chan_selectors"]):
                 try:
@@ -280,5 +281,6 @@ async def rebuild_selectors(bot, storage_getter):
                     storage.sync()
                 except:
                     import traceback
+
                     traceback.print_exc()
                     print(element)

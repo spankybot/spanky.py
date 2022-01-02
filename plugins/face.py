@@ -107,7 +107,9 @@ def glasses(event, send_file, send_message, cmd_args):
 def add_glasses(image, glasses_img, debug=False):
     image = prepare_image(image)
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
+    face_landmarks_list = face_recognition.face_landmarks(
+        np.array(image.convert("RGB"))
+    )
 
     glasses_json = json.load(open(glasses_img + ".json"))
 
@@ -182,7 +184,9 @@ def moustache(event, send_file, send_message, cmd_args):
 def add_moustache(image, moustache_img, debug=False):
     image = prepare_image(image)
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
+    face_landmarks_list = face_recognition.face_landmarks(
+        np.array(image.convert("RGB"))
+    )
 
     if debug:
         print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
@@ -230,7 +234,7 @@ def add_moustache(image, moustache_img, debug=False):
 
         moustache_paste = (
             avg_pos[0] - moustache.size[0] // 2 + int(offset[0] / x_scale_ratio),
-            avg_pos[1] - moustache.size[1] // 2 + int(offset[1] / x_scale_ratio)
+            avg_pos[1] - moustache.size[1] // 2 + int(offset[1] / x_scale_ratio),
         )
 
         image.paste(moustache, moustache_paste, moustache)
@@ -260,7 +264,9 @@ def add_hat(image, hat_img, debug=False):
     image = prepare_image(image)
 
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
+    face_landmarks_list = face_recognition.face_landmarks(
+        np.array(image.convert("RGB"))
+    )
 
     if debug:
         print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))
@@ -294,16 +300,21 @@ def add_hat(image, hat_img, debug=False):
         x_scale_ratio = hat.size[0] / eyes_sizex / hat_json["scale"]
 
         # Resize the hat
-        hat = hat.resize((int(hat.size[0] / x_scale_ratio),
-                         int(hat.size[1] / x_scale_ratio)))
+        hat = hat.resize(
+            (int(hat.size[0] / x_scale_ratio), int(hat.size[1] / x_scale_ratio))
+        )
 
         # Average position for the eyes
         avg_pos = get_average_pos((avg_left, avg_right))
 
-        offset = rotate_origin_only((hat_json["offset_x"], hat_json["offset_y"]), eyes_angle)
+        offset = rotate_origin_only(
+            (hat_json["offset_x"], hat_json["offset_y"]), eyes_angle
+        )
 
-        hat_paste = (avg_pos[0] - hat.size[0] // 2 + int(offset[0] / x_scale_ratio),
-                           avg_pos[1] - hat.size[1] // 2 + int(offset[1] / x_scale_ratio))
+        hat_paste = (
+            avg_pos[0] - hat.size[0] // 2 + int(offset[0] / x_scale_ratio),
+            avg_pos[1] - hat.size[1] // 2 + int(offset[1] / x_scale_ratio),
+        )
         image.paste(hat, hat_paste, hat)
 
         if debug:
@@ -332,7 +343,9 @@ def add_eyes(image, eyes_img, debug=False):
     image = prepare_image(image)
 
     # Find all facial features in all the faces in the image
-    face_landmarks_list = face_recognition.face_landmarks(np.array(image.convert("RGB")))
+    face_landmarks_list = face_recognition.face_landmarks(
+        np.array(image.convert("RGB"))
+    )
 
     if debug:
         print("I found {} face(s) in this photograph.".format(len(face_landmarks_list)))

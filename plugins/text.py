@@ -26,7 +26,7 @@ def letters(event):
         elif thing.isdigit():
             out += d2em[int(thing)]
         elif thing.isspace():
-            out += ':blue_square:'
+            out += ":blue_square:"
         else:
             out += thing
 

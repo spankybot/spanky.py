@@ -11,9 +11,9 @@ class SpankyStub(object):
     def __init__(self, channel):
         """Constructor.
 
-    Args:
-      channel: A grpc.Channel.
-    """
+        Args:
+          channel: A grpc.Channel.
+        """
         self.ExposeMethods = channel.unary_unary(
             "/spanky.Spanky/ExposeMethods",
             request_serializer=spanky_dot_inputs_dot_rpc_dot_spanky__pb2.NewCli.SerializeToString,
@@ -31,8 +31,7 @@ class SpankyServicer(object):
     pass
 
     def ExposeMethods(self, request, context):
-        """When a client connects it exposes methods that the server can call
-    """
+        """When a client connects it exposes methods that the server can call"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")

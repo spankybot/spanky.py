@@ -22,7 +22,7 @@ hook = Hook("role_selector", storage_name="plugins_role_selector")
 def register_cmd(cmd, server):
     """Register a user defined command"""
 
-    cmd_name = cmd['name']
+    cmd_name = cmd["name"]
 
     async def do_cmd(text, server, storage, event, send_embed, reply):
         print(f"Got selector {cmd_name}")
@@ -43,6 +43,7 @@ def register_cmd(cmd, server):
     do_cmd.__name__ = cmd["name"]
     hook.add_command(Command(hook, cmd["name"], do_cmd, server_id=server.id))
 
+
 @hook.event(EventType.on_conn_ready)
 def init_cmds(bot, storage_getter):
     """Register all commands on bot ready"""
@@ -55,6 +56,7 @@ def init_cmds(bot, storage_getter):
         for cmd in storage["selectors"]:
             print(f"[{server.id}] Registering {cmd}")
             register_cmd(storage["selectors"][cmd], server)
+
 
 #
 # Selector modifiers
@@ -123,7 +125,7 @@ def set_selector_title(server, storage, text, bot):
 
 @hook.command(permissions=Permission.admin)
 def add_selector_roles(server, storage, text, bot, str_to_id):
-    """<selector> <roles> - adds the specified roles to the selector """
+    """<selector> <roles> - adds the specified roles to the selector"""
     text = text.split()
     if len(text) < 2:
         return "Format: " + add_selector_roles.__doc__
@@ -154,7 +156,7 @@ def add_selector_roles(server, storage, text, bot, str_to_id):
 
 @hook.command(permissions=Permission.admin)
 def add_selector_role_interval(server, storage, text, bot, str_to_id):
-    """<selector> <role start> <role end> - adds the roles in the specified interval to the selector """
+    """<selector> <role start> <role end> - adds the roles in the specified interval to the selector"""
     text = text.split()
     if len(text) < 2:
         return "Format: " + add_selector_roles.__doc__
@@ -187,7 +189,7 @@ def add_selector_role_interval(server, storage, text, bot, str_to_id):
 @hook.command(permissions=Permission.admin)
 def remove_selector_role_interval(server, storage, text, bot, str_to_id):
     """<selector> <role start> <role end> - removes the roles in the specified interval from the selector.
-    NOTE: THIS REMOVES THE ROLE INTERVAL FROM THE ROLE LIST, NOT FROM THE SELECTOR LIST. """
+    NOTE: THIS REMOVES THE ROLE INTERVAL FROM THE ROLE LIST, NOT FROM THE SELECTOR LIST."""
     text = text.split()
     if len(text) < 2:
         return "Format: " + remove_selector_role_interval.__doc__
@@ -222,7 +224,7 @@ def remove_selector_role_interval(server, storage, text, bot, str_to_id):
 
 @hook.command(permissions=Permission.admin)
 def remove_selector_roles(server, storage, text, bot, str_to_id):
-    """<selector> <roles> - removes the specified roles from the selector """
+    """<selector> <roles> - removes the specified roles from the selector"""
     text = text.split()
     if len(text) < 2:
         return "Format: " + remove_selector_roles.__doc__

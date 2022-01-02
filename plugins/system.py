@@ -156,6 +156,7 @@ def system(send_message):
 
     return msg
 
+
 @hook.command(permissions=Permission.bot_owner)
 def list_bot_servers(bot):
     msg = ""
@@ -168,4 +169,5 @@ def list_bot_servers(bot):
 @hook.command(permissions=Permission.bot_owner)
 def list_storage_cache(bot):
     from spanky.hook2.storage import _server_cache
+
     return str(_server_cache)

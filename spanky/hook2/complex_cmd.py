@@ -77,7 +77,9 @@ class ComplexCommand(Command):
     def subcommand(self, **kwargs):
         def make_cmd(func):
             self._sub_commands.append(
-                Command(self.hook, kwargs.get("name", self.func_name(func)), func, **kwargs)
+                Command(
+                    self.hook, kwargs.get("name", self.func_name(func)), func, **kwargs
+                )
             )
             return func
 

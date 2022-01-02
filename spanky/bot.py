@@ -89,7 +89,6 @@ class Bot:
         # Run on connection ready hooks
         await self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
 
-
     async def ready(self):
         await self.run_on_ready_work()
         await self.backend.do_register_slashes()

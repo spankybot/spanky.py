@@ -45,11 +45,13 @@ def get_role_by_id_or_name(server, rid_or_name):
 def get_channel_by_id(server, cid):
     return server.get_chan(cid)
 
+
 def get_channel_by_name(server, cname):
     for chan in server.get_chans():
         if chan.name == cname:
             return chan
     return None
+
 
 def get_channel_by_id_or_name(server, cid_or_name):
     by_id = get_channel_by_id(server, str_to_id(cid_or_name))
@@ -423,6 +425,7 @@ async def banner_from_pil(server, pil_picture):
         return
 
     await server.async_set_banner(pil_to_bytes(pil_picture))
+
 
 def fname_generator(size=6, chars=string.ascii_uppercase + string.digits):
     """

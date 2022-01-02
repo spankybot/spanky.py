@@ -168,7 +168,7 @@ class Command(Hooklet):
                 # If parameters are found, create SArg objects for each one
                 for param in params:
                     values = param.validate()
-                    self.slash_args.append(SArg.from_parser(values))          
+                    self.slash_args.append(SArg.from_parser(values))
 
         if not isinstance(self.aliases, list):
             self.aliases = [self.aliases]

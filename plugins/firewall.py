@@ -19,9 +19,10 @@ def firewall_check(bot, storage_getter):
             and storage["fw"]["end_time"]
             and time_utils.tnow() > storage["fw"]["end_time"]
         ):
-            storage["fw"]["status"] = (
-                "auto stopped on %s GMT"
-                % time_utils.time_to_date(storage["fw"]["end_time"])
+            storage["fw"][
+                "status"
+            ] = "auto stopped on %s GMT" % time_utils.time_to_date(
+                storage["fw"]["end_time"]
             )
             storage.sync()
 

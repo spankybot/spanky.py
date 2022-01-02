@@ -120,7 +120,7 @@ def img_text(event, send_file, send_message, text):
     Add text to image
     """
     for img in event.image:
-        img.proc_each_wand_frame(make_imgtext, send_file, send_message, {"text":text})
+        img.proc_each_wand_frame(make_imgtext, send_file, send_message, {"text": text})
 
 
 def make_gif_app_caller(frame, effect):
@@ -161,6 +161,7 @@ gif_effects = [
     "noise",
     "cat",
 ]
+
 
 @hook.event(EventType.on_start)
 def init_funcs():

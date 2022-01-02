@@ -18,5 +18,5 @@ __all__ = (
     ComplexCommand,
     MiddlewareResult,
     server_storage,
-    SArg
+    SArg,
 )

@@ -29,7 +29,9 @@ async def urban(text, reply, async_send_message):
             # fetch the definitions
             try:
                 params = {"term": text}
-                async with session.get(define_url, params=params, headers=headers) as resp:
+                async with session.get(
+                    define_url, params=params, headers=headers
+                ) as resp:
                     page = await resp.json()
             except Exception as e:
                 reply("Could not get definition: {}".format(e))

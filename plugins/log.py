@@ -25,11 +25,12 @@ def init_db(bot):
     db_host = bot.config.get("db_host")
     db_pass = bot.config.get("db_pass")
 
-
     try:
         if db_name != None:
             db_conn = psycopg2.connect(
-                "dbname=%s user=%s password=%s host=%s" % (db_name, db_user, db_pass, db_host))
+                "dbname=%s user=%s password=%s host=%s"
+                % (db_name, db_user, db_pass, db_host)
+            )
     except:
         import traceback
 
@@ -142,7 +143,7 @@ def log(bot, event):
     args = get_format_args(event)
 
     file_log(event, args)
-    #console_log(bot, event, args)
+    # console_log(bot, event, args)
 
     try:
         db_log(event, args)
@@ -246,6 +247,7 @@ def log_msg(msg):
 
 #     return "Last seen on: %s UTC" % (str(seen))
 
+
 def seen_user_in_server(user_id, server_id):
     """
     Get the last time when a user was seen saying something on a server where the bot is also present
@@ -254,7 +256,12 @@ def seen_user_in_server(user_id, server_id):
 
     try:
         cs.execute(
-            """select * from messages where author_id=%s and server_id=%s order by date desc""", (str(user_id),str(server_id),))
+            """select * from messages where author_id=%s and server_id=%s order by date desc""",
+            (
+                str(user_id),
+                str(server_id),
+            ),
+        )
     except Exception as e:
         db_conn.rollback()
         print(e)
@@ -265,6 +272,7 @@ def seen_user_in_server(user_id, server_id):
         return None
 
     return data
+
 
 def get_msg_cnt_for_user(uid):
     cs = db_conn.cursor()
@@ -285,7 +293,10 @@ def get_msg_cnt_for_channel_after(cid, lower):
 
     cs.execute(
         """select count(*) from messages where channel_id=%s and date>%s""",
-        (str(cid), str(datetime.fromtimestamp(lower)),),
+        (
+            str(cid),
+            str(datetime.fromtimestamp(lower)),
+        ),
     )
 
     return cs.fetchall()[0][0]

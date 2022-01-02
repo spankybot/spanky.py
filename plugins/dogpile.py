@@ -19,11 +19,15 @@ class CSEResult:
     @property
     def image_url(self):
         # startswith("http") because if you search, for example, "ochelari de cal", it doesnt give a correct URL
-        if "cse_image" in self.data["pagemap"] and self.data["pagemap"]["cse_image"][0]["src"].startswith("http"):
+        if "cse_image" in self.data["pagemap"] and self.data["pagemap"]["cse_image"][0][
+            "src"
+        ].startswith("http"):
             for img in self.data["pagemap"]["cse_image"]:
                 if img["src"].startswith("http"):
                     return img["src"]
-        if "cse_thumbnail" in self.data["pagemap"] and self.data["pagemap"]["cse_thumbnail"].startswith("http"):
+        if "cse_thumbnail" in self.data["pagemap"] and self.data["pagemap"][
+            "cse_thumbnail"
+        ].startswith("http"):
             return self.data["pagemap"]["cse_thumbnail"][0]["src"]
         return self.data["link"]
 
@@ -140,7 +144,15 @@ async def gis(text, async_send_message, event):
         return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(q=text, safe="active", cx=dev_cx,).execute()
+    res = (
+        service.cse()
+        .list(
+            q=text,
+            safe="active",
+            cx=dev_cx,
+        )
+        .execute()
+    )
 
     await SearchResult(res, async_send_message, text, event, images=True).send_msg()
 
@@ -152,7 +164,15 @@ async def nsfwgis(text, async_send_message, event):
         return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(q=text, safe="off", cx=dev_cx,).execute()
+    res = (
+        service.cse()
+        .list(
+            q=text,
+            safe="off",
+            cx=dev_cx,
+        )
+        .execute()
+    )
 
     await SearchResult(res, async_send_message, text, event, images=True).send_msg()
 
@@ -164,7 +184,15 @@ async def g(text, async_send_message, event):
         return "No query text provided."
     service = build("customsearch", "v1", developerKey=dev_key)
 
-    res = service.cse().list(q=text, safe="active", cx=dev_cx,).execute()
+    res = (
+        service.cse()
+        .list(
+            q=text,
+            safe="active",
+            cx=dev_cx,
+        )
+        .execute()
+    )
 
     await SearchResult(res, async_send_message, text, event, images=False).send_msg()
 

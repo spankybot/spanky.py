@@ -2,6 +2,7 @@ from spanky.hook2 import Hook
 
 hook = Hook("debug_cmds")
 
+
 @hook.command(permissions="bot_owner")
 def inspect_hook(hook: Hook, text: str):
     if text == "":

@@ -16,7 +16,7 @@ import requests
 
 from spanky.plugin import hook
 
-#API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
+# API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&filter=listed&resolution=latest"
 API_URL = "https://www.coinbase.com/api/v2/assets/prices?base={}&resolution=latest"
 
 
@@ -52,8 +52,11 @@ def alias_wrapper(alias):
 
     return func
 
+
 from spanky.hook2 import Hook, EventType, Command
+
 hook = Hook("crypto")
+
 
 @hook.event(EventType.on_start)
 def init_aliases():
@@ -61,6 +64,7 @@ def init_aliases():
         if alias.nocmd:
             continue
         hook.command(name=alias.cmds)(alias_wrapper(alias))
+
 
 @hook.command()
 def serak():

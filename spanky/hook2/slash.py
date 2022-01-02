@@ -1,16 +1,19 @@
 from . import arg_parser
 
-class SArg():
+
+class SArg:
     """
     Slash command container
     """
+
     def __init__(
-            self, 
-            name: str = None, 
-            stype = None, 
-            description: str = None, 
-            choices: list = [],
-            default = None):
+        self,
+        name: str = None,
+        stype=None,
+        description: str = None,
+        choices: list = [],
+        default=None,
+    ):
 
         self.name = name
         # TODO handle channel type

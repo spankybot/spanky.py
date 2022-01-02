@@ -67,7 +67,9 @@ def find_best_match(word_list, message):
     """
 
     list_idx = 0
-    while " ".join(word_list[0 : list_idx + 1]) in message and list_idx < len(word_list):
+    while " ".join(word_list[0 : list_idx + 1]) in message and list_idx < len(
+        word_list
+    ):
         list_idx += 1
 
     return list_idx
@@ -111,7 +113,8 @@ async def s(text, channel, reply, event, bot, storage):
 
         if msg_index > 0:
             final_text = msg.text.replace(
-                " ".join(split_text[0:msg_index]), " ".join(split_text[msg_index:]),
+                " ".join(split_text[0:msg_index]),
+                " ".join(split_text[msg_index:]),
             )
 
             msg = "<%s> %s" % (msg.author.name, final_text)

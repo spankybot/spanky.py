@@ -19,6 +19,7 @@ def set_crt_timestamp(storage):
         storage["subs"][sub]["timestamp"] = epoch
     storage.sync()
 
+
 @hook.event(EventType.on_ready)
 def ready(server, storage):
     storages[server.id] = storage

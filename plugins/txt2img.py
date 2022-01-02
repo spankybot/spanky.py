@@ -18,7 +18,7 @@ PIXEL_OFF = 255  # PIL color to use for "off"
 
 def text_image(string, font_path=None, font_size=30, font_color=None, font_bg=None):
     grayscale = "RGBA"
-    lines = string 
+    lines = string
     font_color = font_color or "white"
     large_font = font_size or 30  #
     font_path = font_path or "plugin_data/fonts/sofia.ttf"

@@ -88,9 +88,7 @@ def update_sub(reddit, sub, ustorage):
     print(f"updating {sub}")
 
     if sub not in dont_cache:
-        links = get_links_from_sub(
-            reddit, sub, ["day", "week", "month", "year"]
-        )
+        links = get_links_from_sub(reddit, sub, ["day", "week", "month", "year"])
 
         if sub not in ustorage["data"]:
             ustorage["data"][sub] = {
@@ -102,14 +100,13 @@ def update_sub(reddit, sub, ustorage):
             ustorage["data"][sub]["updated_on"] = tutils.tnow()
 
         # filter out duplicates
-        ustorage["data"][sub]["links"] = list(
-            set(ustorage["data"][sub]["links"])
-        )
+        ustorage["data"][sub]["links"] = list(set(ustorage["data"][sub]["links"]))
         ustorage.sync()
 
         return ustorage["data"][sub]["links"]
     else:
         return get_links_from_sub(reddit, sub, ["month"])
+
 
 @hook.event(EventType.on_start)
 def init(bot, unique_storage):
@@ -204,6 +201,7 @@ def format_output_message(data):
 #             ):
 #                 update_sub(reddit_inst, sub, ustorage)
 
+
 @hook.command(server_id=SERVERS)
 def fetch_image(text):
     if text:
@@ -263,6 +261,7 @@ commands = {
     "thot": ["tiktokthots"],
 }
 
+
 @hook.event(EventType.on_start)
 def init_porn_cmds():
     for cmd_name, subs in commands.items():
@@ -274,6 +273,7 @@ def init_porn_cmds():
             def wrapper():
                 data = get_links_from_subs(subs)
                 return format_output_message(data)
+
             return wrapper
-        
+
         hook.add_command(Command(hook, cmd_name, gen_wrapper(subs), server_id=SERVERS))

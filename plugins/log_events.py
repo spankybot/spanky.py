@@ -4,6 +4,7 @@ from spanky.plugin.permissions import Permission
 
 hook = Hook("log_events", storage_name="plugins_log_events")
 
+
 @hook.event(EventType.on_ready)
 def log_prepare(storage):
     if "chan_filter_list" not in storage.keys():
@@ -16,8 +17,8 @@ def log_prepare(storage):
 @hook.command(permissions=Permission.admin, format="chan")
 def set_event_log_chan(text, storage, str_to_id):
     """
-    <channel> - Activate event logging and log to channel.
-Logged events: user join, user leave, message edit, message delete, member update, member ban, member unban.
+        <channel> - Activate event logging and log to channel.
+    Logged events: user join, user leave, message edit, message delete, member update, member ban, member unban.
     """
     storage["evt_chan"] = str_to_id(text)
     return "Done."
@@ -206,7 +207,9 @@ def log_member_unban(event, send_message, storage):
         text="`Unban`: %s %s" % (event.user.name, event.user.id),
     )
 
+
 bad_word = ComplexCommand(hook, "bad_word", permissions="admin")
+
 
 @bad_word.subcommand()
 def bad_word_add(storage, text):
@@ -220,6 +223,7 @@ def bad_word_add(storage, text):
     storage.sync()
 
     return "Done."
+
 
 @bad_word.subcommand()
 def bad_word_list(storage):

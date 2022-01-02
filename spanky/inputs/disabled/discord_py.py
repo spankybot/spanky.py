@@ -1040,7 +1040,7 @@ class Role:
         self.id = str(obj.id)
         self.position = obj.position
         self.booster = False
-        if hasattr(obj, 'is_premium_subscriber'):
+        if hasattr(obj, "is_premium_subscriber"):
             self.booster = obj.is_premium_subscriber()
         self._raw = obj
 
@@ -1249,6 +1249,7 @@ async def on_member_unban(server, user):
 # async def on_reaction_add(reaction, user):
 #     if user.id != client.user.id:
 #         await call_func(bot.on_reaction_add, reaction, user)
+
 
 async def on_reaction_remove(reaction, user):
     if user.id != client.user.id:

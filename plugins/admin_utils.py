@@ -87,17 +87,17 @@ def find_event_by_text_match(storage, text, str_to_id):
 @hook.command(permissions=Permission.admin)
 def add_join_event(storage, text, str_to_id, id_to_chan, id_to_role_name):
     """
-    <'type' 'option'> - Add action to be triggered on user join.
-Possible actions:
- * message #channel blahblah -> send blahblah to #channel
- * role @role -> set @role on join).
-The scripted message can contain special words that are replaced when the event is triggered:
- * {AGE} - Account age
- * {USER} - User that just joined
- * {USER_ID} - User ID
- * {SEEN_CNT} - How many times this user has been seen in servers shared with the bot
+        <'type' 'option'> - Add action to be triggered on user join.
+    Possible actions:
+     * message #channel blahblah -> send blahblah to #channel
+     * role @role -> set @role on join).
+    The scripted message can contain special words that are replaced when the event is triggered:
+     * {AGE} - Account age
+     * {USER} - User that just joined
+     * {USER_ID} - User ID
+     * {SEEN_CNT} - How many times this user has been seen in servers shared with the bot
 
-e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 12345678910 just joined!'
+    e.g. 'message #general {USER} / {USER_ID} just joined!' will send 'John / 12345678910 just joined!'
     """
     text = text.split(maxsplit=2)
     if storage["on_join"] == None:
