@@ -6,6 +6,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v1
       - name: unit tests
         run: |
           cd ${GITHUB_WORKSPACE}
