@@ -120,3 +120,6 @@ class ComplexCommand(Command):
         cmd, action = self.get_cmd(action)
         print(cmd.name)
         await cmd.handle(action)
+
+    def get_subcommands(self) -> list:
+        return self._sub_commands
