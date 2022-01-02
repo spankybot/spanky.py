@@ -1,0 +1,12 @@
+name: SpankyTests
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    - run: |
+        # run script
+        "${GITHUB_WORKSPACE}/Dockerfile/build.sh"
+        "${GITHUB_WORKSPACE}/Dockerfile/run_tests.sh"
+        
