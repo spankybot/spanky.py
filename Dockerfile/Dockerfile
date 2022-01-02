@@ -33,3 +33,5 @@ RUN cd /qalc && \
 RUN apt install -y pybind11-dev
 
 ADD files/startup.sh /startup.sh
+ADD files/init_env.sh /init_env.sh
+ADD files/run_tests.sh /run_tests.sh

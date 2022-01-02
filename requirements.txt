@@ -4,7 +4,7 @@ sqlalchemy
 aiohttp
 praw
 asyncpraw
-git+https://github.com/nextcord/nextcord.git@95f64a8b5c520d4a8792c8bb0318900ee28af40d
+git+https://github.com/alentoghostflame/nextcord.git@df703d382df95814131d0d1c19078321b726a91a
 markovify
 cleverwrap
 bs4
@@ -26,3 +26,4 @@ webull
 graphviz
 face_recognition
 yfinance
+pytest
