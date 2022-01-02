@@ -9,5 +9,6 @@ jobs:
       - name: unit tests
         run: |
           cd ${GITHUB_WORKSPACE}
+          pwd
           ./Dockerfile/build.sh && ./Dockerfile/run_tests.sh
         
