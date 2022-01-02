@@ -108,12 +108,10 @@ class Init:
                 if server.id != str(server_id):
                     continue
 
-                server = self.get_server_by_id(server_id)
-
                 # If the bot is not online, the list is empty
                 crt_apps = server._raw._state.get_guild_application_commands(server._raw.id)
 
-                # Unregister inexistent commands
+                # Unregister nonexistent commands
                 for app in crt_apps:
                     if app.name not in cmd_dict.keys():
                         print(f"Unregistering app {app.name}")
@@ -147,6 +145,75 @@ class Init:
 
         print("Done registering slashes")
 
+    def decorate_command(self, cmd: ac.ApplicationCommand, hook) -> ac.ApplicationCommand:
+        """
+        Decorates a command or subcommand with the hook properties.
+        """
+
+        # interaction has to be the first parameter
+        params = [inspect.Parameter("interaction", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=Interaction)]
+
+        for param in hook.slash_args:
+            default = ac.SlashOption()
+
+            # Explicit parameters are required for now
+            default.required = True
+
+            default.name = param.name
+            
+            if param.description:
+                default.description = param.description
+
+            if param.choices:
+                default.choices = param.choices
+
+            if param.default:
+                default.default = param.default
+
+            # Build the parameter and add it to the function
+            params.append(
+                inspect.Parameter(
+                    name=param.name,
+                    default=default,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=param.type))
+
+        cmd.__signature__ = inspect.Signature(params)
+        cmd.__annotations__ = hook.args
+        cmd.__name__ = hook.name
+
+    def fill_tree(self, parent_func, node, level: int) -> bool:
+        """
+        Runs a command tree and adds subcommands and command arguments.
+
+        Returns True on error, False othewise.
+        """
+        prefix = '\t' * level
+        print(f"Tree: {prefix} {node.name}")
+
+        if level >= 3:
+            print(f"Cannot register slash commands more than 3 levels deep: error when adding {parent_func.name}/{node.name}")
+            return True
+
+        if level != 0:
+            async def cmd(interaction, **kwargs):
+                await call_func(bot.on_slash, interaction, kwargs)
+            print(f"Adding {node.name} to {parent_func.name}")
+            self.decorate_command(cmd, node)
+
+            parent_func = parent_func.subcommand(name=node.name)(cmd)
+
+        for scmd in node.get_subcommands():
+            err = self.fill_tree(
+                parent_func,
+                scmd, 
+                level + 1)
+
+            if err:
+                return err
+
+        return False
+
     async def register_slash(self, hooks: list, server_id: str):
         try:
             if server_id not in self._slash_cmds:
@@ -158,13 +225,17 @@ class Init:
 
                 print("Registering slash " + hook.name)
 
-                # Declare the command
-                async def cmd(interaction: Interaction):
-                    await call_func(bot.on_slash, interaction)
-                cmd.__name__ = hook.name
+                async def cmd(interaction, **kwargs):
+                    await call_func(bot.on_slash, interaction, kwargs)
+                self.decorate_command(cmd, hook)
 
-                # map the hook to the server ID list
+                # map the hook to the server ID list - this is the root command
                 self._slash_cmds[server_id][hook.name] = ac.slash_command(name=hook.name, guild_ids=[int(server_id)])(cmd)
+
+                err = self.fill_tree(self._slash_cmds[server_id][hook.name], hook, 0)
+                if err:
+                    del self._slash_cmds[server_id][hook.name]
+                    return
 
             # Remove missing commands (i.e. if something was renamed in the bot)
             for missing_hook in set(self._slash_cmds[server_id]).difference(set(i.name for i in hooks)):
@@ -314,27 +385,45 @@ class DiscordUtils(abc.ABC):
         check_old=True,
         allowed_mentions=allowed_mentions,
     ):
-        # Handle slash commands
-        # TODO plp: handle timeouts
+        func_send_message = None
+        channel = None
+
         if type(self) is EventSlash:
-            msg = None
-            if text:
-                msg = await self._raw.response.send_message(content=text)
-            elif embed:
-                msg = await self._raw.response.send_message(embed=embed)
-            return msg
+            async def send(*args, **kwargs):
+                # slashes don't accept allowed_mentions, so we need to remove it...
+                # this is shit code
+                if "allowed_mentions" in kwargs:
+                    del kwargs["allowed_mentions"]
 
-        # Get target, if given
-        channel = self.get_channel(target, server)
+                # TODO this function should probably be split to handle slash and messages
+                # or check if there's an unique lower level entry point in NC
 
-        # If no target was found, exit
-        if not channel:
-            return
+                # dpy/nextcord has a shit interface
+                # TODO maybe fix this upstream
+                if "embed" in kwargs and kwargs["embed"] == None:
+                    kwargs["embed"] = nextcord.utils.MISSING
+
+                return await self._raw.response.send_message(*args, **kwargs)
+
+            func_send_message = send
+            channel = self._raw.channel
+
+        else:
+            # Get target, if given
+            channel = self.get_channel(target, server)
+
+            # If no target was found, exit
+            if not channel:
+                logger.error(f"Could not find target {target}")
+                return
+
+            func_send_message = channel.send
+
         try:
             if check_old:
                 # Find if this message has been replied to before
                 old_reply = None
-                if type(self) is EventMessage and self.get_server().id in bot_replies:
+                if type(self) in [EventMessage, EventSlash] and self.get_server().id in bot_replies:
                     old_reply = bot_replies[self.get_server().id].get_old_reply(
                         self.msg
                     )
@@ -346,37 +435,20 @@ class DiscordUtils(abc.ABC):
 
                 # If it was replied within the same channel (no chances of this not being true)
                 if old_reply and old_reply._raw.channel.id == channel.id:
-                    # Send the message
-                    if text != None:
-                        await old_reply._raw.edit(
-                            content=text, allowed_mentions=allowed_mentions
-                        )
-                    elif embed != None:
-                        await old_reply._raw.edit(
-                            embed=embed, allowed_mentions=allowed_mentions
-                        )
-                    # Register the bot reply
-                    # add_bot_reply(self.get_server().id, self.msg, msg)
-
+                    # TODO editing slash replies throws an exception because that's not possible
+                    await old_reply._raw.edit(content=text, embed=embed, allowed_mentions=allowed_mentions)
                     return Message(old_reply._raw)
 
             msg = None
-            # Send anything that we should send
-            if text != None:
-                msg = Message(
-                    await channel.send(text, allowed_mentions=allowed_mentions), timeout
-                )
-            elif embed != None:
-                msg = Message(
-                    await channel.send(
-                        text, embed=embed, allowed_mentions=allowed_mentions
-                    ),
-                    timeout,
-                )
+            reply = await func_send_message(content=text, embed=embed, allowed_mentions=allowed_mentions)
+            if type(self) is EventSlash:
+                msg = SlashMessage(self._raw, timeout)
+            else:
+                msg = Message(reply, timeout)
 
             # Add the bot reply
             if msg:
-                if type(self) is EventMessage:
+                if type(self) in [EventMessage, EventSlash]:
                     add_bot_reply(self.get_server().id, self.msg._raw, msg)
                 else:
                     # Add a temporary reply that will be self-deleted after a timeout
@@ -671,7 +743,7 @@ class EventMessage(DiscordUtils):
                     return
 
 class EventSlash(DiscordUtils):
-    def __init__(self, event_type, event):
+    def __init__(self, event_type, event, args):
         self.type = event_type
         self._raw = event
 
@@ -682,6 +754,7 @@ class EventSlash(DiscordUtils):
         self.server = Server(event.guild)
         self.channel = Channel(event.channel)
         self.msg = SlashMessage(event)
+        self.args = args
 
     @property
     def text(self) -> str:
@@ -694,23 +767,37 @@ class EventSlash(DiscordUtils):
         return None
 
 class SlashMessage():
-    def __init__(self, event) -> None:
-        self._raw = None
+    def __init__(self, event, timeout=0) -> None:
+        self._raw = event
 
-        self.id = event.id
+        self.id = str(event.id)
         self.author = User(event.user)
-        self.timeout = 0
+        self.timeout = timeout
 
-        self.text = event.data["name"]
-        for option in event.data.get("options", []):
-            self.text += " " + option["value"]
+        self.text = self.recursive_extact(event.data)
+
+    def recursive_extact(self, option: dict) -> str:
+        """
+        Recursively extract slash arguments.
+        """
+        result = ''
+        for rec_option in option.get("options", []):
+            result = self.recursive_extact(rec_option)
+
+        if "value" in option:
+            return str(option["value"]) + " " + str(result)
+        else:
+            return str(option["name"]) + " " + str(result)
 
     def __str__(self) -> str:
         return self.text
 
     def delete_message(self):
-        print("Attempted to delete slash message.")
-        pass
+        async def delete_message(message):
+            await message.delete_original_message()
+
+        asyncio.run_coroutine_threadsafe(delete_message(self._raw), bot.loop)
+
 
 class Message:
     def __init__(self, obj, timeout=0):

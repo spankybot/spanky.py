@@ -1,7 +1,5 @@
 import json
 import logging
-import re
-import threading
 import importlib
 import time
 import asyncio
@@ -178,9 +176,9 @@ class Bot:
     # ----------------
     # Slash commands
     # ----------------
-    async def on_slash(self, interaction):
+    async def on_slash(self, interaction, args):
         """On message external hook"""
-        evt = self.input.EventSlash(EventType.slash, interaction)
+        evt = self.input.EventSlash(EventType.slash, interaction, args)
 
         await self.do_text_event(evt)
 

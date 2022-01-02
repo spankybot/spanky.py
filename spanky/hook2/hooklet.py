@@ -1,8 +1,11 @@
 # Delay checking for typing (TODO: remove when bot runs on python 3.10)
 from __future__ import annotations
+from random import sample
 from typing import TYPE_CHECKING
 import time
 import nextcord
+
+from spanky.hook2.slash import SArg
 
 if TYPE_CHECKING:
     from .hook2 import Hook
@@ -11,6 +14,7 @@ if TYPE_CHECKING:
     from asyncio import Task
 from enum import Enum
 from spanky.hook2 import storage
+from . import arg_parser
 
 import asyncio
 import inspect
@@ -39,6 +43,7 @@ class Hooklet:
         self.hook: Hook = hook
         self.hooklet_id: str = hooklet_id
         self.func = func
+        self.slash_args = []
 
     def __storage_getter(self, server_id: str, storage_name: Optional[str] = None):
         if storage_name == None:
@@ -129,6 +134,13 @@ class Hooklet:
 
             traceback.print_exc()
 
+    def get_subcommands(self) -> list:
+        """
+        Returns a list of subcommands.
+        This returns empty by default and needs to be overriden by child classes.
+        """
+        return []
+
 
 class Command(Hooklet):
     # Creates a new Command hooklet. Note that, if kwargs has a "name", then it will use that name instead
@@ -137,6 +149,27 @@ class Command(Hooklet):
         self.args: dict[str, Any] = kwargs
         self.name: str = self.args.pop("name", fname)
         self.aliases: list[str] = self.args.pop("aliases", [])
+
+        # Add slash args, if empty or not
+        self.slash_args = kwargs.get("slash_args", [])
+
+        if len(self.slash_args) == 0:
+            # Check if the function has docstring slash params defined
+            params = []
+            if self.func.__doc__:
+                params = arg_parser.parse(self.func.__doc__)
+
+            # If no explicit docstring params:
+            # If 'text' is requested and no explicit slash params are set, add a string argument
+            if len(params) == 0:
+                if "text" in required_args(self.func):
+                    self.slash_args.append(SArg("text", str))
+            else:
+                # If parameters are found, create SArg objects for each one
+                for param in params:
+                    values = param.validate()
+                    self.slash_args.append(SArg.from_parser(values))          
+
         if not isinstance(self.aliases, list):
             self.aliases = [self.aliases]
 

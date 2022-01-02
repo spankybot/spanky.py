@@ -1,15 +1,17 @@
 # Delay checking for typing (TODO: remove when bot runs on python 3.10)
 from __future__ import annotations
 
+import asyncio
+import glob
+import importlib
+import logging
+import os
+
 from .hook2 import Hook
 from .actions import ActionEvent
 from .event import EventType
 from .hooklet import Hooklet
-import os
-import glob
-from types import ModuleType, CoroutineType
-import importlib
-import asyncio
+from types import ModuleType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -17,7 +19,8 @@ if TYPE_CHECKING:
     from typing import Coroutine
 
 from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
+
+logger = logging.getLogger("spanky")
 
 modules: list[ModuleType] = []
 
@@ -42,20 +45,36 @@ class HookManager:
     async def notify_backend_for_cmds(self):
         # Send all commands to the backend because if one command is renamed
         # it needs to unregister the old name
-        slash_commands = []
+        slash_commands = {}
 
         # TODO plp: 4 nested loops wtf
         for pdir in self.directories.values():
             for plugin in pdir.plugins.values():
                 for hook in plugin.hooks:
                     for command in hook.commands.values():
-                        if not "slash" in command.args:
+
+                        # Slash commands need to have a server ID
+                        if "slash_servers" not in command.args:
                             continue
 
-                        slash_commands.append(command)
+                        # Map the command to the server ID
+                        server_ids = []
+                        if type(command.args["slash_servers"]) == str:
+                            server_ids = [command.args["slash_servers"]]
+                        elif type(command.args["slash_servers"]) == list:
+                            server_ids = command.args["slash_servers"]
+                        else:
+                            raise ValueError("Unhandled server_id type.")
+                        
+                        for server_id in server_ids:
+                            if server_id not in slash_commands:
+                                slash_commands[server_id] = []
 
-        # TODO plp: fetch the server ID from somewhere
-        await self.bot.backend.register_slash(slash_commands, 297483005763780613)
+                            slash_commands[server_id].append(command)
+
+        # For each server, inform the backend about the changes
+        for server_id, commands in slash_commands.items():
+            await self.bot.backend.register_slash(commands, server_id)
 
 
 class Plugin:
