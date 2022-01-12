@@ -1,4 +1,21 @@
 #!/bin/bash
+REQ_SIGNATURE="requirements.sha1sum"
+
+# Calculates signature for requirements.txt
+calc_signature() {
+    echo $(sha1sum 'requirements.txt' | cut -d' ' -f1)
+}
+
+# Gets the current requirements.sha1sum signature
+get_crt_signature() {
+    echo $(cat "$REQ_SIGNATURE")
+}
+
+# Calculates the signature file with the current one
+update_signature() {
+    calc_signature > "$REQ_SIGNATURE"
+}
+
 
 if [[ ! -d /botsrc/.pyenv ]]; then
     git clone https://github.com/pyenv/pyenv.git /botsrc/.pyenv
@@ -13,5 +30,11 @@ pyenv install -s 3.10.0
 pyenv global 3.10.0
 
 cd /botsrc/
-pip3 install wheel
-pip3 install -r requirements.txt
+
+# Check if we need to install anything new
+if [[ $(calc_signature) != $(get_crt_signature) ]];
+then
+    pip3 install wheel
+    pip3 install -r requirements.txt
+    update_signature
+fi
