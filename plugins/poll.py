@@ -255,19 +255,25 @@ async def close_poll(text, storage, async_send_message, server):
 
     await async_send_message("Could not find the given poll")
 
+async def rebuild_poll(bot, key, poll, storage):
+    try:
+        await Poll.deserialize(bot, poll, storage)
+    except Poll.InvalidMessage:
+        del storage["polls"][key]
+        storage.sync()
+    except Exception as e:
+        print(e)
+
+import asyncio
 
 @hook.on_connection_ready()
 async def rebuild_poll_selectors(bot, storage_getter):
+    tasks = []
     for server in bot.backend.get_servers():
         storage = storage_getter(server.id)
         if "polls" not in storage:
             continue
 
         for key, poll in list(storage["polls"].items()):
-            try:
-                await Poll.deserialize(bot, poll, storage)
-            except Poll.InvalidMessage:
-                del storage["polls"][key]
-                storage.sync()
-            except Exception as e:
-                print(e)
+            tasks.append(asyncio.create_task(rebuild_poll(bot, key, poll, storage)))
+    await asyncio.gather(*tasks)

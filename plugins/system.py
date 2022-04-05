@@ -6,7 +6,6 @@ import tracemalloc
 import linecache
 import subprocess
 from datetime import timedelta
-from spanky.utils.filesize import size as format_bytes
 from spanky.plugin.permissions import Permission
 from spanky.plugin import hook
 from spanky.utils.discord_utils import get_user_by_id
@@ -115,6 +114,13 @@ def mem_snapshot():
 
     return rval
 
+
+def format_bytes(num, suffix="B"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Y{suffix}"
 
 @hook.command()
 def system(send_message):

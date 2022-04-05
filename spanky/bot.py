@@ -76,18 +76,23 @@ class Bot:
         await self.backend.do_init()
 
     async def run_on_ready_work(self):
+        tasks = []
         for server in self.backend.get_servers():
 
             class event:
                 def __init__(self, server):
                     self.server = server
 
-            await self.dispatch_action(
+            tasks.append(asyncio.create_task(self.dispatch_action(
                 ActionEvent(self, event(server), EventType.on_ready)
-            )
+            )))
 
         # Run on connection ready hooks
-        await self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
+        tasks.append(asyncio.create_task(self.dispatch_action(
+            ActionEvent(self, {}, EventType.on_conn_ready))))
+        await asyncio.gather(*tasks)
+
+        print("On ready work finished. Bot should now accept commands")
 
     async def ready(self):
         await self.run_on_ready_work()
@@ -125,7 +130,8 @@ class Bot:
 
     async def on_message_delete(self, message):
         """On message delete external hook"""
-        evt = self.input.EventMessage(EventType.message_del, message, deleted=True)
+        evt = self.input.EventMessage(
+            EventType.message_del, message, deleted=True)
 
         await self.do_text_event(evt)
 

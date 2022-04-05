@@ -4,8 +4,7 @@ import spanky.utils.carousel as carousel
 import spanky.utils.discord_utils as dutils
 
 from spanky.plugin.permissions import Permission
-from spanky.utils.volatile import set_vdata, get_vdata
-from spanky.hook2 import Hook, EventType, Command
+from spanky.hook2 import Hook, EventType, Command, ComplexCommand
 
 hook = Hook("role_selector", storage_name="plugins_role_selector")
 
@@ -62,19 +61,24 @@ def init_cmds(bot, storage_getter):
 # Selector modifiers
 #
 
+selector_cmd = ComplexCommand(hook, "selectors", permissions=Permission.admin)
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="description")
 def set_selector_description(server, storage, text, bot):
-    """<selector> <description> - sets a description for the selector documentation"""
+    """<selector> <description> - sets a description for the selector documentation. If the description is "get", it will instead display the current description"""
+    if "selectors" not in storage or storage["selectors"] == {}:
+        return "No selectors available"
+
     text = text.split(maxsplit=1)
     if len(text) < 2:
         return "Format: " + set_selector_description.__doc__
 
-    if "selectors" not in storage or storage["selectors"] == {}:
-        return "No selectors available"
-
     if text[0] not in storage["selectors"]:
         return "Invalid selector"
+    
+    if text[1] == "get":
+        return storage["selectors"][text[0]]["description"]
 
     storage["selectors"][text[0]]["description"] = text[1]
     storage.sync()
@@ -82,18 +86,24 @@ def set_selector_description(server, storage, text, bot):
     return "Done"
 
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="max_selectable")
 def set_selector_max_selectable(server, storage, text, bot):
-    """<selector> <maxSelectable (int)> - sets the number of max selectable options for the selector. If maxSelectable <= 0, then the number of max selectable options is unlimited"""
-    text = text.split()
-    if len(text) != 2:
-        return "Format: " + set_selector_max_selectable.__doc__
-
+    """<selector> <maxSelectable (int)> - sets the number of max selectable options for the selector. If maxSelectable <= 0, then the number of max selectable options is unlimited. Ommiting maxSelectable will, instead, display the current set value"""
     if "selectors" not in storage or storage["selectors"] == {}:
         return "No selectors available"
-
-    if text[0] not in storage["selectors"]:
+    text = text.split()
+    if len(text) >= 1 and text[0] not in storage["selectors"]:
         return "Invalid selector"
+
+    if len(text) == 1:
+        val = storage['selectors'][text[0]]['maxSelectable']
+        if val <= 0:
+            return "Max selectable: unlimited"
+        return f"Max selectable: {val}"
+
+    if len(text) != 2:
+        return "Format: " + set_selector_max_selectable.__doc__
 
     if not text[1].isdigit():
         return "The number of maximum selectables must be... well... a number"
@@ -103,19 +113,24 @@ def set_selector_max_selectable(server, storage, text, bot):
 
     return "Done"
 
-
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="title")
 def set_selector_title(server, storage, text, bot):
-    """<selector> <title> - sets a title for the selector"""
-    text = text.split(maxsplit=1)
-    if len(text) < 2:
-        return "Format: " + set_selector_title.__doc__
-
+    """<selector> <title> - sets a title for the selector. If the title is "get", it will instead display the current title."""
     if "selectors" not in storage or storage["selectors"] == {}:
         return "No selectors available"
 
+    text = text.split(maxsplit=1)
+        
+    if len(text) < 2:
+        return "Format: " + set_selector_title.__doc__
+
     if text[0] not in storage["selectors"]:
         return "Invalid selector"
+
+    if text[1] == "get":
+        return storage["selectors"][text[0]]["title"]
+
 
     storage["selectors"][text[0]]["title"] = text[1]
     storage.sync()
@@ -123,18 +138,19 @@ def set_selector_title(server, storage, text, bot):
     return "Done"
 
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="add_roles")
 def add_selector_roles(server, storage, text, bot, str_to_id):
     """<selector> <roles> - adds the specified roles to the selector"""
+    if "selectors" not in storage or storage["selectors"] == {}:
+        return "No selectors available"
+
     text = text.split()
     if len(text) < 2:
         return "Format: " + add_selector_roles.__doc__
 
     selector = text[0]
     print(text)
-
-    if "selectors" not in storage or storage["selectors"] == {}:
-        return "No selectors available"
 
     if selector not in storage["selectors"]:
         return "Invalid selector"
@@ -154,7 +170,8 @@ def add_selector_roles(server, storage, text, bot, str_to_id):
     return "Done"
 
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="add_role_interval")
 def add_selector_role_interval(server, storage, text, bot, str_to_id):
     """<selector> <role start> <role end> - adds the roles in the specified interval to the selector"""
     text = text.split()
@@ -185,8 +202,8 @@ def add_selector_role_interval(server, storage, text, bot, str_to_id):
 
     return "Done"
 
-
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="del_role_interval")
 def remove_selector_role_interval(server, storage, text, bot, str_to_id):
     """<selector> <role start> <role end> - removes the roles in the specified interval from the selector.
     NOTE: THIS REMOVES THE ROLE INTERVAL FROM THE ROLE LIST, NOT FROM THE SELECTOR LIST."""
@@ -222,7 +239,8 @@ def remove_selector_role_interval(server, storage, text, bot, str_to_id):
     return "Done"
 
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="del_roles")
 def remove_selector_roles(server, storage, text, bot, str_to_id):
     """<selector> <roles> - removes the specified roles from the selector"""
     text = text.split()
@@ -260,7 +278,8 @@ def remove_selector_roles(server, storage, text, bot, str_to_id):
 #
 
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="create")
 def create_selector(text, str_to_id, server, bot, storage):
     """<selector name> - create a selector that assigns a role"""
 
@@ -300,7 +319,8 @@ def create_selector(text, str_to_id, server, bot, storage):
     return f"Created selector {cmd}."
 
 
-@hook.command()
+#@hook.command()
+@selector_cmd.subcommand(name="list")
 def list_selectors(storage):
     """list selector commands"""
     if "selectors" not in storage or storage["selectors"] == {}:
@@ -311,9 +331,10 @@ def list_selectors(storage):
         )
 
 
-@hook.command(permissions=Permission.admin)
+#@hook.command(permissions=Permission.admin)
+@selector_cmd.subcommand(name="remove")
 def delete_selector(storage, text, bot):
-    """<command_name> - delete a temporary selector command"""
+    """<selector> - delete a selector command"""
     if "selectors" not in storage or storage["selectors"] == {}:
         return "No selectors available"
 

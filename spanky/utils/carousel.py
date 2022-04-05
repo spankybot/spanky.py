@@ -289,6 +289,12 @@ class RoleSelector(Selector):
             # Set the items
             self.set_items(role_dict)
 
+    async def handle_emoji(self, event):
+        # Before handling an emoji, update the role list
+        self.update_role_list()
+
+        await super().handle_emoji(event)
+
     async def do_stuff(self, event, label):
         # Check role assign spam
         if await self.is_spam(event):

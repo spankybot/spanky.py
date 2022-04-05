@@ -75,7 +75,7 @@ class dstype:
                 # Try the backup
                 data = json.load(open(backup_loc, "r"))
 
-                logger.critical("Loaded backup for " + self.location)
+                logger.critical("Loaded backup for " + str(self.location))
                 return data
             except:
                 logger.error("Could not load " + self.location)
@@ -96,7 +96,7 @@ class dsdict(dstype, collections.UserDict):
         return self.data
 
 
-_server_cache: dict[(str, str), dsdict] = {}
+_server_cache = {}
 
 
 def server_storage(server_id: str, hook_id: str) -> dsdict:

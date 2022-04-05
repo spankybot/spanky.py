@@ -5,7 +5,7 @@ from spanky.utils.cmdparser import CmdParser
 from spanky.plugin.permissions import Permission
 import spanky.utils.discord_utils as dutils
 import pytz
-import nextcord
+from nextcord import AllowedMentions
 from collections import OrderedDict
 
 ro = pytz.timezone("Europe/Bucharest")
@@ -124,7 +124,7 @@ def send_messages(server, storage, now, send_message, dbg_srv):
                 server=server,
                 target=chan.id,
                 check_old=False,
-                allowed_mentions=nextcord.AllowedMentions(
+                allowed_mentions=AllowedMentions(
                     everyone=False, users=[user._raw], roles=False
                 ),
             )
@@ -254,7 +254,7 @@ All birthdays:
                 msg += ", ".join(users)
                 msg += "\n\n"
         storage.sync()
-        reply(msg, allowed_mentions=discord.AllowedMentions.none())
+        reply(msg, allowed_mentions=AllowedMentions.none())
 
     def bday_set_role(text):
         id = dutils.str_to_id(text[0])

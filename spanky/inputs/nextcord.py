@@ -104,6 +104,7 @@ class Init:
         Registers all slash commands.
         """
         for server_id, cmd_dict in self._slash_cmds.items():
+            print(f"Registering for {server_id}")
             for server in self.get_servers():
                 if server.id != str(server_id):
                     continue
@@ -131,7 +132,7 @@ class Init:
                 # TODO plp: this calls discord again as done above
                 # maybe it's not needed somehow?
                 await server._raw._state.deploy_application_commands(
-                    guild_id=server._raw.id
+                    guild_id=int(server._raw.id)
                 )
 
                 app_ids = []
@@ -199,7 +200,7 @@ class Init:
             )
 
         cmd.__signature__ = inspect.Signature(params)
-        cmd.__annotations__ = hook.args
+        #cmd.__annotations__ = hook.args
         cmd.__name__ = hook.name
 
     def fill_tree(self, parent_func, node, level: int) -> bool:
@@ -411,6 +412,7 @@ class DiscordUtils(abc.ABC):
         timeout=0,
         check_old=True,
         allowed_mentions=allowed_mentions,
+        ephemeral=False, # EventSlash only, no effect in other event types
     ):
         func_send_message = None
         channel = None
@@ -430,6 +432,9 @@ class DiscordUtils(abc.ABC):
                 # TODO maybe fix this upstream
                 if "embed" in kwargs and kwargs["embed"] == None:
                     kwargs["embed"] = nextcord.utils.MISSING
+
+                # pass ephemeral to send_message
+                kwargs["ephemeral"] = ephemeral
 
                 return await self._raw.response.send_message(*args, **kwargs)
 
@@ -503,6 +508,7 @@ class DiscordUtils(abc.ABC):
         timeout=0,
         check_old=True,
         allowed_mentions=allowed_mentions,
+        ephemeral=False, # EventSlash only, no effect in other event types
     ):
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(
@@ -512,6 +518,7 @@ class DiscordUtils(abc.ABC):
                 timeout=timeout,
                 check_old=check_old,
                 allowed_mentions=allowed_mentions,
+                ephemeral=ephemeral,
             ),
             bot.loop,
         )
@@ -1289,7 +1296,7 @@ class Server:
 
     @property
     def banner_url(self):
-        return self._raw.banner_url
+        return self._raw.banner.url
 
     @property
     def can_have_banner(self):

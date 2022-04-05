@@ -17,7 +17,7 @@ d2em = {
 @hook.command()
 def letters(event):
     """<text> - text to emoji letters"""
-    text = event.msg._raw.clean_content.split(maxsplit=1)[1].lower()
+    text = event.msg.clean_content.split(maxsplit=1)[1].lower()
 
     out = ""
     for thing in text:

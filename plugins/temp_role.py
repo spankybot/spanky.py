@@ -8,7 +8,6 @@ import csv
 from spanky.hook2 import Hook, Command, ComplexCommand
 
 from spanky.utils import time_utils
-from spanky.utils.volatile import set_vdata, get_vdata
 from collections import OrderedDict
 from spanky.plugin.permissions import Permission
 from spanky.hook2 import Hook, EventType, Command

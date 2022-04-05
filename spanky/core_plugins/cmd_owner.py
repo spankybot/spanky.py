@@ -125,8 +125,8 @@ class CmdPerms:
 
         self.storage.sync()
 
-
-admin_master_cmd = ComplexCommand(hook, "admin_config", permissions="admin")
+# Enable slash on ro, robac and europe
+admin_master_cmd = ComplexCommand(hook, "admin_config", permissions="admin", slash_servers=['287285563118190592', '779781184665944104', "258012752629596161"])
 
 
 admin_cmd = admin_master_cmd.complex_subcommand("admin_roles")

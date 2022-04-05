@@ -20,7 +20,7 @@ import asyncio
 import inspect
 from concurrent.futures import ThreadPoolExecutor
 
-executor = ThreadPoolExecutor()
+executor = ThreadPoolExecutor(max_workers=100)
 
 
 async def schedule_func(func, /, *args):
@@ -206,6 +206,12 @@ class Event(Hooklet):
 
     def __str__(self):
         return f"EventHooklet[{self.event_types=}]"
+
+    async def handle(self, action: ActionEvent):
+        #print(f"Start Event handle for hooklet {self.hooklet_id}, action {action!s}")
+        await super().handle(action)
+        #print(f"!!END Event handle for hooklet {self.hooklet_id}, action {action!s}")
+
 
 
 class MiddlewareType(Enum):
