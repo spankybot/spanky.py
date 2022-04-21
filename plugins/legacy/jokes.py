@@ -1,6 +1,7 @@
 import codecs
 import os
 import random
+from spanky.data2.res import readlines
 
 from spanky.hook2 import Hook, EventType
 
@@ -10,42 +11,15 @@ hook = Hook("jokes")
 def load_joke_data():
     global yo_momma, do_it, pun, confucious, one_liner, wisdom, book_puns, lawyerjoke, kero_sayings
 
-    with codecs.open(os.path.join("plugin_data/yo_momma.txt"), encoding="utf-8") as f:
-        yo_momma = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/do_it.txt"), encoding="utf-8") as f:
-        do_it = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/puns.txt"), encoding="utf-8") as f:
-        pun = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/confucious.txt"), encoding="utf-8") as f:
-        confucious = [
-            line.strip() for line in f.readlines() if not line.startswith("//")
-        ]
-
-    with codecs.open(os.path.join("plugin_data/one_liners.txt"), encoding="utf-8") as f:
-        one_liner = [
-            line.strip() for line in f.readlines() if not line.startswith("//")
-        ]
-
-    with codecs.open(os.path.join("plugin_data/wisdom.txt"), encoding="utf-8") as f:
-        wisdom = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/book_puns.txt"), encoding="utf-8") as f:
-        book_puns = [
-            line.strip() for line in f.readlines() if not line.startswith("//")
-        ]
-
-    with codecs.open(os.path.join("plugin_data/lawyerjoke.txt"), encoding="utf-8") as f:
-        lawyerjoke = [
-            line.strip() for line in f.readlines() if not line.startswith("//")
-        ]
-
-    with codecs.open(os.path.join("plugin_data/kero.txt"), encoding="utf-8") as f:
-        kero_sayings = [
-            line.strip() for line in f.readlines() if not line.startswith("//")
-        ]
+    yo_momma = readlines("yo_momma.txt", "jokes")
+    do_it = readlines("do_it.txt", "jokes")
+    pun = readlines("puns.txt", "jokes")
+    confucious = readlines("confucious.txt", "jokes")
+    one_liner = readlines("one_liners.txt", "jokes")
+    wisdom = readlines("wisdom.txt", "jokes")
+    book_puns = readlines("book_puns.txt", "jokes")
+    lawyerjoke = readlines("lawyerjoke.txt", "jokes")
+    kero_sayings = readlines("kero.txt", "jokes")
 
 
 @hook.command(permissions=["bot_owner"])

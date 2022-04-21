@@ -8,6 +8,7 @@ import os
 
 from PIL import Image, ImageDraw
 from math import sin, cos, dist
+from spanky.data2.res import get_filepath
 from spanky.plugin import hook
 
 
@@ -66,6 +67,7 @@ def get_overlay(name, location):
     Get an overlay or return a random one.
     If an invalid overlay is requested, return an error.
     """
+    location = get_filepath(location)
 
     overlay = None
     if name == "random":
@@ -93,7 +95,7 @@ def get_overlay(name, location):
 
 @hook.command(params="string:name=random")
 def glasses(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/glasses/")
+    valid, overlay = get_overlay(cmd_args["name"], "face_res/glasses/")
 
     if not valid:
         return overlay
@@ -170,7 +172,7 @@ def add_glasses(image, glasses_img, debug=False):
 
 @hook.command(params="string:name=random")
 def moustache(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/moustache/")
+    valid, overlay = get_overlay(cmd_args["name"], "face_res/moustache/")
 
     if not valid:
         return overlay
@@ -251,7 +253,7 @@ def add_moustache(image, moustache_img, debug=False):
 
 @hook.command(params="string:name=random")
 def hat(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/hat/")
+    valid, overlay = get_overlay(cmd_args["name"], "face_res/hat/")
 
     if not valid:
         return overlay
@@ -328,7 +330,7 @@ def add_hat(image, hat_img, debug=False):
 
 @hook.command(params="string:name=random")
 def eyes(event, send_file, send_message, cmd_args):
-    valid, overlay = get_overlay(cmd_args["name"], "plugin_data/face_res/eyes/")
+    valid, overlay = get_overlay(cmd_args["name"], "face_res/eyes/")
 
     if not valid:
         return overlay

@@ -3,6 +3,7 @@ import json
 import os
 import random
 import asyncio
+from spanky.data2.res import load_json
 
 from spanky.plugin import hook
 from spanky.utils import textgen
@@ -23,11 +24,8 @@ def load_spanks(bot):
     """
     global spank_data, bdsm_data
 
-    with codecs.open(os.path.join("plugin_data/spank.json"), encoding="utf-8") as f:
-        spank_data = json.load(f)
-
-    with codecs.open(os.path.join("plugin_data/bdsm.json"), encoding="utf-8") as f:
-        bdsm_data = json.load(f)
+    spank_data = load_json("spank")
+    bdsm_data = load_json("bdsm")
 
 
 @hook.command()

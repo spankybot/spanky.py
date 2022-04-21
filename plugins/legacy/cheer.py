@@ -1,6 +1,7 @@
 import random
 import re
 from pathlib import Path
+from spanky.data2 import res
 
 from spanky.plugin import hook
 
@@ -12,9 +13,7 @@ cheers = []
 @hook.on_start()
 def load_cheers(bot):
     cheers.clear()
-    data_file = Path("plugin_data/cheers.txt")
-    with data_file.open(encoding="utf-8") as f:
-        cheers.extend(line.strip() for line in f if not line.startswith("//"))
+    cheers.extend(res.readlines("cheers.txt"))
 
 
 @hook.command()

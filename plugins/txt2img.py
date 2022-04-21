@@ -12,22 +12,19 @@ import re
 import random
 import string
 
+from spanky.data2 import res
+
 PIXEL_ON = 0  # PIL color to use for "on"
 PIXEL_OFF = 255  # PIL color to use for "off"
 
 
-def text_image(string, font_path=None, font_size=30, font_color=None, font_bg=None):
+def text_image(string, font_name=None, font_size=30, font_color=None, font_bg=None):
     grayscale = "RGBA"
     lines = string
     font_color = font_color or "white"
-    large_font = font_size or 30  #
-    font_path = font_path or "plugin_data/fonts/sofia.ttf"
+    large_font = font_size or 30
     font_bg = font_bg or (255, 255, 255, 0)
-    try:
-        font = PIL.ImageFont.truetype(font_path, size=large_font)
-    except IOError:
-        font = PIL.ImageFont.load_default()
-        print("Could not use chosen font. Using default.")
+    font = res.font(font_name or "sofia", size=large_font)
 
     def pt2px(pt):
         return int(round(pt * 46.0 / 45))
@@ -106,8 +103,6 @@ def txt2img(text, event, send_file, reply):
             font_bg = param[3]
     except Error:
         print("bg color not found")
-    font += ".ttf"
-    font = "plugin_data/fonts/" + font
     image = text_image(strd, font, int(font_size), font_color, font_bg)
     image.save("txt2img.png")
     send_file("txt2img.png")

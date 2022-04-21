@@ -3,6 +3,7 @@ import json
 import os
 import random
 import re
+from spanky.data2.res import load_json, readlines
 
 from spanky.plugin import hook
 from spanky.utils import textgen
@@ -10,40 +11,17 @@ from spanky.plugin.permissions import Permission
 
 
 def load_attacks():
-    global larts, flirts, kills, slaps, north_korea, insults, strax, compliments, presents
+    global larts, flirts, kills, slaps, north_korea, insults, straxs, compliments, presents
 
-    with codecs.open(os.path.join("plugin_data/larts.txt"), encoding="utf-8") as f:
-        larts = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/flirts.txt"), encoding="utf-8") as f:
-        flirts = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/insults.txt"), encoding="utf-8") as f:
-        insults = [line.strip() for line in f.readlines() if not line.startswith("//")]
-
-    with codecs.open(os.path.join("plugin_data/kills.json"), encoding="utf-8") as f:
-        kills = json.load(f)
-
-    with codecs.open(os.path.join("plugin_data/slaps.json"), encoding="utf-8") as f:
-        slaps = json.load(f)
-
-    with codecs.open(os.path.join("plugin_data/strax.json"), encoding="utf-8") as f:
-        strax = json.load(f)
-
-    with codecs.open(
-        os.path.join("plugin_data/compliments.json"), encoding="utf-8"
-    ) as f:
-        compliments = json.load(f)
-
-    with codecs.open(
-        os.path.join("plugin_data/north_korea.txt"), encoding="utf-8"
-    ) as f:
-        north_korea = [
-            line.strip() for line in f.readlines() if not line.startswith("//")
-        ]
-
-    with codecs.open(os.path.join("plugin_data/presents.json"), encoding="utf-8") as f:
-        presents = json.load(f)
+    larts = readlines("larts.txt", "attacks")
+    flirts = readlines("flirts.txt", "attacks")
+    insults = readlines("insults.txt", "attacks")
+    kills = load_json("kills", "attacks")
+    slaps = load_json("slaps", "attacks")
+    straxs = load_json("strax", "attacks")
+    compliments = load_json("compliments", "attacks")
+    north_korea = readlines("north_korea.txt", "attacks")
+    presents = load_json("presents", "attacks")
 
 
 @hook.on_start()
@@ -125,10 +103,10 @@ def strax(text):
         variables = {"user": target}
 
         generator = textgen.TextGenerator(
-            strax["target_template"], strax["parts"], variables=variables
+            straxs["target_template"], straxs["parts"], variables=variables
         )
     else:
-        generator = textgen.TextGenerator(strax["template"], strax["parts"])
+        generator = textgen.TextGenerator(straxs["template"], straxs["parts"])
 
     # Become Strax
     return generator.generate_string()

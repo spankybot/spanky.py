@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         ActionCommand,
         ActionEvent,
     )
+    from hooklet import Hooklet
 
     MiddlewareFunc = Callable[[Action, Hooklet], Optional[MiddlewareResult]]
 
@@ -39,7 +40,7 @@ logger.addHandler(ch)
 
 
 class Hook:
-    hash = random.randint(0, 2 ** 31)
+    hash = random.randint(0, 2**31)
 
     def __init__(
         self,

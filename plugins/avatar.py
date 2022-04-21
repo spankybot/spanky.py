@@ -6,6 +6,7 @@ from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 from spanky.utils.image import Image
 from spanky.utils import discord_utils as dutils
+from spanky.data2 import res
 
 BANNER_W = 960
 BANNER_H = 540
@@ -108,7 +109,7 @@ def fit_text_on_image(text):
     # Start from the default size and decrease font size.
     text_size = DEFAULT_TEXT_SIZE
     while True:
-        font = ImageFont.truetype("plugin_data/fonts/plp.ttf", text_size)
+        font = res.font("plp", size=text_size)
         bbox = img_draw.textbbox(
             (0, 0), text, font=font, align="center", direction="ltr"
         )

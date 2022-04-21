@@ -17,6 +17,7 @@ from spanky.utils import discord_utils as dutils
 
 from nextcord.interactions import Interaction
 import nextcord.application_command as ac
+from spanky.data2 import res
 
 
 logger = logging.getLogger("nextcord")
@@ -39,8 +40,7 @@ client = nextcord.Client(intents=intents, allowed_mentions=allowed_mentions)
 bot = None
 bot_replies = {}
 to_delete = {}
-with open("plugin_data/twemoji_800x800.json") as f:
-    emojis = json.load(f)
+emojis = res.load_json("twemoji_800x800")
 raw_msg_cache = {}  # message cache that we use to map msg_id to msg
 
 
@@ -200,7 +200,7 @@ class Init:
             )
 
         cmd.__signature__ = inspect.Signature(params)
-        #cmd.__annotations__ = hook.args
+        # cmd.__annotations__ = hook.args
         cmd.__name__ = hook.name
 
     def fill_tree(self, parent_func, node, level: int) -> bool:
@@ -412,7 +412,7 @@ class DiscordUtils(abc.ABC):
         timeout=0,
         check_old=True,
         allowed_mentions=allowed_mentions,
-        ephemeral=False, # EventSlash only, no effect in other event types
+        ephemeral=False,  # EventSlash only, no effect in other event types
     ):
         func_send_message = None
         channel = None
@@ -508,7 +508,7 @@ class DiscordUtils(abc.ABC):
         timeout=0,
         check_old=True,
         allowed_mentions=allowed_mentions,
-        ephemeral=False, # EventSlash only, no effect in other event types
+        ephemeral=False,  # EventSlash only, no effect in other event types
     ):
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(
@@ -1325,7 +1325,7 @@ class Server:
 
 
 class Role:
-    hash = random.randint(0, 2 ** 31)
+    hash = random.randint(0, 2**31)
 
     def __hash__(self):
         return self.hash

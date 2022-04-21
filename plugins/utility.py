@@ -23,6 +23,7 @@ import os
 import random
 import re
 import urllib.parse
+from spanky.data2.res import load_json
 
 from spanky.plugin import hook
 from spanky.utils import formatting, web
@@ -52,8 +53,7 @@ def load_text(bot):
     """
     global leet
 
-    with codecs.open(os.path.join("plugin_data/leet.json"), encoding="utf-8") as f:
-        leet = json.load(f)
+    leet = load_json("leet")
 
 
 # misc

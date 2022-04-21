@@ -11,6 +11,7 @@ import requests
 import json
 import abc
 from gc import collect
+from spanky.data2.res import load_json
 from spanky.utils.image import Image
 from spanky.utils import time_utils
 from spanky.utils import discord_utils as dutils
@@ -35,8 +36,7 @@ client = discord.Client(intents=intents, allowed_mentions=allowed_mentions)
 bot = None
 bot_replies = {}
 to_delete = {}
-with open("plugin_data/twemoji_800x800.json") as f:
-    emojis = json.load(f)
+emojis = load_json("twemoji_800x800")
 raw_msg_cache = {}  # message cache that we use to map msg_id to msg
 
 
@@ -1025,7 +1025,7 @@ class Server:
 
 
 class Role:
-    hash = random.randint(0, 2 ** 31)
+    hash = random.randint(0, 2**31)
 
     def __hash__(self):
         return self.hash
