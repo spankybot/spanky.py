@@ -7,6 +7,8 @@ from spanky.hook2.event import EventType
 from spanky.plugin import hook
 from spanky.plugin.permissions import Permission
 
+import nextcord.errors as nextcord_err
+
 MSG_TIMEOUT = 3
 active_polls = {}
 
@@ -55,7 +57,7 @@ class Poll(carousel.Selector):
                 await event.async_send_message(
                     "Thank you for voting!", timeout=MSG_TIMEOUT, check_old=False
                 )
-                sync_polls(self.storage)
+                sync_polls(self.storage, self.server)
 
             item_dict[item] = add_vote
 
@@ -106,6 +108,7 @@ class Poll(carousel.Selector):
     async def deserialize(bot, data, storage):
         # Don't rebuild inactive polls
         if not data["is_active"]:
+            print("Poll inactive")
             return None
 
         # Get the server
@@ -118,14 +121,19 @@ class Poll(carousel.Selector):
         if not server:
             print("Could not find server id %s" % data["server_id"])
             return None
+
         # Rebuild message cache
         msg_id = data["msg_id"]
+
+        if not msg_id:
+            print(data)
+            raise Poll.InvalidMessage("Invalid message ID.")
 
         # Get the channel
         chan = dutils.get_channel_by_id(server, data["channel_id"])
 
-        if not msg_id or not chan:
-            raise Poll.InvalidMessage("Invalid message ID.")
+        if not chan:
+            raise Poll.InvalidMessage("Invalid channel.")
 
         # Create the object
         poll = Poll(server, chan, data["title"], data["items"], storage)
@@ -136,6 +144,8 @@ class Poll(carousel.Selector):
 
         # Add message to backend cache
         bot.backend.add_msg_to_cache(msg)
+
+        print(msg_id)
 
         # Remove reacts from other people
         await poll.reset_reacts(bot)
@@ -151,6 +161,7 @@ class Poll(carousel.Selector):
 
 @hook.event(EventType.reaction_add)
 async def parse_react(bot, event):
+    print("react")
     if event.server.id not in active_polls:
         return
 
@@ -165,26 +176,36 @@ async def parse_react(bot, event):
     if not found_poll:
         return
 
+    print(found_poll)
+
     # Handle the event
-    await found_poll.handle_emoji(event)
+    try:
+        await found_poll.handle_emoji(event)
+    except:
+        import traceback
+        traceback.print_exc()
 
     # Remove the reaction
     await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
 
 
-def sync_polls(storage):
+def sync_polls(storage, server):
     if "polls" not in storage:
         storage["polls"] = {}
 
     for poll_list in active_polls.values():
         for poll in poll_list:
+            # Don't add other polls to this server storage
+            if poll.server.id != server.id:
+                continue
+
             elem = poll.serialize()
             storage["polls"][poll.get_link()] = elem
             storage.sync()
 
 
 @hook.command(permissions=Permission.admin)
-async def create_poll(text, event, storage, async_send_message):
+async def create_poll(text, event, storage, async_send_message, server):
     """
     <title %% option1 %% option2 %% ...> - create a poll with a title and multiple options
     """
@@ -205,7 +226,7 @@ async def create_poll(text, event, storage, async_send_message):
     await poll.do_send(event, cache_it=False)
 
     # Sync all polls
-    sync_polls(storage)
+    sync_polls(storage, server)
 
 
 @hook.command(permissions=Permission.admin)
@@ -249,7 +270,7 @@ async def close_poll(text, storage, async_send_message, server):
 
         if text == poll.get_link():
             poll.is_active = False
-            sync_polls(storage)
+            sync_polls(storage, server)
             await poll.get_results(async_send_message)
             return
 
@@ -257,12 +278,16 @@ async def close_poll(text, storage, async_send_message, server):
 
 async def rebuild_poll(bot, key, poll, storage):
     try:
-        await Poll.deserialize(bot, poll, storage)
+        return await Poll.deserialize(bot, poll, storage)
     except Poll.InvalidMessage:
         del storage["polls"][key]
         storage.sync()
+    except nextcord_err.NotFound:
+        poll["is_active"] = False
+        storage.sync()
     except Exception as e:
-        print(e)
+        import traceback
+        traceback.print_exc()
 
 import asyncio
 
@@ -277,3 +302,31 @@ async def rebuild_poll_selectors(bot, storage_getter):
         for key, poll in list(storage["polls"].items()):
             tasks.append(asyncio.create_task(rebuild_poll(bot, key, poll, storage)))
     await asyncio.gather(*tasks)
+
+
+@hook.command(permissions=Permission.admin)
+async def sanitize_polls(bot, storage_getter, server, storage):
+    """
+    TODO: clean up polls, fetch unregistered votes
+    """
+
+    # Fixes older bug where polls from other servers were being
+    # added in one servers json
+    for srv in bot.backend.get_servers():
+        stor = storage_getter(srv.id)
+
+        if "polls" not in stor:
+            continue
+
+        for key, val in list(stor["polls"].items()):
+            if val["server_id"] != srv.id:
+                del stor["polls"][key]
+                stor.sync()
+
+    # Rebuild polls
+    if "polls" not in storage:
+        return
+
+    for key, val in storage["polls"].items():
+        print("Rebuilding " + key)
+        await rebuild_poll(bot, key, val, storage)

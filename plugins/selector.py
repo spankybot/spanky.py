@@ -23,6 +23,8 @@ async def rebuild_one_selector(bot, element, stype):
         selector = await carousel.RoleSelector.deserialize(bot, element)
     elif stype == "all_chan_selectors":
         selector = await roddit.EverythingChanSel.deserialize(bot, element)
+    elif stype == "rplace":
+        selector = await roddit.Rplace.deserialize(bot, element)
 
     # Add it to the permanent message list
     permanent_messages.append(selector)
@@ -129,6 +131,9 @@ def permanent_selector(text, storage, event):
     if "all_chan_selectors" not in storage:
         storage["all_chan_selectors"] = []
 
+    if "rplace" not in storage:
+        storage["rplace"] = []
+
     data = None
     try:
         data = selector.serialize()
@@ -144,6 +149,8 @@ def permanent_selector(text, storage, event):
         storage["simple_selectors"].append(data)
     elif type(selector) == roddit.EverythingChanSel:
         storage["all_chan_selectors"].append(data)
+    elif type(selector) == roddit.Rplace:
+        storage["rplace"].append(data)
 
     storage.sync()
 
@@ -278,6 +285,21 @@ async def rebuild_selectors(bot, storage_getter):
                     permanent_messages.append(selector)
                 except nextcord.errors.NotFound:
                     storage["all_chan_selectors"].remove(element)
+                    storage.sync()
+                except:
+                    import traceback
+
+                    traceback.print_exc()
+                    print(element)
+
+        if "rplace" in storage:
+            for element in list(storage["rplace"]):
+                try:
+                    selector = await roddit.Rplace.deserialize(bot, element)
+                    # Add it to the permanent message list
+                    permanent_messages.append(selector)
+                except nextcord.errors.NotFound:
+                    storage["rplace"].remove(element)
                     storage.sync()
                 except:
                     import traceback

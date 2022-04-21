@@ -143,7 +143,7 @@ def log(bot, event):
     args = get_format_args(event)
 
     file_log(event, args)
-    # console_log(bot, event, args)
+    console_log(bot, event, args)
 
     try:
         db_log(event, args)
@@ -164,6 +164,9 @@ def file_log(event, args):
 
 def console_log(bot, event, args):
     text = format_event(event, args)
+
+    if args["server_id"] != "287285563118190592":
+        return
 
     if text is not None:
         bot.logger.info(text)
@@ -256,7 +259,7 @@ def seen_user_in_server(user_id, server_id):
 
     try:
         cs.execute(
-            """select * from messages where author_id=%s and server_id=%s order by date desc""",
+            """select * from messages where author_id=%s and server_id=%s order by date desc LIMIT 10""",
             (
                 str(user_id),
                 str(server_id),
@@ -273,6 +276,11 @@ def seen_user_in_server(user_id, server_id):
 
     return data
 
+@hook.command(permissions="bot_owner")
+def get_total_cnt():
+    cs = db_conn.cursor()
+    cs.execute("""select count(*) from messages""")
+    return str(cs.fetchall()[0][0])
 
 def get_msg_cnt_for_user(uid):
     cs = db_conn.cursor()

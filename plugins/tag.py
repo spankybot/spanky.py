@@ -9,40 +9,88 @@ import random
 import string
 import nextcord
 
+from typing import Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from spanky.hook2.storage import dsdict
+
 LARROW = u"⬅"
 RARROW = u"➡"
 MAX_LEN = 500
 
+class Tag:
+    def __init__(self, name: str, ttype: str, location: Optional[str], content: str, storage):
+        self.name = name
+        self.storage: dsdict = storage
+        self.entry = storage[self.name]
+        self.type: str = ttype
+        self.location: Optional[str] = None
+        self.content: str = ""
+        if self.type == "picture":
+            self.location = location
+        else:
+            self.content = content
+    
+    def save(self):
+        self.storage[self.name] = {}
+        self.storage[self.name]["type"] = self.type
+        if self.storage[self.name]["type"] == "picture":
+            self.storage[self.name]["location"] = self.location
+        else:
+            self.storage[self.name]["location"] = self.content
+        self.storage.sync()
+
+    def delete(self):
+        del self.storage[self.name]
+
+    @staticmethod
+    def deserialize(name: str, storage):
+        if name not in storage:
+            return None
+        ttype = storage[name]["type"]
+        loc = None
+        content = ""
+        if ttype == "picture":
+            loc = storage[name]["location"]
+        else:
+            content = storage[name]["content"]
+        return Tag(name, ttype, loc, content, storage)
+
+    # Always wrap create_picture and create_text in a try-except structure!
+
+    @staticmethod
+    def create_picture(tag_name: str, url: str, storage, storage_loc: str):
+        if tag_name in storage:
+            raise NameError(f"Tag with name {repr(tag_name)} already exists!")
+        filename = "".join(random.choice(string.ascii_letters + string.digits) for i in range(10))
+        ext = url.split(".")[-1]
+
+        fname = f"{filename}.{ext}"
+        os.system(f"mkdir -p {storage_loc}")
+        with open(storage_loc + fname, "wb") as f:
+            f.write(requests.get(url).content)
+    
+        t = Tag(tag_name, "picture", fname, "", storage)
+        t.save()
+        return t
+
+    @staticmethod
+    def create_text(tag_name: str, content: str, storage):
+        if tag_name in storage:
+            raise NameError(f"Tag with name {repr(tag_name)} alrady exists!")
+        t = Tag(tag_name, "text", None, content, storage)
+        t.save()
+        return t
+
 
 def save_picture(url, tag_name, message, storage, storage_loc):
-    if tag_name in storage.keys():
-        message("%s already exists!" % tag_name)
-        return
-
-    name = "".join(
-        random.choice(string.ascii_letters + string.digits) for i in range(10)
-    )
-    ext = url.split(".")[-1]
-
     try:
-        fname = name + "." + ext
-        os.system("mkdir -p %s" % storage_loc)
-        f = open(storage_loc + fname, "wb")
-        f.write(requests.get(url).content)
-        f.close()
-
-        storage[tag_name] = {}
-        storage[tag_name]["type"] = "picture"
-        storage[tag_name]["location"] = fname
-
-        storage.sync()
-
-        message("Added picture tag")
+        Tag.create_picture(tag_name, url, storage, storage_loc)    
+    except NameError as e:
+        message(str(e))
     except:
-        del storage[tag_name]
         import traceback
-
         traceback.print_exc()
+        del storage[tag_name]
 
 
 def save_text(text, tag_name, message, storage):
@@ -170,7 +218,7 @@ def tag_add(text, event, reply, storage, storage_loc):
             return "Format is: `.tag_add <name> picture`"
 
         save_picture(att.url, text[0], reply, storage, storage_loc)
-        return
+        return "Done"
     else:
         if len(text) < 2:
             return "If no picture is attached, add more words"

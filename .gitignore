@@ -9,3 +9,4 @@ logs
 !.gitignore
 !.github
 storage_christmas
+requirements.sha1sum

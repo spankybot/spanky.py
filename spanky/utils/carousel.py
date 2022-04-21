@@ -209,6 +209,7 @@ class Selector:
         if event.msg.id != self.msg.id:
             return
 
+        old_page = self.shown_page
         # Check if it's a page reaction
         if event.reaction.emoji.name in [LARROW, RARROW]:
             # If yes, increment decrement things
@@ -224,7 +225,11 @@ class Selector:
             self.shown_page = len(self.embeds) - 1
 
         # Send the new page
-        await self.send_one_page(event)
+        if old_page != self.shown_page:
+            await self.send_one_page(event)
+        else:
+            _, emoji_to_func = self.embeds[self.shown_page]
+            self.crt_emoji_to_func = emoji_to_func
 
         # Check if emoji exists
         if event.reaction.emoji.name not in self.crt_emoji_to_func:

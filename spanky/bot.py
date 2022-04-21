@@ -87,6 +87,9 @@ class Bot:
                 ActionEvent(self, event(server), EventType.on_ready)
             )))
 
+        # Register slashes
+        tasks.append(asyncio.create_task(self.backend.do_register_slashes()))
+
         # Run on connection ready hooks
         tasks.append(asyncio.create_task(self.dispatch_action(
             ActionEvent(self, {}, EventType.on_conn_ready))))
@@ -96,7 +99,6 @@ class Bot:
 
     async def ready(self):
         await self.run_on_ready_work()
-        await self.backend.do_register_slashes()
 
         self.is_ready = True
 

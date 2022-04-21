@@ -1,23 +1,44 @@
 import plugins.paged_content as paged
 from spanky.plugin import hook
 from datetime import datetime, timezone
+import spanky.utils.discord_utils as dutils
+
+from plugins.log import get_msg_cnt_for_user, seen_user_in_server
 
 
 def getUnixTimestamp(snowflake):
     return ((int(snowflake) / 4194304) + 1420070400000) // 1000
 
 
-dateString = "%Y-%m-%d at %H:%M"
+dateString = "%Y-%m-%d at %H:%M UTC"
 
+def get_ms():
+    import time
+    return time.perf_counter_ns() // 10**3 / 10**3
+
+def last_seen(uid, sid):
+    init = get_ms()
+    data = seen_user_in_server(uid, sid)
+    _, seen, _, _, _, _, _, _, _ = data[0]
+    stop = get_ms()
+    print(f"Last-seen benchmark: {stop-init}ms")
+    return seen.strftime(dateString)
+
+def msg_cnt(uid):
+    init = get_ms()
+    cnt = get_msg_cnt_for_user(uid)
+    stop = get_ms()
+    print(f"Message count benchmark: {stop-init}ms")
+    return cnt
 
 @hook.command(format="mention")
-def userinfo(text, str_to_id, reply, server):
+async def userinfo(text, str_to_id, reply, async_send_message, server, context):
     """
     <mention> - gets various data about the mentioned user
     """
     try:
-        output = "```"
         id = str_to_id(text)
+        output = ""
 
         if text == "":
             reply("Please mention a user")
@@ -34,18 +55,27 @@ def userinfo(text, str_to_id, reply, server):
                 rawMember = member._raw
         if rawMember == None:
             output += f"ID: {id}\n"
-            reply(output + "```")
+            reply(output)
             return
 
         output += f"Join date: {rawMember.joined_at.strftime(dateString)}\n"
-        if rawMember.avatar:
-            output += f"Avatar: {rawMember.avatar.url}\n"
         output += f"ID: {id}\n"
+        if "admin" in context["perms"]["creds"]:
+            output += f"Global number of messages seen: {msg_cnt(rawMember.id)}\n"
+            output += f"Last seen on `{server.name}`: {last_seen(rawMember.id, server.id)}\n"
+        if rawMember.nick:
+            output += f"Nickname: `{rawMember.nick}`\n"
+        if rawMember.bot:
+            output += f"Bot account\n"
 
         if rawMember.premium_since != None:
             output += f"Boosting since {rawMember.premium_since.strftime(dateString)}\n"
 
-        reply(output + "```")
+        from nextcord import Embed
+        em = Embed(title=f"{rawMember.name}#{rawMember.discriminator}", description=output)
+        if rawMember.avatar:
+            em.set_thumbnail(url=rawMember.avatar.url)
+        await async_send_message(embed=em)
     except Exception as e:
         print(e)
 

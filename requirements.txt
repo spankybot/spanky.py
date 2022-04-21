@@ -4,7 +4,8 @@ sqlalchemy
 aiohttp
 praw
 asyncpraw
-git+https://github.com/alentoghostflame/nextcord.git@df703d382df95814131d0d1c19078321b726a91a
+git+https://github.com/nextcord/nextcord.git@6aaaca0578baee75edb52c84fce642fbfa4eec86
+#### git+https://github.com/alentoghostflame/nextcord.git@df703d382df95814131d0d1c19078321b726a91a
 markovify
 cleverwrap
 bs4

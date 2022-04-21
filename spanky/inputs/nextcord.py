@@ -1558,11 +1558,16 @@ async def on_reaction_remove(reaction, user):
 
 @client.event
 async def on_raw_reaction_add(reaction):
-    if reaction.member.id != client.user.id:
+
+    try:
+        if reaction.member.id == client.user.id:
+            return
+
+        print("raw react" + str(reaction.member.id))
 
         # Fetch the message
-        if reaction.message_id not in raw_msg_cache:
-            msg_id = str(reaction.message_id)
+        msg_id = str(reaction.message_id)
+        if msg_id not in raw_msg_cache:
             channel = client.get_channel(reaction.channel_id)
             msg = await channel.fetch_message(reaction.message_id)
 
@@ -1572,6 +1577,9 @@ async def on_raw_reaction_add(reaction):
         reaction.channel = raw_msg_cache[msg_id]._raw.channel
 
         await call_func(bot.on_reaction_add, reaction, reaction.member)
+    except:
+        import traceback
+        traceback.print_exc()
 
 
 ###
