@@ -100,7 +100,7 @@ def list_permanent_selectors(text, storage):
     if "role_selectors" not in storage:
         return retval
     for data in reduce(
-        lambda a, b: a + b, map(lambda name: list(storage[name]), selector_types)
+        lambda a, b: a + b, map(lambda name: list(storage[name] if name in storage else []), selector_types)
     ):
         retval.append(
             dutils.return_message_link(
