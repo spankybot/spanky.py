@@ -1,3 +1,5 @@
+import asyncio
+from functools import reduce
 import nextcord
 import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
@@ -6,94 +8,39 @@ from spanky.hook2 import Hook, EventType
 from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
 from spanky.plugin.permissions import Permission
+from spanky.utils.carousel_mgr import SelectorManager
+from typing import TYPE_CHECKING, Type
 
-
-permanent_messages = []  # What permanent messages are held
+if TYPE_CHECKING:
+    from spanky.bot import Bot
 
 hook = Hook("selector", storage_name="plugins_selector")
 
+selector_types: list[str] = [
+    "role_selectors",
+    "chan_selectors",
+    "simple_selectors",
+    "all_chan_selectors",
+    "rplace",
+]
 
-# DEBUG PURPOSES
-async def rebuild_one_selector(bot, element, stype):
-    if stype == "role_selectors":
-        selector = await carousel.RoleSelectorInterval.deserialize(bot, element)
-    elif stype == "chan_selectors":
-        selector = await roddit.ChanSelector.deserialize(bot, element)
-    elif stype == "simple_selectors":
-        selector = await carousel.RoleSelector.deserialize(bot, element)
-    elif stype == "all_chan_selectors":
-        selector = await roddit.EverythingChanSel.deserialize(bot, element)
-    elif stype == "rplace":
-        selector = await roddit.Rplace.deserialize(bot, element)
+selector_classes: dict[str, Type[carousel.Selector]] = {
+    "role_selectors": carousel.RoleSelectorInterval,
+    "chan_selectors": roddit.ChanSelector,
+    "simple_selectors": carousel.RoleSelector,
+    "all_chan_selectors": roddit.EverythingChanSel,
+    "rplace": roddit.Rplace,
+}
 
-    # Add it to the permanent message list
-    permanent_messages.append(selector)
+selector_revlookup: dict[Type[carousel.Selector], str] = {
+    carousel.RoleSelectorInterval: "role_selectors",
+    roddit.ChanSelector: "chan_selectors",
+    carousel.RoleSelector: "simple_selectors",
+    roddit.EverythingChanSel: "all_chan_selectors",
+    roddit.Rplace: "rplace",
+}
 
-    return selector
-
-
-@hook.event(EventType.reaction_add)
-async def parse_react(bot, event, storage):
-    # Check if the reaction was made on a message that contains a selector
-    found_selector = None
-
-    for selector in permanent_messages:
-        if selector.has_msg_id(event.msg.id):
-            found_selector = selector
-            break
-
-    if not found_selector:
-        for selector in carousel.Selector.POSTED_MESSAGES:
-            if selector.has_msg_id(event.msg.id):
-                found_selector = selector
-                break
-
-    # DEBUG PURPOSES
-    if not found_selector:
-        if "role_selectors" in storage:
-            for element in list(storage["role_selectors"]):
-                if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(
-                        bot, element, "role_selectors"
-                    )
-                    break
-
-        if "chan_selectors" in storage:
-            for element in list(storage["chan_selectors"]):
-                if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(
-                        bot, element, "chan_selectors"
-                    )
-                    break
-
-        if "simple_selectors" in storage:
-            for element in list(storage["simple_selectors"]):
-                if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(
-                        bot, element, "simple_selectors"
-                    )
-                    break
-
-        if "all_chan_selectors" in storage:
-            for element in list(storage["all_chan_selectors"]):
-                if event.msg.id == element["msg_id"]:
-                    found_selector = await rebuild_one_selector(
-                        bot, element, "all_chan_selectors"
-                    )
-                    break
-
-        if found_selector:
-            dbg = open("debug.log", "w")
-            dbg.write("msg id %s\n" % (event.msg.id))
-
-    if not found_selector:
-        return
-
-    # Handle the event
-    await found_selector.handle_emoji(event)
-
-    # Remove the reaction
-    await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+selector_managers: dict[str, SelectorManager] = {}
 
 
 @hook.command(permissions=Permission.admin)
@@ -109,30 +56,24 @@ def permanent_selector(text, storage, event):
     if msg_id == None:
         msg_id = text
 
-    # Check if it's a selector
-    found_sel = None
-    for selector in carousel.Selector.POSTED_MESSAGES:
-        # Don't leak from other servers
-        if selector.has_msg_id(msg_id) and selector.server.id == event.server.id:
-            found_sel = selector
+    hooklet = hook.root.find_temporary_msg_react(msg_id)
+    if not hooklet:
+        return "No selector found"
 
-    if not found_sel:
-        return "Invalid selector given. Make sure that it's a selector generated by this bot."
+    if not hasattr(hooklet.func, "__self__"):
+        return "Bot message is not a selector."
+    selector: carousel.Selector = hooklet.func.__self__
 
-    if "role_selectors" not in storage:
-        storage["role_selectors"] = []
+    # Don't leak from other servers
+    if not (selector.has_msg_id(msg_id) and selector.server.id == event.server.id):
+        return "Selector is leaking from another server."
 
-    if "chan_selectors" not in storage:
-        storage["chan_selectors"] = []
+    for tp in selector_types:
+        if tp not in storage:
+            storage[tp] = []
 
-    if "simple_selectors" not in storage:
-        storage["simple_selectors"] = []
-
-    if "all_chan_selectors" not in storage:
-        storage["all_chan_selectors"] = []
-
-    if "rplace" not in storage:
-        storage["rplace"] = []
+    # Upgrade selector to permanent
+    selector.upgrade_selector()
 
     data = None
     try:
@@ -141,22 +82,11 @@ def permanent_selector(text, storage, event):
         return "This selector type can't be saved"
 
     # Save the serialized data
-    if type(selector) == carousel.RoleSelectorInterval:
-        storage["role_selectors"].append(data)
-    elif type(selector) == roddit.ChanSelector:
-        storage["chan_selectors"].append(data)
-    elif type(selector) == carousel.RoleSelector:
-        storage["simple_selectors"].append(data)
-    elif type(selector) == roddit.EverythingChanSel:
-        storage["all_chan_selectors"].append(data)
-    elif type(selector) == roddit.Rplace:
-        storage["rplace"].append(data)
+    for key, cls in selector_classes.items():
+        if type(selector) == cls:
+            storage[key].append(data)
 
     storage.sync()
-
-    # Add it to the permanent list and remove it from the deque
-    permanent_messages.append(found_sel)
-    carousel.Selector.POSTED_MESSAGES.remove(found_sel)
 
     return (
         "Bot will permanently watch for reactions on this message. You can pin it now."
@@ -169,11 +99,8 @@ def list_permanent_selectors(text, storage):
 
     if "role_selectors" not in storage:
         return retval
-
-    for data in (
-        list(storage["role_selectors"])
-        + list(storage["chan_selectors"])
-        + list(storage["simple_selectors"])
+    for data in reduce(
+        lambda a, b: a + b, map(lambda name: list(storage[name]), selector_types)
     ):
         retval.append(
             dutils.return_message_link(
@@ -188,121 +115,58 @@ def list_permanent_selectors(text, storage):
 
 
 @hook.command(permissions=Permission.admin)
-def del_permanent_selector(text, storage):
+def del_permanent_selector(text, storage, event):
     """
     Remove a permanent selector.
     """
-    if "role_selectors" not in storage:
-        return "No role selectors found"
-
     _, _, msg_id = dutils.parse_message_link(text)
 
-    # Remove it from storage first
-    for data in storage["role_selectors"]:
+    handler = hook.root.find_permanent_msg_react(msg_id)
+    if not handler:
+        return "No selector found"
+    selector: carousel.Selector = handler.func.__self__
+
+    # Don't leak from other servers
+    if not (selector.has_msg_id(msg_id) and selector.server.id == event.server.id):
+        return "Selector is leaking from another server."
+
+    name = selector_revlookup[type(selector)]
+    print(name)
+
+    if name not in storage:
+        return
+    for data in storage[name]:
         if data["msg_id"] == msg_id:
-            storage["role_selectors"].remove(data)
+            storage[name].remove(data)
             storage.sync()
             break
 
-    for data in storage["chan_selectors"]:
-        if data["msg_id"] == msg_id:
-            storage["chan_selectors"].remove(data)
-            storage.sync()
-            break
-
-    for data in storage["simple_selectors"]:
-        if data["msg_id"] == msg_id:
-            storage["simple_selectors"].remove(data)
-            storage.sync()
-            break
-
-    # Remove it from permanent messages
-    for pmsg in permanent_messages:
-        if pmsg.has_msg_id(msg_id):
-            permanent_messages.remove(pmsg)
+    hook.root.del_msg_react(msg_id)
 
     return "Done"
 
 
+@hook.event(EventType.on_start)
+def load_managers(bot):
+    for name in selector_types:
+        selector_managers[name] = SelectorManager(
+            bot, hook, name, selector_classes[name]
+        )
+
+
 @hook.command(permissions=Permission.admin)
-async def rebuild_selectors(bot, storage_getter):
-    for server in bot.backend.get_servers():
-        storage = storage_getter(server.id)
+async def rebuild_selectors(bot):
+    await rebuild_permanent_selectors(bot)
 
-        if "role_selectors" in storage:
-            for element in list(storage["role_selectors"]):
-                try:
-                    selector = await carousel.RoleSelectorInterval.deserialize(
-                        bot, element
-                    )
 
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except nextcord.errors.NotFound:
-                    storage["role_selectors"].remove(element)
-                    storage.sync()
-                except:
-                    import traceback
+@hook.event(EventType.on_conn_ready)
+async def build_selectors(bot: "Bot"):
+    await rebuild_permanent_selectors(bot)
 
-                    traceback.print_exc()
-                    print(element)
 
-        if "chan_selectors" in storage:
-            for element in list(storage["chan_selectors"]):
-                try:
-                    selector = await roddit.ChanSelector.deserialize(bot, element)
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except nextcord.errors.NotFound:
-                    storage["chan_selectors"].remove(element)
-                    storage.sync()
-                except:
-                    import traceback
-
-                    traceback.print_exc()
-                    print(element)
-
-        if "simple_selectors" in storage:
-            for element in list(storage["simple_selectors"]):
-                try:
-                    selector = await carousel.RoleSelector.deserialize(bot, element)
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except nextcord.errors.NotFound:
-                    storage["simple_selectors"].remove(element)
-                    storage.sync()
-                except:
-                    import traceback
-
-                    traceback.print_exc()
-                    print(element)
-
-        if "all_chan_selectors" in storage:
-            for element in list(storage["all_chan_selectors"]):
-                try:
-                    selector = await roddit.EverythingChanSel.deserialize(bot, element)
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except nextcord.errors.NotFound:
-                    storage["all_chan_selectors"].remove(element)
-                    storage.sync()
-                except:
-                    import traceback
-
-                    traceback.print_exc()
-                    print(element)
-
-        if "rplace" in storage:
-            for element in list(storage["rplace"]):
-                try:
-                    selector = await roddit.Rplace.deserialize(bot, element)
-                    # Add it to the permanent message list
-                    permanent_messages.append(selector)
-                except nextcord.errors.NotFound:
-                    storage["rplace"].remove(element)
-                    storage.sync()
-                except:
-                    import traceback
-
-                    traceback.print_exc()
-                    print(element)
+async def rebuild_permanent_selectors(bot: "Bot"):
+    tasks = []
+    for srv in bot.get_servers():
+        for sel in selector_managers.values():
+            tasks.append(asyncio.create_task(sel.rebuild(srv)))
+    await asyncio.gather(*tasks)

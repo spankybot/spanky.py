@@ -1,7 +1,15 @@
+import enum
 import inspect
 from collections import OrderedDict, deque
+from typing import TYPE_CHECKING, Optional
 from spanky.utils import discord_utils as dutils
 from spanky.utils import time_utils as tutils
+
+from spanky.hook2 import Hook
+
+if TYPE_CHECKING:
+    from spanky.bot import Bot
+    from spanky.inputs.nextcord import Channel, Server
 
 MAX_ROWS = 10  # Max rows per page
 LARROW = "\U0001F448"
@@ -51,15 +59,34 @@ SITEMS = [
 ]  # letter Z
 
 
-class Selector:
-    POSTED_MESSAGES = deque(maxlen=250)  # class variable holding posted selectors
+class SelectorType(enum.Enum):
+    TEMPORARY = "temporary"
+    PERMANENT = "permanent"
 
-    def __init__(self, title, footer, call_dict, max_rows=10):
+
+class Selector:
+    def __init__(
+        self,
+        title,
+        footer,
+        call_dict,
+        server: "Server",
+        channel: "Channel",
+        max_rows=10,
+        hook: Optional[Hook] = None,
+        selector_type: SelectorType = SelectorType.TEMPORARY,
+    ):
         self.shown_page = 0
         self.title = title
         self.footer = footer
         self.msg = None
         self.max_rows = max_rows
+
+        self.hook = hook
+        self.selector_type = selector_type
+
+        self.server = server
+        self.channel = channel
 
         self.set_items(call_dict)
 
@@ -178,15 +205,87 @@ class Selector:
         await self.msg.clear_reactions()
         await self.add_emojis()
 
-    def add_to_cache(self):
-        # Add selector to posted messages
-        Selector.POSTED_MESSAGES.append(self)
-
-    async def do_send(self, event, cache_it=True):
-        if cache_it:
-            self.add_to_cache()
+    async def do_send(self, event):
 
         await self.send_one_page(event)
+        self.register_selector()
+
+    # Temporary/Permanent selector handling
+    def register_selector(self):
+        if not self.msg:
+            raise Exception("Trying to register unsent selector")
+        if self.selector_type == SelectorType.TEMPORARY:
+            self.hook.add_temporary_msg_react(self.msg.id, self.handle_react)
+        elif self.selector_type == SelectorType.PERMANENT:
+            self.hook.add_permanent_msg_react(self.msg.id, self.handle_react)
+        else:
+            print("WARNING: Unknown selector type:", self.selector_type)
+
+    # Upgrade temporary selector to a permanent one
+    def upgrade_selector(self):
+        if not self.msg:
+            raise Exception("Trying to register unsent selector")
+        if self.selector_type == SelectorType.PERMANENT:
+            print("Trying to upgrade permanent selector to permanent. Skipping")
+            return
+        self.selector_type = SelectorType.PERMANENT
+        self.hook.add_permanent_msg_react(self.msg.id, self.handle_react)
+
+    # serialize serializes the carousel-specific data.
+    # Subclasses should call this and then add their specific info
+    def serialize(self) -> dict:
+        data = {}
+        data["server_id"] = self.server.id
+        data["channel_id"] = self.channel.id
+        data["msg_id"] = self.get_msg_id()
+        data["shown_page"] = self.shown_page
+        data["selector_type"] = self.selector_type.value
+        return data
+
+    @staticmethod
+    def get_server_chan(bot: "Bot", data: dict):
+        print(data)
+        server = bot.get_server(data["server_id"])
+        if not server:
+            print("Could not find server id %s" % data["server_id"])
+            return None, None
+
+        chan = server.get_chan(data["channel_id"])
+        if not chan:
+            print("Could not find selector channel %s" % data["channel_id"])
+            return server, None
+
+        return server, chan
+
+    # Deserialization common core
+    async def finish_deserialize(self, bot: "Bot", data: dict):
+        # Set selector page
+        self.shown_page = data["shown_page"]
+
+        if "selector_type" in data:
+            self.selector_type = SelectorType(data["selector_type"])
+
+        # Rebuild message cache
+        msg_id = data["msg_id"]
+
+        # Get the saved message and set it
+        msg = await self.channel.async_get_message(msg_id)
+        if not msg:
+            return None
+        self.msg = msg
+
+        # Add message to backend cache
+        bot.backend.add_msg_to_cache(msg)
+
+        # Remove reacts from other people
+        await self.reset_reacts(bot)
+
+        # Register the react handler
+        self.register_selector()
+
+    @staticmethod
+    async def deserialize(bot: "Bot", data: dict, hook: Hook) -> Optional["Selector"]:
+        raise NotImplementedError()
 
     async def is_spam(self, event):
         # Check role assign spam
@@ -247,19 +346,34 @@ class Selector:
 
             traceback.print_exc()
 
+    # handle_react is the event handler to be passed to hook2
+    async def handle_react(self, event):
+        # Handle the event
+        try:
+            await self.handle_emoji(event)
+        except:
+            import traceback
+
+            traceback.print_exc()
+
+        # Remove the reaction
+        await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
 
 class RoleSelector(Selector):
     # If N seconds have passed since the last role update, check the server status
     ROLE_UPDATE_INTERVAL = 60
 
-    def __init__(self, server, roles, title, max_selectable):
+    def __init__(self, server, channel, roles, title, max_selectable, hook):
         super().__init__(
             title=title,
             footer=f"Max selectable: {max_selectable if max_selectable > 0 else 'Unlimited' }",
             call_dict={},
+            server=server,
+            channel=channel,
+            hook=hook,
         )
 
-        self.server = server
         self.roles = roles
         self.max_selectable = max_selectable
         self.last_role_update = 0
@@ -339,65 +453,43 @@ class RoleSelector(Selector):
         )
 
     def serialize(self):
-        data = {}
-        data["server_id"] = self.server.id
-        data["channel_id"] = self.msg.channel.id
+        data = super().serialize()
         data["role_ids"] = self.roles
         data["max_selectable"] = self.max_selectable
         data["title"] = self.title
-        data["msg_id"] = self.get_msg_id()
-        data["shown_page"] = self.shown_page
 
         return data
 
     @staticmethod
-    async def deserialize(bot, data):
-        # Get the server
-        server = None
-        for elem in bot.get_servers():
-            if elem.id == data["server_id"]:
-                server = elem
-                break
-
-        if not server:
-            print("Could not find server id %s" % data["server_id"])
-            return None
-
-        # Get the channel
-        chan = dutils.get_channel_by_id(server, data["channel_id"])
+    async def deserialize(bot, data, hook):
+        # Get the server and channel
+        server, chan = RoleSelector.get_server_chan(bot, data)
+        if not server or not chan:
+            return
 
         # Create the selector
         selector = RoleSelector(
-            server, data["role_ids"], data["title"], data["max_selectable"]
+            server, chan, data["role_ids"], data["title"], data["max_selectable"], hook
         )
 
-        # Set selector page
-        selector.shown_page = data["shown_page"]
-
-        # Rebuild message cache
-        msg_id = data["msg_id"]
-
-        # Get the saved message and set it
-        msg = await chan.async_get_message(msg_id)
-        selector.msg = msg
-
-        # Add message to backend cache
-        bot.backend.add_msg_to_cache(msg)
-
-        # Remove reacts from other people
-        await selector.reset_reacts(bot)
+        await selector.finish_deserialize(bot, data)
 
         return selector
 
 
 class RoleSelectorInterval(RoleSelector):
-    def __init__(self, server, channel, first_role, last_role, title, max_selectable):
+    def __init__(
+        self, server, channel, first_role, last_role, title, max_selectable, hook
+    ):
         super(RoleSelector, self).__init__(
-            title=title, footer="Max selectable: %d" % max_selectable, call_dict={}
+            title=title,
+            footer="Max selectable: %d" % max_selectable,
+            call_dict={},
+            server=server,
+            channel=channel,
+            hook=hook,
         )
 
-        self.server = server
-        self.channel = channel
         self.first_role = first_role
         self.last_role = last_role
         self.max_selectable = max_selectable
@@ -436,30 +528,20 @@ class RoleSelectorInterval(RoleSelector):
         await super().handle_emoji(event)
 
     def serialize(self):
-        data = {}
-        data["server_id"] = self.server.id
-        data["channel_id"] = self.channel.id
+        data = super().serialize()
         data["first_role_id"] = dutils.get_role_by_name(self.server, self.first_role).id
         data["last_role_id"] = dutils.get_role_by_name(self.server, self.last_role).id
         data["max_selectable"] = self.max_selectable
         data["title"] = self.title
-        data["msg_id"] = self.get_msg_id()
-        data["shown_page"] = self.shown_page
 
         return data
 
     @staticmethod
-    async def deserialize(bot, data):
-        # Get the server
-        server = None
-        for elem in bot.get_servers():
-            if elem.id == data["server_id"]:
-                server = elem
-                break
-
-        if not server:
-            print("Could not find server id %s" % data["server_id"])
-            return None
+    async def deserialize(bot, data, hook):
+        # Get the server and channel
+        server, chan = RoleSelectorInterval.get_server_chan(bot, data)
+        if not server or not chan:
+            return
 
         # Get the roles
         first_role = dutils.get_role_by_id(server, data["first_role_id"])
@@ -479,9 +561,6 @@ class RoleSelectorInterval(RoleSelector):
             )
             return None
 
-        # Get the channel
-        chan = dutils.get_channel_by_id(server, data["channel_id"])
-
         # Create the selector
         selector = RoleSelectorInterval(
             server,
@@ -490,22 +569,9 @@ class RoleSelectorInterval(RoleSelector):
             last_role.name,
             data["title"],
             data["max_selectable"],
+            hook,
         )
 
-        # Set selector page
-        selector.shown_page = data["shown_page"]
-
-        # Rebuild message cache
-        msg_id = data["msg_id"]
-
-        # Get the saved message and set it
-        msg = await chan.async_get_message(msg_id)
-        selector.msg = msg
-
-        # Add message to backend cache
-        bot.backend.add_msg_to_cache(msg)
-
-        # Remove reacts from other people
-        await selector.reset_reacts(bot)
+        await selector.finish_deserialize(bot, data)
 
         return selector

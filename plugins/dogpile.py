@@ -1,15 +1,17 @@
 import pprint
-from spanky.plugin import hook
+from spanky.hook2 import Hook
 from collections import deque
 from googleapiclient.discovery import build
 from spanky.utils import discord_utils as dutils
 from spanky.hook2.event import EventType
 
-LARROW = u"\U0001F448"
-RARROW = u"\U0001F449"
+hook = Hook("plugin_dogpile", handler_queue_limit=500)
+
+LARROW = "\U0001F448"
+RARROW = "\U0001F449"
 dev_key = None
 dev_cx = None
-search_results = deque(maxlen=500)
+# search_results = deque(maxlen=500)
 
 
 class CSEResult:
@@ -65,8 +67,6 @@ class SearchResult:
         self.search_term = search_term
         self.footer = "Search author: %s" % event.author.name
 
-        search_results.append(self)
-
     async def send_msg(self):
         if len(self.urls) == 0:
             await self.async_send_message("No results found")
@@ -107,6 +107,7 @@ class SearchResult:
 
         if updated_message:
             self.msg = updated_message
+            hook.add_temporary_msg_react(self.msg.id, self.react_handler)
 
         if new_message is None:
             await self.msg.async_add_reaction(LARROW)
@@ -127,8 +128,15 @@ class SearchResult:
 
         await self.send_msg()
 
+    async def react_handler(self, event):
+        # Handle the event
+        await self.handle_emoji(event)
 
-@hook.on_start()
+        # Remove the reaction
+        await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
+
+
+@hook.event(EventType.on_start)
 def load_key(bot):
     global dev_key
     global dev_cx
@@ -195,22 +203,3 @@ async def g(text, async_send_message, event):
     )
 
     await SearchResult(res, async_send_message, text, event, images=False).send_msg()
-
-
-@hook.event(EventType.reaction_add)
-async def parse_react(bot, event):
-    # Check if the reaction was made on a message that contains a search result
-    found = None
-    for res in search_results:
-        if res.msg and res.msg.id == event.msg.id:
-            found = res
-            break
-
-    if not found:
-        return
-
-    # Handle the event
-    await found.handle_emoji(event)
-
-    # Remove the reaction
-    await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)

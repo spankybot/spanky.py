@@ -11,7 +11,7 @@ RANDOM = "🔢"
 TIMEOUT = 2
 # elements = deque(maxlen=10)
 
-hook = Hook("paged_content", handler_queue_limit=20)
+hook = Hook("paged_content")
 
 
 class element:

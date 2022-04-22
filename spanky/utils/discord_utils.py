@@ -387,7 +387,7 @@ def prepare_embed(
 def parse_message_link(msglink: str):
     """
     Parses a message link:
-    https://discord.com/channels/server_id/chan_id/msg_id"
+    https://discord.com/channels/server_id/chan_id/msg_id
     """
 
     if msglink.startswith("https://discordapp.com/channels/") or msglink.startswith(

@@ -50,7 +50,7 @@ class Hook:
         *,
         storage_name: str = "",
         parent_hook: Optional[Hook] = None,
-        handler_queue_limit: int = 15,
+        handler_queue_limit: int = 50,
     ):
         self.hook_id: str = hook_id
 
@@ -323,6 +323,34 @@ class Hook:
     def del_msg_react(self, msg_id: str):
         self.del_temporary_msg_react(msg_id)
         self.del_permanent_msg_react(msg_id)
+        for child in self.children:
+            child.del_msg_react(msg_id)
+
+    @property
+    def temporary_msg_react_handlers(self) -> list[MessageReact]:
+        rez = self.rolling_handlers.copy()
+        for child in self.children:
+            rez.extend(child.temporary_msg_react_handlers)
+        return rez
+
+    def find_temporary_msg_react(self, msg_id: str) -> Optional[MessageReact]:
+        # TODO: Test
+        handlers = self.temporary_msg_react_handlers
+        if msg_id in handlers:
+            return handlers[handlers.index(msg_id)]
+
+    @property
+    def permanent_msg_react_handlers(self) -> list[MessageReact]:
+        rez = self.permanent_handlers.copy()
+        for child in self.children:
+            rez.extend(child.permanent_msg_react_handlers)
+        return rez
+
+    def find_permanent_msg_react(self, msg_id: str) -> Optional[MessageReact]:
+        # TODO: Test
+        handlers = self.permanent_msg_react_handlers
+        if msg_id in handlers:
+            return handlers[handlers.index(msg_id)]
 
     # Server Storage
     def server_storage(self, server_id: Optional[str]):

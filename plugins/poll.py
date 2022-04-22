@@ -4,20 +4,27 @@ import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
 
 from spanky.hook2.event import EventType
-from spanky.plugin import hook
+from spanky.hook2 import Hook
 from spanky.plugin.permissions import Permission
 
 import nextcord.errors as nextcord_err
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from spanky.bot import Bot
+
+hook = Hook("plugin_poll")
+
 MSG_TIMEOUT = 3
-active_polls = {}
+active_polls: dict[str, list["Poll"]] = {}
 
 
 class Poll(carousel.Selector):
     class InvalidMessage(Exception):
         pass
 
-    def __init__(self, server, channel, title, items, storage):
+    def __init__(self, server, channel, title, items, storage, hook: Hook):
         self.server = server
         self.channel = channel
 
@@ -61,7 +68,15 @@ class Poll(carousel.Selector):
 
             item_dict[item] = add_vote
 
-        super(Poll, self).__init__(title=title, footer="", call_dict=item_dict)
+        super(Poll, self).__init__(
+            title=title,
+            footer="",
+            call_dict=item_dict,
+            server=server,
+            channel=channel,
+            hook=hook,
+            selector_type=carousel.SelectorType.PERMANENT,
+        )
 
         if server.id not in active_polls:
             active_polls[server.id] = []
@@ -91,36 +106,27 @@ class Poll(carousel.Selector):
 
     def serialize(self):
         # Create poll element
-        elem = {}
+        elem = super().serialize()
         elem["title"] = self.title
         elem["items"] = self.items
-        elem["server_id"] = self.server.id
-        elem["channel_id"] = self.channel.id
-        elem["msg_id"] = self.get_msg_id()
         elem["is_active"] = self.is_active
         elem["voted"] = self.voted
         elem["score"] = self.score
-        elem["shown_page"] = self.shown_page
 
         return elem
 
     @staticmethod
-    async def deserialize(bot, data, storage):
+    async def deserialize(bot: "Bot", data, storage, hook: Hook):
         # Don't rebuild inactive polls
         if not data["is_active"]:
             print("Poll inactive")
             return None
 
-        # Get the server
-        server = None
-        for elem in bot.get_servers():
-            if elem.id == data["server_id"]:
-                server = elem
-                break
-
+        server, chan = Poll.get_server_chan(bot, data)
         if not server:
-            print("Could not find server id %s" % data["server_id"])
             return None
+        if not chan:
+            raise Poll.InvalidMessage("Invalid channel.")
 
         # Rebuild message cache
         msg_id = data["msg_id"]
@@ -129,64 +135,16 @@ class Poll(carousel.Selector):
             print(data)
             raise Poll.InvalidMessage("Invalid message ID.")
 
-        # Get the channel
-        chan = dutils.get_channel_by_id(server, data["channel_id"])
-
-        if not chan:
-            raise Poll.InvalidMessage("Invalid channel.")
-
         # Create the object
-        poll = Poll(server, chan, data["title"], data["items"], storage)
+        poll = Poll(server, chan, data["title"], data["items"], storage, hook)
 
-        # Get the saved message and set it
-        msg = await chan.async_get_message(msg_id)
-        poll.msg = msg
-
-        # Add message to backend cache
-        bot.backend.add_msg_to_cache(msg)
-
-        print(msg_id)
-
-        # Remove reacts from other people
-        await poll.reset_reacts(bot)
-
-        # Set other fields
         poll.is_active = data["is_active"]
         poll.voted = data["voted"]
         poll.score = data["score"]
-        poll.shown_page = data["shown_page"]
+
+        await poll.finish_deserialize(bot, data)
 
         return poll
-
-
-@hook.event(EventType.reaction_add)
-async def parse_react(bot, event):
-    print("react")
-    if event.server.id not in active_polls:
-        return
-
-    # Check if the reaction was made on a message that contains a selector
-    found_poll = None
-
-    for poll in active_polls[event.server.id]:
-        if poll.has_msg_id(event.msg.id):
-            found_poll = poll
-            break
-
-    if not found_poll:
-        return
-
-    print(found_poll)
-
-    # Handle the event
-    try:
-        await found_poll.handle_emoji(event)
-    except:
-        import traceback
-        traceback.print_exc()
-
-    # Remove the reaction
-    await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
 
 
 def sync_polls(storage, server):
@@ -223,7 +181,7 @@ async def create_poll(text, event, storage, async_send_message, server):
     poll = Poll(event.server, event.channel, options[0], options[1:], storage)
 
     # Send it
-    await poll.do_send(event, cache_it=False)
+    await poll.do_send(event)  # , cache_it=False)
 
     # Sync all polls
     sync_polls(storage, server)
@@ -276,6 +234,7 @@ async def close_poll(text, storage, async_send_message, server):
 
     await async_send_message("Could not find the given poll")
 
+
 async def rebuild_poll(bot, key, poll, storage):
     try:
         return await Poll.deserialize(bot, poll, storage)
@@ -287,11 +246,14 @@ async def rebuild_poll(bot, key, poll, storage):
         storage.sync()
     except Exception as e:
         import traceback
+
         traceback.print_exc()
+
 
 import asyncio
 
-@hook.on_connection_ready()
+
+@hook.event(EventType.on_conn_ready)
 async def rebuild_poll_selectors(bot, storage_getter):
     tasks = []
     for server in bot.backend.get_servers():
