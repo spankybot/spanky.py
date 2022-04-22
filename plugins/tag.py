@@ -159,7 +159,7 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
 
     if tag == "list":
         paged_content = paged.element(
-            sorted(f"`{el}`" for el in sorted(list(storage) * 200)),
+            sorted(f"`{el}`" for el in sorted(list(storage))),
             async_send_message,
             description="Tags:",
             max_lines=100,
