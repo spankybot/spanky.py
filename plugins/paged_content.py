@@ -24,6 +24,7 @@ class element:
         max_line_len=200,
         no_timeout=False,
         with_quotes=True,
+        line_separator="\n",
     ):
         self.max_lines = max_lines
         self.crt_idx = 0
@@ -34,6 +35,8 @@ class element:
 
         self.send = send_func
         self.with_quotes = with_quotes
+
+        self.line_separator = line_separator
 
         self.parsed_lines = []
         for line in text_list:
@@ -63,9 +66,9 @@ class element:
 
         output = ""
         if self.with_quotes:
-            output = page_header + "```" + "\n".join(tlist) + "```"
+            output = page_header + "```" + self.line_separator.join(tlist) + "```"
         else:
-            output = page_header + "\n".join(tlist)
+            output = page_header + self.line_separator.join(tlist)
         msg = await self.send(output)
         self.register(msg.id)
 

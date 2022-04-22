@@ -9,16 +9,22 @@ import random
 import string
 import nextcord
 
+import plugins.paged_content as paged
+
 from typing import Optional, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from spanky.hook2.storage import dsdict
 
-LARROW = u"⬅"
-RARROW = u"➡"
+LARROW = "⬅"
+RARROW = "➡"
 MAX_LEN = 500
 
+
 class Tag:
-    def __init__(self, name: str, ttype: str, location: Optional[str], content: str, storage):
+    def __init__(
+        self, name: str, ttype: str, location: Optional[str], content: str, storage
+    ):
         self.name = name
         self.storage: dsdict = storage
         self.entry = storage[self.name]
@@ -29,7 +35,7 @@ class Tag:
             self.location = location
         else:
             self.content = content
-    
+
     def save(self):
         self.storage[self.name] = {}
         self.storage[self.name]["type"] = self.type
@@ -61,14 +67,16 @@ class Tag:
     def create_picture(tag_name: str, url: str, storage, storage_loc: str):
         if tag_name in storage:
             raise NameError(f"Tag with name {repr(tag_name)} already exists!")
-        filename = "".join(random.choice(string.ascii_letters + string.digits) for i in range(10))
+        filename = "".join(
+            random.choice(string.ascii_letters + string.digits) for i in range(10)
+        )
         ext = url.split(".")[-1]
 
         fname = f"{filename}.{ext}"
         os.system(f"mkdir -p {storage_loc}")
         with open(storage_loc + fname, "wb") as f:
             f.write(requests.get(url).content)
-    
+
         t = Tag(tag_name, "picture", fname, "", storage)
         t.save()
         return t
@@ -84,11 +92,12 @@ class Tag:
 
 def save_picture(url, tag_name, message, storage, storage_loc):
     try:
-        Tag.create_picture(tag_name, url, storage, storage_loc)    
+        Tag.create_picture(tag_name, url, storage, storage_loc)
     except NameError as e:
         message(str(e))
     except:
         import traceback
+
         traceback.print_exc()
         del storage[tag_name]
 
@@ -137,36 +146,6 @@ def get_page_for(content, page_len):
         print(str(e))
 
 
-@hook.event(EventType.reaction_add)
-async def do_page(bot, event, storage, send_message):
-    if event.msg.author.id != bot.get_own_id():
-        return
-
-    if (
-        event.reaction.emoji.name == LARROW or event.reaction.emoji.name == RARROW
-    ) and event.msg.text.startswith("Tags"):
-        crt_page = int(re.search(r"Tags (.*?)/", event.msg.text).group(1))
-        tot_pages = int(re.search(r"/(.*?):", event.msg.text).group(1))
-
-        if event.reaction.emoji.name == RARROW and crt_page + 1 <= tot_pages:
-            crt_page += 1
-        elif event.reaction.emoji.name == LARROW and crt_page > 1:
-            crt_page -= 1
-        else:
-            await event.msg.async_remove_reaction(
-                event.reaction.emoji.name, event.author
-            )
-            return
-
-        await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
-
-        content = get_page_for(sorted(list(storage)), MAX_LEN)
-        send_message(
-            "Tags %d/%d: %s" % (crt_page, tot_pages, content[crt_page - 1]),
-            event.channel.id,
-        )
-
-
 @hook.command()
 async def tag(text, send_file, storage, storage_loc, async_send_message):
     """
@@ -179,15 +158,16 @@ async def tag(text, send_file, storage, storage_loc, async_send_message):
     tag = text[0]
 
     if tag == "list":
-        content = get_page_for(sorted(list(storage)), MAX_LEN)
-        if len(content) > 1:
-            message = await async_send_message(
-                "Tags 1/%d: %s" % (len(content), content[0])
-            )
-            await message.async_add_reaction(LARROW)
-            await message.async_add_reaction(RARROW)
-        else:
-            await async_send_message("Tags: %s" % content[0])
+        paged_content = paged.element(
+            sorted(f"`{el}`" for el in sorted(list(storage) * 200)),
+            async_send_message,
+            description="Tags:",
+            max_lines=100,
+            with_quotes=False,
+            no_timeout=True,
+            line_separator=", ",
+        )
+        await paged_content.get_crt_page()
     else:
         msg = ""
         if tag == "random":
