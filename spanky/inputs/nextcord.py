@@ -8,9 +8,7 @@ import traceback
 import random
 import collections
 import requests
-import json
 import abc
-from gc import collect
 from spanky.utils.image import Image
 from spanky.utils import time_utils
 from spanky.utils import discord_utils as dutils
@@ -19,6 +17,10 @@ from nextcord.interactions import Interaction
 import nextcord.application_command as ac
 from spanky.data2 import res
 
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from spanky.bot import Bot
 
 logger = logging.getLogger("nextcord")
 logger.setLevel(logging.DEBUG)
@@ -37,12 +39,22 @@ intents.typing = False
 allowed_mentions = nextcord.AllowedMentions(everyone=False, users=True, roles=True)
 
 client = nextcord.Client(intents=intents, allowed_mentions=allowed_mentions)
-bot = None
+bot: "Bot" = None
 bot_replies = {}
 to_delete = {}
 emojis = res.load_json("twemoji_800x800")
 raw_msg_cache = {}  # message cache that we use to map msg_id to msg
 
+
+slash_logger = logging.getLogger("slash_commands")
+slash_logger.setLevel(logging.DEBUG)
+slash_log_handler = logging.FileHandler(
+    filename="slash_commands.log", encoding="utf-8", mode="w"
+)
+slash_log_handler.setFormatter(
+    logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+)
+slash_logger.addHandler(slash_log_handler)
 
 # TODO plp
 # slash commands
@@ -69,7 +81,7 @@ class Init:
         await client.connect()
         print("Connected to Discord.")
 
-    def get_servers(self):
+    def get_servers(self) -> list["Server"]:
         servers = []
         for server in client.guilds:
             servers.append(Server(server))
@@ -79,7 +91,7 @@ class Init:
     def get_own_id(self):
         return str(self.client.user.id)
 
-    def get_bot_roles_in_server(self, server):
+    def get_bot_roles_in_server(self, server) -> list["Role"]:
         roles = server._raw.get_member(client.user.id).roles
         rlist = []
 
@@ -91,7 +103,7 @@ class Init:
     def add_msg_to_cache(self, msg):
         raw_msg_cache[msg.id] = msg
 
-    def get_server_by_id(self, server_id: str):
+    def get_server_by_id(self, server_id: str) -> Optional["Server"]:
         """
         Gets a server by given ID.
         """
@@ -104,7 +116,7 @@ class Init:
         Registers all slash commands.
         """
         for server_id, cmd_dict in self._slash_cmds.items():
-            print(f"Registering for {server_id}")
+            slash_logger.info(f"Registering for {server_id}")
             for server in self.get_servers():
                 if server.id != str(server_id):
                     continue
@@ -117,16 +129,16 @@ class Init:
                 # Unregister nonexistent commands
                 for app in crt_apps:
                     if app.name not in cmd_dict.keys():
-                        print(f"Unregistering app {app.name}")
+                        slash_logger.info(f"Unregistering app {app.name}")
                         for cmd_id in app.command_ids.values():
                             appcmd = server._raw._state.get_application_command(
                                 int(cmd_id)
                             )
                             if appcmd:
-                                print("Found a signature")
+                                slash_logger.info("Found a signature")
                                 server._raw._state.remove_application_command(appcmd)
                             else:
-                                print("Didn't find signature")
+                                slash_logger.info("Didn't find signature")
 
                 # Rematch existing commands
                 # TODO plp: this calls discord again as done above
@@ -145,11 +157,11 @@ class Init:
                     if len(appcmd.command_ids) != 0 and set(
                         appcmd.command_ids.values()
                     ).issubset(app_ids):
-                        print(f"App {hook_name} already registered")
+                        slash_logger.info(f"App {hook_name} already registered")
                         continue
 
                     # Register the new application
-                    print(f"Registering app {hook_name}")
+                    slash_logger.info(f"Registering app {hook_name}")
                     await server._raw._state.register_application_command(
                         appcmd, server._raw.id
                     )
@@ -210,7 +222,7 @@ class Init:
         Returns True on error, False othewise.
         """
         prefix = "\t" * level
-        print(f"Tree: {prefix} {node.name}")
+        slash_logger.debug(f"Tree: {prefix} {node.name}")
 
         if level >= 3:
             print(
@@ -223,7 +235,7 @@ class Init:
             async def cmd(interaction, **kwargs):
                 await call_func(bot.on_slash, interaction, kwargs)
 
-            print(f"Adding {node.name} to {parent_func.name}")
+            slash_logger.debug(f"Adding {node.name} to {parent_func.name}")
             self.decorate_command(cmd, node)
 
             parent_func = parent_func.subcommand(name=node.name)(cmd)
@@ -908,7 +920,7 @@ class Message:
 
 
 class User:
-    def __init__(self, obj):
+    def __init__(self, obj: nextcord.User | nextcord.Member):
         self.nick = obj.display_name
         self.name = obj.name
         self.id = str(obj.id)
@@ -920,14 +932,14 @@ class User:
             # TODO
             pass
 
-        self.roles = []
+        self.roles: list["Role"] = []
         if hasattr(obj, "roles"):
             for role in obj.roles:
                 if role.name == "@everyone":
                     continue
                 self.roles.append(Role(role))
 
-        self.bot_owner = False
+        self.bot_owner: bool = False
         global bot
         if "bot_owners" in bot.config and self.id in bot.config["bot_owners"]:
             self.bot_owner = True
@@ -1025,7 +1037,7 @@ class User:
 
 
 class Channel:
-    def __init__(self, obj):
+    def __init__(self, obj: nextcord.TextChannel | nextcord.threads.Thread):
         self.name = None
         if hasattr(obj, "name"):
             self.name = obj.name
@@ -1139,7 +1151,7 @@ class Category:
     def __repr__(self):
         return self.name
 
-    def __init__(self, obj):
+    def __init__(self, obj: nextcord.CategoryChannel):
         self._raw = obj
         self.name = obj.name
         self.id = obj.id
@@ -1151,7 +1163,7 @@ class Category:
 
 
 class Server:
-    def __init__(self, obj):
+    def __init__(self, obj: nextcord.Guild):
         self.name = obj.name
         self.id = str(obj.id)
         self._raw = obj
@@ -1175,14 +1187,15 @@ class Server:
             return Role(role)
         return None
 
-    def get_role_ids(self):
+    # TODO: Unused. Mark for deletion
+    def get_role_ids(self) -> list[str]:
         ids = []
         for role in self._raw.roles:
-            ids.append(role.id)
+            ids.append(str(role.id))
 
         return ids
 
-    def get_users(self):
+    def get_users(self) -> list["User"]:
         users = []
 
         for user in self._raw.members:
@@ -1200,7 +1213,7 @@ class Server:
             return User(user)
         return None
 
-    def get_chans(self):
+    def get_chans(self) -> list["Channel"]:
         chans = []
 
         for chan in self._raw.text_channels:
@@ -1218,7 +1231,7 @@ class Server:
             return Channel(chan)
         return None
 
-    async def get_bans(self):
+    async def get_bans(self) -> list["User"]:
         bans = await self._raw.bans()
 
         ulist = []
@@ -1231,10 +1244,11 @@ class Server:
         for cat in self._raw.categories:
             yield Category(cat)
 
+    # Unused, TODO: Should be deleted?
     def find_category_by_name(self, name):
         for cat in self._raw.categories:
             if cat.name.lower() == name.lower():
-                return cat
+                return Category(cat)
 
         return None
 
@@ -1295,7 +1309,7 @@ class Server:
         print("Could not find role %s to delete" % role_id)
 
     @property
-    def banner_url(self):
+    def banner_url(self) -> str:
         return self._raw.banner.url
 
     @property
@@ -1312,7 +1326,7 @@ class Server:
         for emoji in self._raw.emojis:
             yield Emoji(emoji)
 
-    def get_emoji(self, emoji_id):
+    def get_emoji(self, emoji_id) -> Optional["Emoji"]:
         for emoji in self._raw.emojis:
             if str(emoji.id) == str(emoji_id):
                 return Emoji(emoji)
@@ -1335,7 +1349,7 @@ class Role:
             return True
         return False
 
-    def __init__(self, obj):
+    def __init__(self, obj: nextcord.Role):
         self.name = obj.name
         self.id = str(obj.id)
         self.position = obj.position
@@ -1345,7 +1359,7 @@ class Role:
         self._raw = obj
 
     @property
-    def members(self):
+    def members(self) -> list["User"]:
         users = []
         for user in self._raw.members:
             users.append(User(user))
@@ -1374,7 +1388,7 @@ class Embed:
 
 
 class Reaction:
-    def __init__(self, obj):
+    def __init__(self, obj: nextcord.Reaction):
         self.emoji = Emoji(obj.emoji)
 
         self.count = 1
@@ -1392,7 +1406,7 @@ class Reaction:
 
 
 class Emoji:
-    def __init__(self, obj):
+    def __init__(self, obj: str | nextcord.Emoji | nextcord.PartialEmoji):
         if isinstance(obj, str):
             self.name = obj
             self.id = None
@@ -1563,7 +1577,7 @@ async def on_raw_reaction_add(reaction):
         if reaction.member.id == client.user.id:
             return
 
-        print("raw react" + str(reaction.member.id))
+        print("raw react", str(reaction.member.id))
 
         # Fetch the message
         msg_id = str(reaction.message_id)
@@ -1579,6 +1593,7 @@ async def on_raw_reaction_add(reaction):
         await call_func(bot.on_reaction_add, reaction, reaction.member)
     except:
         import traceback
+
         traceback.print_exc()
 
 

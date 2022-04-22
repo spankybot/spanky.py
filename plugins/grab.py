@@ -146,29 +146,37 @@ async def grabl(event, storage, async_send_message, str_to_id, user_id_to_name, 
         paged_content = paged.element(content, async_send_message, description)
         await paged_content.get_crt_page()
 
+
 @hook.command(permissions="admin")
 async def export_grabs(storage, event, reply):
     try:
         import csv, nextcord, io
+
         out_file = io.StringIO(newline="")
-        field_names = [
-            'Author ID',
-            'Author Name',
-            'Text'
-        ]
+        field_names = ["Author ID", "Author Name", "Text"]
         writer = csv.DictWriter(out_file, field_names, extrasaction="ignore")
         writer.writeheader()
-        
+
         all_grabs = []
 
         for grab in storage["grabs"]:
-            all_grabs.append({"Author ID": grab["author_id"], "Author Name": grab["author_name"], "Text": grab["text"]})
+            all_grabs.append(
+                {
+                    "Author ID": grab["author_id"],
+                    "Author Name": grab["author_name"],
+                    "Text": grab["text"],
+                }
+            )
 
         all_grabs.sort(key=lambda x: x["Author ID"])
         for grab in all_grabs:
             writer.writerow(grab)
 
-        await event.async_send_file(nextcord.File(fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"))
+        await event.async_send_file(
+            nextcord.File(
+                fp=io.BytesIO(out_file.getvalue().encode("utf-8")), filename="data.csv"
+            )
+        )
 
     except Exception as e:
         reply("Couldn't export grabs: %s" % repr(e))

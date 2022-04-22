@@ -5,13 +5,13 @@ import time
 from collections import deque
 from spanky.hook2 import Hook, EventType
 
-LARROW = u"⬅"
-RARROW = u"➡"
-RANDOM = u"🔢"
-TIMEOUT = 5
-elements = deque(maxlen=10)
+LARROW = "⬅"
+RARROW = "➡"
+RANDOM = "🔢"
+TIMEOUT = 2
+# elements = deque(maxlen=10)
 
-hook = Hook("paged_content")
+hook = Hook("paged_content", handler_queue_limit=20)
 
 
 class element:
@@ -45,10 +45,9 @@ class element:
                 self.parsed_lines.append(line)
 
         self.id = None
-        elements.append(self)
 
-    def set_msg_id(self, msg_id):
-        self.id = msg_id
+    def register(self, msg_id):
+        add_handler(msg_id, self)
 
     async def get_crt_page(self):
         tlist = self.parsed_lines[self.crt_idx : self.crt_idx + self.max_lines]
@@ -68,7 +67,7 @@ class element:
         else:
             output = page_header + "\n".join(tlist)
         msg = await self.send(output)
-        self.set_msg_id(msg.id)
+        self.register(msg.id)
 
         # Add arrow emojis
         if with_arrows:
@@ -101,24 +100,13 @@ class element:
         await self.get_crt_page()
 
 
-@hook.event(EventType.reaction_add)
-async def do_page(bot, event):
-    if event.msg.author.id != bot.get_own_id():
-        return
-
-    if (
-        event.reaction.emoji.name == LARROW
-        or event.reaction.emoji.name == RARROW
-        or event.reaction.emoji.name == RANDOM
-    ):
-
-        content = None
-        for msg in elements:
-            if event.msg.id == msg.id:
-                content = msg
-                break
-
-        if not content:
+def add_handler(msg_id: str, content: element):
+    async def handler(event):
+        if not (
+            event.reaction.emoji.name == LARROW
+            or event.reaction.emoji.name == RARROW
+            or event.reaction.emoji.name == RANDOM
+        ):
             return
 
         await event.msg.async_remove_reaction(event.reaction.emoji.name, event.author)
@@ -137,3 +125,5 @@ async def do_page(bot, event):
 
         if event.reaction.emoji.name == RANDOM:
             await content.get_random_page()
+
+    hook.add_temporary_msg_react(msg_id, handler)

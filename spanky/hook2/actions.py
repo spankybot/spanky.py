@@ -2,6 +2,11 @@ from .event import EventType
 
 from spanky.inputs.nextcord import EventPeriodic
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Optional
+
 
 class Action:
     """Action is the base class for an action"""
@@ -19,6 +24,10 @@ class Action:
             self.server_id = event.server_id
         if hasattr(event, "server"):
             self.server_id = event.server.id
+
+        self.msg = None
+        if hasattr(event, "msg"):
+            self.msg = event.msg
 
     def __str__(self):
         return f"Action[{self.event_type=!s} {self.server_id=}]"

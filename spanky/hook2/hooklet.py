@@ -6,12 +6,13 @@ import time
 import nextcord
 
 from spanky.hook2.slash import SArg
+from spanky.inputs.nextcord import Message
 
 if TYPE_CHECKING:
-    from .hook2 import Hook
-    from .actions import Action, ActionCommand
+    from .hook2 import Hook, MiddlewareFunc
+    from .actions import Action, ActionCommand, ActionEvent
     from .event import EventType
-    from asyncio import Task
+    from typing import Optional, Any
 from enum import Enum
 from spanky.hook2 import storage
 from . import arg_parser
@@ -204,14 +205,20 @@ class Event(Hooklet):
         else:
             self.event_types = [event_type]
 
-    def __str__(self):
-        return f"EventHooklet[{self.event_types=}]"
 
-    async def handle(self, action: ActionEvent):
-        #print(f"Start Event handle for hooklet {self.hooklet_id}, action {action!s}")
-        await super().handle(action)
-        #print(f"!!END Event handle for hooklet {self.hooklet_id}, action {action!s}")
+class MessageReact(Hooklet):
+    def __init__(self, hook: Hook, msg_id: str, func):
+        super().__init__(
+            hook, f"{hook.hook_id}_msg_react_{msg_id}_{func.__name__}", func
+        )
+        self.msg_id: str = msg_id
 
+    def __eq__(self, other) -> bool:
+        if isinstance(other, MessageReact):
+            return self.msg_id == other.msg_id
+        if isinstance(other, str):
+            return self.msg_id == other
+        return False
 
 
 class MiddlewareType(Enum):
@@ -236,7 +243,7 @@ class Middleware(Hooklet):
 
     async def handle(
         self, action: ActionCommand, hooklet: Command
-    ) -> (MiddlewareResult, str):
+    ) -> tuple[MiddlewareResult, str]:
         if inspect.iscoroutinefunction(self.func):
             rez = await self.func(action, hooklet)
         else:

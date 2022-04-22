@@ -3,19 +3,24 @@ import io
 import random
 import string
 
+from typing import TYPE_CHECKING
 
-def get_user_by_id(server, uid):
+if TYPE_CHECKING:
+    from spanky.inputs.nextcord import Server, User
+
+
+def get_user_by_id(server: "Server", uid):
     return server.get_user(uid)
 
 
-def get_user_by_name(server, name):
+def get_user_by_name(server: "Server", name: str):
     for u in server.get_users():
         if u.name == name:
             return u
     return None
 
 
-def get_user_by_id_or_name(server, uid_or_name):
+def get_user_by_id_or_name(server: "Server", uid_or_name):
     by_id = get_user_by_id(server, str_to_id(uid_or_name))
     if not by_id:
         return get_user_by_name(server, uid_or_name)
@@ -23,11 +28,11 @@ def get_user_by_id_or_name(server, uid_or_name):
     return by_id
 
 
-def get_role_by_id(server, rid):
+def get_role_by_id(server: "Server", rid):
     return server.get_role(rid)
 
 
-def get_role_by_name(server, rname):
+def get_role_by_name(server: "Server", rname):
     for r in server.get_roles():
         if r.name == rname:
             return r
@@ -35,32 +40,32 @@ def get_role_by_name(server, rname):
     return None
 
 
-def get_role_by_id_or_name(server, rid_or_name):
+def get_role_by_id_or_name(server: "Server", rid_or_name):
     by_id = get_role_by_id(server, str_to_id(rid_or_name))
     if not by_id:
         return get_role_by_name(server, rid_or_name)
     return by_id
 
 
-def get_channel_by_id(server, cid):
+def get_channel_by_id(server: "Server", cid):
     return server.get_chan(cid)
 
 
-def get_channel_by_name(server, cname):
+def get_channel_by_name(server: "Server", cname: str):
     for chan in server.get_chans():
         if chan.name == cname:
             return chan
     return None
 
 
-def get_channel_by_id_or_name(server, cid_or_name):
+def get_channel_by_id_or_name(server: "Server", cid_or_name):
     by_id = get_channel_by_id(server, str_to_id(cid_or_name))
     if not by_id:
         return get_channel_by_name(server, cid_or_name)
     return by_id
 
 
-def str_to_id(string):
+def str_to_id(string: str):
     return (
         string.strip()
         .replace("@", "")
@@ -77,7 +82,7 @@ def code_block(msg):
     return "```\n%s\n```" % msg
 
 
-def get_roles_from_ids(ids, server):
+def get_roles_from_ids(ids: list[str], server: "Server"):
     roles = {}
     for srole in server.get_roles():
         if srole.id in ids:
@@ -85,7 +90,7 @@ def get_roles_from_ids(ids, server):
     return roles
 
 
-def get_role_names_between(start_role, end_role, server):
+def get_role_names_between(start_role, end_role, server: "Server"):
     list_roles = {}
     # Get starting and ending positions of listed roles
     for srole in server.get_roles():
@@ -102,7 +107,7 @@ def get_role_names_between(start_role, end_role, server):
     return list_roles
 
 
-def get_roles_between(start_role, end_role, server):
+def get_roles_between(start_role, end_role, server: "Server"):
     list_roles = []
     # Get starting and ending positions of listed roles
     for srole in server.get_roles():
@@ -119,7 +124,7 @@ def get_roles_between(start_role, end_role, server):
     return sorted(list_roles, key=lambda m: m.name)
 
 
-def get_roles_between_including(start_role, end_role, server):
+def get_roles_between_including(start_role, end_role, server: "Server"):
     list_roles = []
     # Get starting and ending positions of listed roles
     for srole in server.get_roles():
@@ -136,7 +141,7 @@ def get_roles_between_including(start_role, end_role, server):
     return sorted(list_roles, key=lambda m: m.name)
 
 
-def user_roles_from_list(user, rlist):
+def user_roles_from_list(user: "User", rlist):
     """
     Given a role list `rlist` return what subset is assigned to the user
     """
@@ -155,7 +160,7 @@ def user_roles_from_list(user, rlist):
     return common
 
 
-def user_has_role_name(user, rname):
+def user_has_role_name(user: "User", rname):
     """
     Given a role name return True if user has the role, False otherwise
     """
@@ -167,7 +172,7 @@ def user_has_role_name(user, rname):
     return False
 
 
-def user_has_role_id(user, rid):
+def user_has_role_id(user: "User", rid):
     """
     Given a role id return True if user has the role, False otherwise
     """
@@ -379,7 +384,7 @@ def prepare_embed(
     return em
 
 
-def parse_message_link(msglink):
+def parse_message_link(msglink: str):
     """
     Parses a message link:
     https://discord.com/channels/server_id/chan_id/msg_id"
@@ -395,10 +400,10 @@ def parse_message_link(msglink):
         return None, None, None
 
 
-def return_message_link(server_id, channel_id, msg_id):
+def return_message_link(server_id: str, channel_id: str, msg_id: str):
     """
     Returns a message link:
-    https://discord.com/channels/server_id/chan_id/msg_id"
+    https://discord.com/channels/server_id/chan_id/msg_id
     """
 
     return "https://discord.com/channels/%s/%s/%s" % (server_id, channel_id, msg_id)
@@ -417,7 +422,7 @@ def pil_to_bytes(image):
     return bio.getvalue()
 
 
-async def banner_from_pil(server, pil_picture):
+async def banner_from_pil(server: "Server", pil_picture):
     """
     Set a banner from a PIL image
     """

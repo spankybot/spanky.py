@@ -15,6 +15,11 @@ from spanky.hook2.actions import (
     ActionEvent,
 )
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from spanky.inputs.nextcord import Init
+
 
 logger = logging.getLogger("spanky")
 logger.setLevel(logging.DEBUG)
@@ -71,7 +76,7 @@ class Bot:
 
     async def start(self):
         # Initialize the backend module
-        self.backend = self.input.Init(self)
+        self.backend: "Init" = self.input.Init(self)
         await self.hook_manager.load()
         await self.backend.do_init()
 
@@ -83,16 +88,23 @@ class Bot:
                 def __init__(self, server):
                     self.server = server
 
-            tasks.append(asyncio.create_task(self.dispatch_action(
-                ActionEvent(self, event(server), EventType.on_ready)
-            )))
+            tasks.append(
+                asyncio.create_task(
+                    self.dispatch_action(
+                        ActionEvent(self, event(server), EventType.on_ready)
+                    )
+                )
+            )
 
         # Register slashes
         tasks.append(asyncio.create_task(self.backend.do_register_slashes()))
 
         # Run on connection ready hooks
-        tasks.append(asyncio.create_task(self.dispatch_action(
-            ActionEvent(self, {}, EventType.on_conn_ready))))
+        tasks.append(
+            asyncio.create_task(
+                self.dispatch_action(ActionEvent(self, {}, EventType.on_conn_ready))
+            )
+        )
         await asyncio.gather(*tasks)
 
         print("On ready work finished. Bot should now accept commands")
@@ -104,6 +116,9 @@ class Bot:
 
     def get_servers(self):
         return self.backend.get_servers()
+
+    def get_server(self, server_id: str):
+        return self.backend.get_server_by_id(server_id)
 
     def get_own_id(self):
         """
@@ -132,8 +147,7 @@ class Bot:
 
     async def on_message_delete(self, message):
         """On message delete external hook"""
-        evt = self.input.EventMessage(
-            EventType.message_del, message, deleted=True)
+        evt = self.input.EventMessage(EventType.message_del, message, deleted=True)
 
         await self.do_text_event(evt)
 

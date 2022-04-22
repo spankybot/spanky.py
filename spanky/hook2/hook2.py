@@ -1,10 +1,12 @@
 # Delay checking for typing (TODO: remove when bot runs on python 3.10)
 from __future__ import annotations
+from collections import deque
 
 from spanky.hook2 import storage
 from spanky.hook2.complex_cmd import ComplexCommand
 from .hooklet import (
     Command,
+    MessageReact,
     Periodic,
     Event,
     Middleware,
@@ -48,6 +50,7 @@ class Hook:
         *,
         storage_name: str = "",
         parent_hook: Optional[Hook] = None,
+        handler_queue_limit: int = 15,
     ):
         self.hook_id: str = hook_id
 
@@ -69,6 +72,10 @@ class Hook:
             self.parent_hook.add_child(self)
 
         self.children: list[Hook] = []
+
+        # Message event handler subcomponent
+        self.rolling_handlers: deque[MessageReact] = deque(maxlen=handler_queue_limit)
+        self.permanent_handlers: list[MessageReact] = []
 
     # def __del__(self):
     #    self.unload()
@@ -244,6 +251,14 @@ class Hook:
             for periodic in self.periodics.values():
                 if periodic.hooklet_id == action.target:
                     tasks.append(asyncio.create_task(periodic.handle(action)))
+        elif action.event_type is EventType.reaction_add and action.msg != None:
+            action: ActionEvent = action
+            for handler in self.permanent_handlers:
+                if handler.msg_id == action.msg.id:
+                    tasks.append(asyncio.create_task(handler.handle(action)))
+            for handler in self.rolling_handlers:
+                if handler.msg_id == action.msg.id:
+                    tasks.append(asyncio.create_task(handler.handle(action)))
 
         # Gobble all matching event coroutines
         # If it's a message in a PM, don't register the event (compatibility with hook1)
@@ -261,15 +276,13 @@ class Hook:
             tasks.append(asyncio.create_task(child.dispatch_action(action)))
 
         # We use return_exceptions so that this function can't throw
-        x = await asyncio.gather(*tasks, return_exceptions=False)
+        await asyncio.gather(*tasks, return_exceptions=False)
 
-    # Command Hooks
+    # Normal hooks
 
     def add_command(self, cmd: Command):
         self.commands[cmd.name] = cmd
-        # self.commands[func.__name__] = Command(self, func.__name__, func, **kwargs)
 
-    # Periodic Hooks
     def add_periodic(self, func, periodic: float):
         self.periodics[func.__name__] = Periodic(self, func, periodic)
 
@@ -283,6 +296,33 @@ class Hook:
             self.local_md[func.__name__] = Middleware(self, func, m_type, priority)
         else:
             self.global_md[func.__name__] = Middleware(self, func, m_type, priority)
+
+    def add_temporary_msg_react(self, msg_id: str, func):
+        if msg_id in self.rolling_handlers:  # Delete duplicate message handler
+            self.rolling_handlers.remove(msg_id)
+        self.rolling_handlers.append(MessageReact(self, msg_id, func))
+
+    def del_temporary_msg_react(self, msg_id: str):
+        if msg_id in self.rolling_handlers:
+            self.rolling_handlers.remove(msg_id)
+
+    def add_permanent_msg_react(self, msg_id: str, func):
+        # temporary handlers might be "upgraded" to permanent ones
+        # keep track of that to avoid duplication
+        # TODO: test
+        self.del_temporary_msg_react(msg_id)
+
+        if msg_id in self.permanent_handlers:  # Delete duplicate message handler
+            self.permanent_handlers.remove(msg_id)
+        self.permanent_handlers.append(MessageReact(self, msg_id, func))
+
+    def del_permanent_msg_react(self, msg_id: str):
+        if msg_id in self.permanent_handlers:
+            self.permanent_handlers.remove(msg_id)
+
+    def del_msg_react(self, msg_id: str):
+        self.del_temporary_msg_react(msg_id)
+        self.del_permanent_msg_react(msg_id)
 
     # Server Storage
     def server_storage(self, server_id: Optional[str]):
