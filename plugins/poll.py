@@ -178,7 +178,7 @@ async def create_poll(text, event, storage, async_send_message, server):
         return
 
     # Create the poll
-    poll = Poll(event.server, event.channel, options[0], options[1:], storage)
+    poll = Poll(event.server, event.channel, options[0], options[1:], storage, hook)
 
     # Send it
     await poll.do_send(event)  # , cache_it=False)
