@@ -5,7 +5,6 @@ import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
 
 from spanky.hook2 import Hook, EventType
-from collections import OrderedDict, deque
 from spanky.utils import discord_utils as dutils
 from spanky.plugin.permissions import Permission
 from spanky.utils.carousel_mgr import SelectorManager

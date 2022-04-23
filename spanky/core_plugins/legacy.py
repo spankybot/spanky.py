@@ -13,7 +13,11 @@ def check_format(action: ActionCommand, hooklet: Command):
     if len(cmd_format.split()) != len(action.text.split()):
         msg = "Invalid format"
         if hooklet.get_doc(no_format=True):
-            msg += ": " + "\n`" + hooklet.get_doc().strip() + "`"
+            doc = hooklet.get_doc().strip()
+            sep = "`"
+            if "\n" in doc:
+                sep = "```"
+            msg += ": " + "\n" + sep + doc + sep
         return MiddlewareResult.DENY, msg
 
 

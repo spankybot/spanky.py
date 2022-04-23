@@ -1132,10 +1132,10 @@ class Channel:
             if type(thing) == nextcord.Member:
                 yield User(thing), PermOverwrite(overwrite)
 
-    async def set_user_overwrite(self, user, **perms):
+    async def set_user_overwrite(self, user: User, **perms):
         await self._raw.set_permissions(user._raw, **perms)
 
-    async def remove_user_overwrite(self, user):
+    async def remove_user_overwrite(self, user: User):
         await self._raw.set_permissions(user._raw, overwrite=None)
 
     def typing(self):
@@ -1154,7 +1154,7 @@ class Category:
     def __init__(self, obj: nextcord.CategoryChannel):
         self._raw = obj
         self.name = obj.name
-        self.id = obj.id
+        self.id = str(obj.id)
 
     @property
     def channels(self):
