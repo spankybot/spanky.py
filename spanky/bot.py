@@ -3,6 +3,7 @@ import logging
 import importlib
 import time
 import asyncio
+import sys
 
 from spanky.database.db import db_data
 from spanky.hook2 import hook2
@@ -14,6 +15,8 @@ from spanky.hook2.actions import (
     ActionPeriodic,
     ActionEvent,
 )
+
+from .streamwrap import StreamWrap
 
 from typing import TYPE_CHECKING
 
@@ -31,16 +34,10 @@ fh = logging.FileHandler("audit.log")
 fh.setLevel(logging.DEBUG)
 audit.addHandler(fh)
 
-
-def print_hook_assocs(hook: hook2.Hook):
-    out = ""
-    for ch in hook.children:
-        out += f'"{hook.hook_id}"-> "{ch.hook_id}"\n{print_hook_assocs(ch)}'
-    return out
-
-
 class Bot:
     def __init__(self, input_type):
+        self.stream_wraps = StreamWrap.wraps
+
         self.user_agent = "spanky.py bot https://github.com/gc-plp/spanky.py"
         self.is_ready = False
         self.loop = asyncio.get_event_loop()

@@ -116,12 +116,13 @@ class Poll(carousel.Selector):
         return elem
 
     @staticmethod
-    async def deserialize(bot: "Bot", data, storage, hook: Hook):
+    async def deserialize(bot: "Bot", data, hook: Hook, event):
         # Don't rebuild inactive polls
         if not data["is_active"]:
             print("Poll inactive")
             return None
 
+        storage = hook.server_storage(server.id)
         server, chan = Poll.get_server_chan(bot, data)
         if not server:
             return None
@@ -142,7 +143,7 @@ class Poll(carousel.Selector):
         poll.voted = data["voted"]
         poll.score = data["score"]
 
-        await poll.finish_deserialize(bot, data)
+        await poll.finish_deserialize(bot, data, event)
 
         return poll
 
@@ -235,9 +236,9 @@ async def close_poll(text, storage, async_send_message, server):
     await async_send_message("Could not find the given poll")
 
 
-async def rebuild_poll(bot, key, poll, storage):
+async def rebuild_poll(bot, key, poll, storage, hook, event):
     try:
-        return await Poll.deserialize(bot, poll, storage)
+        return await Poll.deserialize(bot, poll, hook, event)
     except Poll.InvalidMessage:
         del storage["polls"][key]
         storage.sync()
@@ -254,7 +255,7 @@ import asyncio
 
 
 @hook.event(EventType.on_conn_ready)
-async def rebuild_poll_selectors(bot, storage_getter):
+async def rebuild_poll_selectors(bot, storage_getter, event):
     tasks = []
     for server in bot.backend.get_servers():
         storage = storage_getter(server.id)
@@ -262,7 +263,7 @@ async def rebuild_poll_selectors(bot, storage_getter):
             continue
 
         for key, poll in list(storage["polls"].items()):
-            tasks.append(asyncio.create_task(rebuild_poll(bot, key, poll, storage)))
+            tasks.append(asyncio.create_task(rebuild_poll(bot, key, poll, storage, hook, event)))
     await asyncio.gather(*tasks)
 
 
@@ -291,4 +292,4 @@ async def sanitize_polls(bot, storage_getter, server, storage):
 
     for key, val in storage["polls"].items():
         print("Rebuilding " + key)
-        await rebuild_poll(bot, key, val, storage)
+        await rebuild_poll(bot, key, val, storage, hook)

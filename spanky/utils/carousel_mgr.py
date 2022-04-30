@@ -7,7 +7,7 @@ import spanky.utils.carousel as carousel
 
 if TYPE_CHECKING:
     from spanky.bot import Bot
-    from spanky.inputs.nextcord import Server
+    from spanky.inputs.nextcord import Server, EventMessage
 
 
 class Serializable(Protocol):
@@ -15,7 +15,7 @@ class Serializable(Protocol):
         raise Exception("Not implemented")
 
     @staticmethod
-    def deserialize(bot, data) -> Any:
+    def deserialize(bot, data, hook, event) -> Any:
         raise Exception("Not implemented")
 
 
@@ -26,12 +26,12 @@ class SelectorManager:
         self.dkey = dkey  # Dict key to iterate over
         self.cls = cls
 
-    async def rebuild(self, server: "Server"):
+    async def rebuild(self, server: "Server", event):
         storage = self.hook.server_storage(server.id)
         if self.dkey in storage:
             for element in list(storage[self.dkey]):
                 try:
-                    selector = await self.cls.deserialize(self.bot, element, self.hook)
+                    selector = await self.cls.deserialize(self.bot, element, self.hook, event)
                     if not selector:
                         continue
                     selector: carousel.Selector = selector

@@ -3,6 +3,7 @@ from functools import reduce
 import nextcord
 import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
+import plugins.custom.roddit_inactive as roddit_inactive
 
 from spanky.hook2 import Hook, EventType
 from spanky.utils import discord_utils as dutils
@@ -21,6 +22,7 @@ selector_types: list[str] = [
     "simple_selectors",
     "all_chan_selectors",
     "rplace",
+    "inactives",
 ]
 
 selector_classes: dict[str, Type[carousel.Selector]] = {
@@ -29,6 +31,7 @@ selector_classes: dict[str, Type[carousel.Selector]] = {
     "simple_selectors": carousel.RoleSelector,
     "all_chan_selectors": roddit.EverythingChanSel,
     "rplace": roddit.Rplace,
+    "inactives": roddit_inactive.InactivityToggle,
 }
 
 selector_revlookup: dict[Type[carousel.Selector], str] = {
@@ -37,10 +40,61 @@ selector_revlookup: dict[Type[carousel.Selector], str] = {
     carousel.RoleSelector: "simple_selectors",
     roddit.EverythingChanSel: "all_chan_selectors",
     roddit.Rplace: "rplace",
+    roddit_inactive.InactivityToggle: "inactives",
 }
 
 selector_managers: dict[str, SelectorManager] = {}
 
+scan_running = False
+@hook.periodic(60)
+async def scan_selectors(bot):
+    global scan_running
+    if scan_running:
+        print("scan running, laterz!")
+        return
+
+    try:
+        scan_running = True
+        print("Scanning permanent selectors")
+        for selector in carousel.Selector._permanent_selectors.values():
+            await selector.scan_reacts(bot, selector.msg, force_update=False)
+
+        for selector in carousel.Selector._temporary_selectors:
+            await selector.scan_reacts(bot, selector.msg, force_update=False)
+        print("Finished.")
+    except:
+        import traceback
+        traceback.print_exc()
+    finally:
+        scan_running = False
+
+#def selector_loader(server, event):
+
+
+
+def selector_reserializer(server, selector):
+    storage = hook.server_storage(server.id)
+
+    # Only work with permanent selectors
+    if selector.selector_type != carousel.SelectorType.PERMANENT:
+        return
+
+    selector_str = selector_revlookup[type(selector)]
+    if selector_str not in storage:
+        storage[selector_str] = []
+
+    # Find which selector this is... should be a map here
+    for idx, crt_selector in enumerate(storage[selector_str]):
+        if crt_selector["msg_id"] == selector.msg.id:
+            try:
+                data = selector.serialize()
+                storage[selector_str][idx] = data
+                storage.sync()
+            except NotImplementedError:
+                return "This selector type can't be saved"
+
+# Call the above function when something changes
+carousel.Selector._storage_notifier = selector_reserializer
 
 @hook.command(permissions=Permission.admin)
 def permanent_selector(text, storage, event):
@@ -154,18 +208,19 @@ def load_managers(bot):
 
 
 @hook.command(permissions=Permission.admin)
-async def rebuild_selectors(bot):
-    await rebuild_permanent_selectors(bot)
+async def rebuild_selectors(bot, event):
+    await rebuild_permanent_selectors(bot, event)
 
 
 @hook.event(EventType.on_conn_ready)
-async def build_selectors(bot: "Bot"):
-    await rebuild_permanent_selectors(bot)
+async def build_selectors(bot: "Bot", event):
+    await rebuild_permanent_selectors(bot, event)
 
 
-async def rebuild_permanent_selectors(bot: "Bot"):
+async def rebuild_permanent_selectors(bot: "Bot", event):
     tasks = []
     for srv in bot.get_servers():
         for sel in selector_managers.values():
-            tasks.append(asyncio.create_task(sel.rebuild(srv)))
-    await asyncio.gather(*tasks)
+            tasks.append(asyncio.create_task(sel.rebuild(srv, event)))
+    #await asyncio.gather(*tasks)
+    print("Permanent selector rebuild tasks submitted to event loop")

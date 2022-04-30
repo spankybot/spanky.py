@@ -5,6 +5,9 @@ from typing import TYPE_CHECKING, Optional
 from spanky.utils import discord_utils as dutils
 from spanky.utils import time_utils as tutils
 
+from spanky.inputs.nextcord import EventReact
+from spanky.hook2.event import EventType
+
 from spanky.hook2 import Hook
 
 if TYPE_CHECKING:
@@ -65,6 +68,16 @@ class SelectorType(enum.Enum):
 
 
 class Selector:
+    # Calls the storage notifier to reserialize the selector
+    # Avoids multi-page selectors losing the current page
+    # when the bot is reset.
+    _storage_notifier = None
+
+    _selector_loader = None
+
+    _permanent_selectors = {}
+    _temporary_selectors = deque(maxlen=100)
+
     def __init__(
         self,
         title,
@@ -88,7 +101,10 @@ class Selector:
         self.server = server
         self.channel = channel
 
-        self.set_items(call_dict)
+        self.call_dict = call_dict
+        self.crt_emoji_to_func = {}
+
+        self.set_items(self.call_dict)
 
     def set_items(self, call_dict):
         self.total_pages = len(call_dict) // self.max_rows + int(
@@ -173,6 +189,10 @@ class Selector:
         return self.msg.id
 
     async def add_emojis(self):
+        if self.shown_page > len(self.embeds):
+            self.shown_page = 0
+        if len(self.embeds) == 0:
+            return
         _, emoji_to_func = self.embeds[self.shown_page]
 
         if self.total_pages > 1:
@@ -184,29 +204,48 @@ class Selector:
         for emoji in emoji_to_func.keys():
             await self.msg.async_add_reaction(emoji)
 
+    def build_emoji_lookup(self):
+        """
+        Builds the emoji lookup table.
+        """
+        try:
+            _, emoji_to_func = self.embeds[self.shown_page]
+            self.crt_emoji_to_func = emoji_to_func
+        except:
+            import traceback
+            traceback.print_exc()
+
     async def send_one_page(self, event):
-        embed, emoji_to_func = self.embeds[self.shown_page]
+        embed, _ = self.embeds[self.shown_page]
 
         new_msg = False
+        print("send one page 1")
         # Send the message
         if not self.msg:
             self.msg = await event.async_send_message(embed=embed, check_old=True)
             new_msg = True
+            print("send one page 2.1")
         else:
             await event.async_edit_message(msg=self.msg, embed=embed)
+            print("send one page 2.2")
 
-        # Save it so that we can quickly react to emotes
-        self.crt_emoji_to_func = emoji_to_func
+        # Build emoji lookup table
+        self.build_emoji_lookup()
 
         if new_msg:
             await self.add_emojis()
+
+        print("send one page 3")
+        # Notify the storage that page has changed
+        if Selector._storage_notifier:
+            Selector._storage_notifier(event.server, self)
+        print("send one page 4")
 
     async def reset_reacts(self, bot):
         await self.msg.clear_reactions()
         await self.add_emojis()
 
     async def do_send(self, event):
-
         await self.send_one_page(event)
         self.register_selector()
 
@@ -214,10 +253,15 @@ class Selector:
     def register_selector(self):
         if not self.msg:
             raise Exception("Trying to register unsent selector")
+
         if self.selector_type == SelectorType.TEMPORARY:
             self.hook.add_temporary_msg_react(self.msg.id, self.handle_react)
+            Selector._temporary_selectors.append(self)
+
         elif self.selector_type == SelectorType.PERMANENT:
             self.hook.add_permanent_msg_react(self.msg.id, self.handle_react)
+            Selector._permanent_selectors[self.msg.id] = self
+
         else:
             print("WARNING: Unknown selector type:", self.selector_type)
 
@@ -244,7 +288,6 @@ class Selector:
 
     @staticmethod
     def get_server_chan(bot: "Bot", data: dict):
-        print(data)
         server = bot.get_server(data["server_id"])
         if not server:
             print("Could not find server id %s" % data["server_id"])
@@ -257,8 +300,25 @@ class Selector:
 
         return server, chan
 
+    async def scan_reacts(self, bot, msg, force_update = False):
+
+        if force_update:
+            msg = await self.channel.async_get_message(msg.id)
+            self.msg = msg
+
+        # Act on dangling reacts
+        for react in msg.reactions():
+            if react.emoji.name in self.crt_emoji_to_func.keys() or react.emoji.name in [LARROW, RARROW]:
+                async for user in react.users():
+                    # Build the react
+                    event = EventReact(EventType.reaction_add, user._raw, react._raw)
+                    if user.id == bot.get_own_id():
+                        continue
+
+                    await self.handle_react(event)
+
     # Deserialization common core
-    async def finish_deserialize(self, bot: "Bot", data: dict):
+    async def finish_deserialize(self, bot: "Bot", data: dict, event):
         # Set selector page
         self.shown_page = data["shown_page"]
 
@@ -277,14 +337,20 @@ class Selector:
         # Add message to backend cache
         bot.backend.add_msg_to_cache(msg)
 
+        # Build the emoji lookup table
+        #self.set_items(self.call_dict)
+        self.build_emoji_lookup()
+
+        await self.scan_reacts(bot, msg)
+
         # Remove reacts from other people
-        await self.reset_reacts(bot)
+        #await self.reset_reacts(bot)
 
         # Register the react handler
         self.register_selector()
 
     @staticmethod
-    async def deserialize(bot: "Bot", data: dict, hook: Hook) -> Optional["Selector"]:
+    async def deserialize(bot: "Bot", data: dict, hook: Hook, event) -> Optional["Selector"]:
         raise NotImplementedError()
 
     async def is_spam(self, event):
@@ -305,6 +371,7 @@ class Selector:
         return False
 
     async def handle_emoji(self, event):
+        print("handle 1")
         if event.msg.id != self.msg.id:
             return
 
@@ -317,6 +384,7 @@ class Selector:
             elif event.reaction.emoji.name == RARROW:
                 self.shown_page += 1
 
+        print("handle 2")
         # Check bounds
         if self.shown_page >= len(self.embeds):
             self.shown_page = 0
@@ -326,21 +394,26 @@ class Selector:
         # Send the new page
         if old_page != self.shown_page:
             await self.send_one_page(event)
-        else:
-            _, emoji_to_func = self.embeds[self.shown_page]
-            self.crt_emoji_to_func = emoji_to_func
 
+        print("handle 3")
+        # Build emoji lookup table
+        self.build_emoji_lookup()
+
+        print("handle 4")
         # Check if emoji exists
         if event.reaction.emoji.name not in self.crt_emoji_to_func:
             return
 
         # If it's an async function, await else just call
         target_func, label = self.crt_emoji_to_func[event.reaction.emoji.name]
+        print("handle 5")
         try:
             if inspect.iscoroutinefunction(target_func):
                 await target_func(event, label)
+                print("handle 6.1")
             else:
                 target_func(event, label)
+                print("handle 6.2")
         except:
             import traceback
 
@@ -349,6 +422,7 @@ class Selector:
     # handle_react is the event handler to be passed to hook2
     async def handle_react(self, event):
         # Handle the event
+        print(f"Handling react by author {event.author.name}, emoji {event.reaction.emoji.name}, msg id {event.msg.id}")
         try:
             await self.handle_emoji(event)
         except:
@@ -454,14 +528,13 @@ class RoleSelector(Selector):
 
     def serialize(self):
         data = super().serialize()
-        data["role_ids"] = self.roles
         data["max_selectable"] = self.max_selectable
         data["title"] = self.title
 
         return data
 
     @staticmethod
-    async def deserialize(bot, data, hook):
+    async def deserialize(bot, data, hook, event):
         # Get the server and channel
         server, chan = RoleSelector.get_server_chan(bot, data)
         if not server or not chan:
@@ -472,7 +545,7 @@ class RoleSelector(Selector):
             server, chan, data["role_ids"], data["title"], data["max_selectable"], hook
         )
 
-        await selector.finish_deserialize(bot, data)
+        await selector.finish_deserialize(bot, data, event)
 
         return selector
 
@@ -537,7 +610,7 @@ class RoleSelectorInterval(RoleSelector):
         return data
 
     @staticmethod
-    async def deserialize(bot, data, hook):
+    async def deserialize(bot, data, hook, event):
         # Get the server and channel
         server, chan = RoleSelectorInterval.get_server_chan(bot, data)
         if not server or not chan:
@@ -549,15 +622,13 @@ class RoleSelectorInterval(RoleSelector):
 
         if not first_role:
             print(
-                "Could not find frole id %s/%s" % data["server_id"],
-                data["first_role_id"],
+                "Could not find frole id %s/%s" % (data["server_id"], data["first_role_id"]),
             )
             return None
 
         if not last_role:
             print(
-                "Could not find lrole id %s/%s" % data["server_id"],
-                data["last_role_id"],
+                "Could not find lrole id %s/%s" % (data["server_id"], data["last_role_id"]),
             )
             return None
 
@@ -572,6 +643,6 @@ class RoleSelectorInterval(RoleSelector):
             hook,
         )
 
-        await selector.finish_deserialize(bot, data)
+        await selector.finish_deserialize(bot, data, event)
 
         return selector

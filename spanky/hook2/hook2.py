@@ -75,7 +75,7 @@ class Hook:
 
         # Message event handler subcomponent
         self.rolling_handlers: deque[MessageReact] = deque(maxlen=handler_queue_limit)
-        self.permanent_handlers: list[MessageReact] = []
+        self.permanent_handlers: dict[str, MessageReact] = {}
 
     # def __del__(self):
     #    self.unload()
@@ -253,9 +253,11 @@ class Hook:
                     tasks.append(asyncio.create_task(periodic.handle(action)))
         elif action.event_type is EventType.reaction_add and action.msg != None:
             action: ActionEvent = action
-            for handler in self.permanent_handlers:
-                if handler.msg_id == action.msg.id:
-                    tasks.append(asyncio.create_task(handler.handle(action)))
+
+            if action.msg.id in self.permanent_handlers.keys():
+                tasks.append(asyncio.create_task(
+                    self.permanent_handlers[action.msg.id].handle(action)))
+
             for handler in self.rolling_handlers:
                 if handler.msg_id == action.msg.id:
                     tasks.append(asyncio.create_task(handler.handle(action)))
@@ -298,6 +300,7 @@ class Hook:
             self.global_md[func.__name__] = Middleware(self, func, m_type, priority)
 
     def add_temporary_msg_react(self, msg_id: str, func):
+        print(f"make {msg_id} temp")
         if msg_id in self.rolling_handlers:  # Delete duplicate message handler
             self.rolling_handlers.remove(msg_id)
         self.rolling_handlers.append(MessageReact(self, msg_id, func))
@@ -310,15 +313,13 @@ class Hook:
         # temporary handlers might be "upgraded" to permanent ones
         # keep track of that to avoid duplication
         # TODO: test
+        print(f"make {msg_id} perm")
         self.del_temporary_msg_react(msg_id)
-
-        if msg_id in self.permanent_handlers:  # Delete duplicate message handler
-            self.permanent_handlers.remove(msg_id)
-        self.permanent_handlers.append(MessageReact(self, msg_id, func))
+        self.permanent_handlers[msg_id] = MessageReact(self, msg_id, func)
 
     def del_permanent_msg_react(self, msg_id: str):
         if msg_id in self.permanent_handlers:
-            self.permanent_handlers.remove(msg_id)
+            del self.permanent_handlers[msg_id]
 
     def del_msg_react(self, msg_id: str):
         self.del_temporary_msg_react(msg_id)

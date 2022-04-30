@@ -22,7 +22,7 @@ class element:
         description="",
         max_lines=10,
         max_line_len=200,
-        no_timeout=False,
+        no_timeout=True,
         with_quotes=True,
         line_separator="\n",
     ):

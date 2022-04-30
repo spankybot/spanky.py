@@ -6,6 +6,7 @@ import glob
 import importlib
 import logging
 import os
+import datetime
 
 from .hook2 import Hook
 from .actions import ActionEvent
@@ -229,6 +230,9 @@ class PluginDirectory:
         self.hook = Hook(f"plugin_dir_{path}")
         self.mgr.hook.add_child(self.hook)
 
+        self.last_reloaded: str = ""
+        self.last_reloaded_timestamp: float = 0
+
     async def load(self):
         tasks = []
         for plugin_file in glob.iglob(os.path.join(self.path, "*.py")):
@@ -252,16 +256,33 @@ class PluginDirectory:
     async def reload(self, path: str):
         async with self._lock:
             print("Doing reload")
-            # Might have been very quickly deleted
-            if not os.path.isfile(path):
-                return
-            print(path)
-            if path in self.plugins:
-                await self.plugins[path].reload()
-            else:
-                await self._load_file(path)
 
-            await self.mgr.notify_backend_for_cmds()
+            try:
+                # Might have been very quickly deleted
+                if not os.path.isfile(path):
+                    print("File not found")
+                    return
+                
+                # Might have been very quickly updated (vim tends to save weirdly)
+                reload_timestamp = datetime.datetime.utcnow().timestamp()
+                if path == self.last_reloaded and reload_timestamp - self.last_reloaded_timestamp <= 0.5:
+                    print("Debouncing reload. Skipped.")
+                    return
+                print("Reloading", path)
+                
+
+                if path in self.plugins:
+                    await self.plugins[path].reload()
+                else:
+                    await self._load_file(path)
+
+                await self.mgr.notify_backend_for_cmds()
+
+                self.last_reloaded = path
+                self.last_reloaded_timestamp = datetime.datetime.utcnow().timestamp()
+            except:
+                import traceback
+                traceback.print_exc()
 
 
 class PluginDirectoryEventHandler:
