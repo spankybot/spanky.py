@@ -41,9 +41,16 @@ def do_it(thread):
 
     return prefix + " " + message
 
+@hook.command(permissions=Permission.bot_owner)
+async def subwatch_force_check(bot, send_message):
+    """
+    Force a check for new posts.
+    """
+    await subwatch_checker(bot, send_message)
+    return "Done."
 
-@hook.periodic(5)
-async def checker(bot, send_message):
+@hook.periodic(120)
+async def subwatch_checker(bot, send_message):
     auth = bot.config.get("reddit_auth")
     reddit_inst = asyncpraw.Reddit(
         client_id=auth.get("client_id"),
@@ -87,6 +94,9 @@ def subwatch_list(event):
     """
     List watched subreddits.
     """
+    if event.server.id not in storages:
+        storages[event.server.id] = {}
+
     if storages[event.server.id]["subs"]:
         return "Watching: " + ", ".join(i for i in storages[event.server.id]["subs"])
     else:
@@ -98,6 +108,9 @@ def subwatch_add(text, event):
     """
     Add a subreddit to the watch list.
     """
+    if event.server.id not in storages:
+        storages[event.server.id] = {}
+
     if storages[event.server.id]["subs"] == None:
         storages[event.server.id]["subs"] = {}
 
@@ -125,6 +138,9 @@ def startwatch(event, storage):
     """
     Start watching subreddits.
     """
+    if event.server.id not in storages:
+        storages[event.server.id] = {}
+
     storages[event.server.id]["watching"] = True
     set_crt_timestamp(storage)
     return "Started watching"
@@ -144,6 +160,9 @@ def set_rupdates_channel(text, str_to_id, event):
     """
     <channel> - Send reddit updates on channel.
     """
+    if event.server.id not in storages:
+        storages[event.server.id] = {}
+
     storages[event.server.id]["channel"] = str_to_id(text)
     return "Done."
 
@@ -153,6 +172,9 @@ def clear_rupdates_channel(event):
     """
     Remove reddit updates channel.
     """
+    if event.server.id not in storages:
+        storages[event.server.id] = {}
+
     storages[event.server.id]["channel"] = None
     return "Done."
 
@@ -162,6 +184,9 @@ def get_rupdates_channel(id_to_chan, event):
     """
     List reddit updates annoucement channel.
     """
+    if event.server.id not in storages:
+        storages[event.server.id] = {}
+
     if storages[event.server.id]["channel"]:
         return id_to_chan(storages[event.server.id]["channel"])
     else:
