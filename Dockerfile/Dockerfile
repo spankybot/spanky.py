@@ -1,4 +1,4 @@
-FROM ubuntu:21.04
+FROM ubuntu:23.04
 
 RUN apt update && \
     apt upgrade -y
@@ -6,9 +6,6 @@ RUN apt update && \
 ENV DEBIAN_FRONTEND="noninteractive" TZ="UTC"
 
 RUN apt install -y git curl wget libqalculate-dev liblqr-1-0-dev tar build-essential libre2-dev libpq-dev
-
-# Set custom nameserver
-RUN echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
 # Python build stuff
 RUN apt install -y libssl-dev zlib1g-dev \
