@@ -159,6 +159,13 @@ def nuke_porn(text):
             return "Done."
         else:
             return "No such sub."
+        
+@hook.command(server_id=SERVERS, permissions=Permission.admin)
+def nuke_all_porn():
+    del ustorage["data"]
+    ustorage["data"] = {}
+    ustorage.sync()
+    return "Done."
 
 
 def get_links_from_subs(sub_list):
