@@ -4,6 +4,7 @@ import nextcord
 import plugins.custom.roddit_irc_mode_selectors as roddit
 import spanky.utils.carousel as carousel
 import plugins.custom.roddit_inactive as roddit_inactive
+from collections import deque
 
 from spanky.hook2 import Hook, EventType
 from spanky.utils import discord_utils as dutils
@@ -50,7 +51,7 @@ scan_running = False
 async def scan_selectors(bot):
     global scan_running
     if scan_running:
-        print("scan running, laterz!")
+        #print("scan running, laterz!")
         return
 
     try:
@@ -59,7 +60,7 @@ async def scan_selectors(bot):
         for selector in carousel.Selector._permanent_selectors.values():
             await selector.scan_reacts(bot, selector.msg, force_update=False)
 
-        for selector in carousel.Selector._temporary_selectors:
+        for selector in deque(carousel.Selector._temporary_selectors):
             await selector.scan_reacts(bot, selector.msg, force_update=False)
         print("Finished.")
     except:
@@ -67,6 +68,22 @@ async def scan_selectors(bot):
         traceback.print_exc()
     finally:
         scan_running = False
+
+@hook.command(permissions=Permission.bot_owner)
+async def force_scan_selectors(bot):
+    try:
+        print("Scanning permanent selectors")
+        for selector in carousel.Selector._permanent_selectors.values():
+            print(selector.title)
+            await selector.scan_reacts(bot, selector.msg, force_update=False)
+
+        for selector in carousel.Selector._temporary_selectors:
+            print(selector.title)
+            await selector.scan_reacts(bot, selector.msg, force_update=False)
+        print("Finished.")
+    except:
+        import traceback
+        traceback.print_exc()
 
 #def selector_loader(server, event):
 
@@ -77,6 +94,10 @@ def selector_reserializer(server, selector):
 
     # Only work with permanent selectors
     if selector.selector_type != carousel.SelectorType.PERMANENT:
+        return
+
+    if type(selector) not in selector_revlookup:
+        print(f"{str(type(selector))} not found in selector_revlookup, skipping.")
         return
 
     selector_str = selector_revlookup[type(selector)]
@@ -136,8 +157,9 @@ def permanent_selector(text, storage, event):
 
     # Save the serialized data
     for key, cls in selector_classes.items():
-        if type(selector) == cls:
+        if isinstance(selector, cls):
             storage[key].append(data)
+            break
 
     storage.sync()
 
