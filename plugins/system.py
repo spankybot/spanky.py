@@ -164,10 +164,14 @@ def system(send_message):
 
 
 @hook.command(permissions=Permission.bot_owner)
-def list_bot_servers(bot):
+def list_bot_servers(send_message, bot, event):
     msg = ""
     for server in bot.backend.get_servers():
         msg += "Name: %s, ID: %s\n" % (server.name, server.id)
+
+        if len(msg) > 1800:
+            send_message(msg)
+            msg = ""
 
     return msg
 
