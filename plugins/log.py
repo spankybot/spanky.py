@@ -8,6 +8,7 @@ from datetime import datetime
 from spanky.plugin import hook
 from spanky.hook2.event import EventType
 from spanky.plugin.permissions import Permission
+from spanky.utils import discord_utils as dutils
 
 base_formats = {
     EventType.message: "{msg_id}: [{hour}:{minute}:{second}] <{nick}> {content}",
@@ -288,6 +289,16 @@ def get_msg_cnt_for_user(uid):
 
     return cs.fetchall()[0][0]
 
+@hook.command(permissions="bot_owner")
+def count_user_with(text):
+    text = text.split(" ", maxsplit=1)
+    uid = dutils.str_to_id(text[0])
+    contains = text[1]
+
+    cs = db_conn.cursor()
+    cs.execute("""select count(*) from messages where author_id=%s and msg like %s""", (str(uid), "%" + contains + "%"))
+
+    return str(cs.fetchall()[0][0])
 
 def get_msg_cnt_for_channel(cid):
     cs = db_conn.cursor()
