@@ -3,7 +3,7 @@ import spanky.utils.carousel as carousel
 import spanky.utils.discord_utils as dutils
 import plugins.paged_content as paged
 
-from spanky.hook2.event import EventType
+from spanky.hook2 import EventType, ComplexCommand
 from spanky.hook2 import Hook
 from spanky.plugin.permissions import Permission
 
@@ -44,6 +44,10 @@ class Poll(carousel.Selector):
             async def add_vote(event, label):
                 # Check for role assign spam
                 if await self.is_spam(event):
+                    return
+
+                if not self.is_active:
+                    await event.async_send_message("Unfortunately, poll has closed!", timeout=MSG_TIMEOUT, check_old=False)
                     return
 
                 # Check if author voted
@@ -122,12 +126,13 @@ class Poll(carousel.Selector):
             print("Poll inactive")
             return None
 
-        storage = hook.server_storage(server.id)
         server, chan = Poll.get_server_chan(bot, data)
         if not server:
             return None
         if not chan:
             raise Poll.InvalidMessage("Invalid channel.")
+
+        storage = hook.server_storage(server.id)
 
         # Rebuild message cache
         msg_id = data["msg_id"]
@@ -162,9 +167,11 @@ def sync_polls(storage, server):
             storage["polls"][poll.get_link()] = elem
             storage.sync()
 
+poll_cmd = ComplexCommand(hook, "poll", permissions="admin", slash_servers=["287285563118190592"])
 
-@hook.command(permissions=Permission.admin)
-async def create_poll(text, event, storage, async_send_message, server):
+
+@poll_cmd.subcommand(name="create")
+async def poll_create(text, event, storage, async_send_message, server):
     """
     <title %% option1 %% option2 %% ...> - create a poll with a title and multiple options
     """
@@ -187,9 +194,8 @@ async def create_poll(text, event, storage, async_send_message, server):
     # Sync all polls
     sync_polls(storage, server)
 
-
-@hook.command(permissions=Permission.admin)
-async def list_polls(async_send_message, storage, server):
+@poll_cmd.subcommand(name="list")
+async def poll_list(async_send_message, storage, server):
     """
     Lists active polls
     """
@@ -214,8 +220,8 @@ async def list_polls(async_send_message, storage, server):
     await async_send_message(embed=embed)
 
 
-@hook.command(permissions=Permission.admin)
-async def close_poll(text, storage, async_send_message, server):
+@poll_cmd.subcommand(name="close")
+async def poll_close(text, storage, async_send_message, server):
     """
     <message link> - Closes poll give in message link
     """
@@ -234,6 +240,18 @@ async def close_poll(text, storage, async_send_message, server):
             return
 
     await async_send_message("Could not find the given poll")
+
+@hook.command()
+def create_poll():
+    return "It's `.poll create` now."
+
+@hook.command()
+def list_polls():
+    return "It's `.poll list` now."
+
+@hook.command()
+def close_poll():
+    return "It's `.poll close` now.`"
 
 
 async def rebuild_poll(bot, key, poll, storage, hook, event):
@@ -267,8 +285,8 @@ async def rebuild_poll_selectors(bot, storage_getter, event):
     await asyncio.gather(*tasks)
 
 
-@hook.command(permissions=Permission.admin)
-async def sanitize_polls(bot, storage_getter, server, storage):
+@hook.command(permissions=["admin", "bot_owner"])
+async def sanitize_polls(bot, storage_getter, server, storage, event):
     """
     TODO: clean up polls, fetch unregistered votes
     """
@@ -292,4 +310,4 @@ async def sanitize_polls(bot, storage_getter, server, storage):
 
     for key, val in storage["polls"].items():
         print("Rebuilding " + key)
-        await rebuild_poll(bot, key, val, storage, hook)
+        await rebuild_poll(bot, key, val, storage, hook, event)
