@@ -26,8 +26,8 @@ export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 eval "$(pyenv init --path)"
 
-pyenv install -s 3.10.0
-pyenv global 3.10.0
+pyenv install -s 3.11.4
+pyenv global 3.11.4
 
 cd /botsrc/
 
