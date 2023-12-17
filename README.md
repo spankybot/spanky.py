@@ -44,7 +44,7 @@ cp bot_config.json.sample bot_config.json
 # vi bot_config.json
 
 # Start the bot
-./Dockerfile/start.sh
+./Dockerfile/start.sh <folder where home files are kept>
 ```
 
 #### 2. Native (not recommended)
