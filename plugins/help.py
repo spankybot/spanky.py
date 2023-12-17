@@ -70,7 +70,7 @@ def commit_changes(storage_loc):
     os.system("git -C %s add ." % repo_path)
     os.system("git -C %s status" % repo_path)
     os.system('git -C %s commit -m "Update documentation"' % repo_path)
-    os.system("git -C %s push" % repo_path)
+    os.system("GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no\" git -C %s push" % repo_path)
 
 
 @hook.command(permissions=Permission.bot_owner)
