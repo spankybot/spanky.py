@@ -52,10 +52,71 @@ async def set_status(async_set_game_status, reply, text):
     return "Done"
 
 
+from . import remote_plugins
+
+
+
+
 @hook.command()
-def e(event):
+def e(event, send_file, send_message, send_embed):
     """Expand an emoji"""
-    return " ".join(event.url)
+
+    text = " ".join(event.url)
+
+    # TODO move tiktok to a plugin
+    from urllib.parse import urlparse
+    import os
+    result = urlparse(text)
+
+    if "tiktok.com" in result.netloc:
+        ok, data = remote_plugins.tt(text)
+
+        if not ok:
+            return data
+
+        # Delete the message
+        # event.msg.delete_message()
+
+        # Save the video to a file
+        filename = dutils.fname_generator() + ".mp4"
+        with open(filename, "wb") as f:
+            f.write(data)
+
+        # Send the file
+        send_file(filename)
+
+        # Remove the file
+        os.remove(filename)
+        return
+
+    if "instagram.com" in result.netloc:
+        ok, data = remote_plugins.igram(text)
+
+        if not ok:
+            return data
+
+        # Delete the message
+        # event.msg.delete_message()
+
+        # Save the video to a file
+        filename = dutils.fname_generator() + ".mp4"
+        with open(filename, "wb") as f:
+            f.write(data)
+
+        # Send the file
+        send_file(filename)
+
+        # Remove the file
+        os.remove(filename)
+        return
+
+    # event.msg.delete_message()
+    # send_embed(
+    #     title=f"Expand {text}",
+    #     description=f"Author: {event.msg.author.name}",
+    #     image_url=text)
+
+    return text
 
 
 @hook.command()
