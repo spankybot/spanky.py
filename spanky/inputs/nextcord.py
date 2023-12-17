@@ -374,7 +374,7 @@ class DiscordUtils(abc.ABC):
         In case server=None, target = -1 and we are in a PM, we will return the PM channel
         """
 
-        if server is None and target == -1 and hasattr(self, "is_pm") and self.is_pm:
+        if server is None and target in [-1, None] and hasattr(self, "is_pm") and self.is_pm:
             return self.channel._raw
 
         if server:
@@ -425,6 +425,7 @@ class DiscordUtils(abc.ABC):
         check_old=True,
         allowed_mentions=allowed_mentions,
         ephemeral=False,  # EventSlash only, no effect in other event types
+        reply_to=None,
     ):
         func_send_message = None
         channel = None
@@ -489,9 +490,13 @@ class DiscordUtils(abc.ABC):
                     )
                     return Message(old_reply._raw)
 
+            reference = None
+            if reply_to is not None:
+                reference = reply_to._raw
+
             msg = None
             reply = await func_send_message(
-                content=text, embed=embed, allowed_mentions=allowed_mentions
+                content=text, embed=embed, allowed_mentions=allowed_mentions, reference=reference
             )
             if type(self) is EventSlash:
                 msg = SlashMessage(self._raw, timeout)
@@ -521,6 +526,7 @@ class DiscordUtils(abc.ABC):
         check_old=True,
         allowed_mentions=allowed_mentions,
         ephemeral=False,  # EventSlash only, no effect in other event types
+        reply_to=None,
     ):
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(
@@ -531,6 +537,7 @@ class DiscordUtils(abc.ABC):
                 check_old=check_old,
                 allowed_mentions=allowed_mentions,
                 ephemeral=ephemeral,
+                reply_to=reply_to,
             ),
             bot.loop,
         )
@@ -562,6 +569,9 @@ class DiscordUtils(abc.ABC):
         )
 
     def reply(self, text, **kwargs):
+        if not hasattr(self, "author"):
+            self.send_message("(unknown) " + text, **kwargs)
+            return
         self.send_message("(%s) %s" % (self.author.name, text), **kwargs)
 
     def send_file(self, file_path, target=-1, server=None):
@@ -617,7 +627,12 @@ class EventReact(DiscordUtils):
     def __init__(self, event_type, user, reaction):
         self.type = event_type
         self.author = User(user)
-        self.server = Server(user.guild)
+        server = getattr(user, "guild", None)
+        if server:
+            self.server = Server(server)
+        else:
+            self.server = None
+
         self.msg = Message(reaction.message)
         self.channel = Channel(reaction.message.channel)
         self.source = self.channel
@@ -918,6 +933,15 @@ class Message:
     async def clear_reactions(self):
         await self._raw.clear_reactions()
 
+    async def async_edit_message(self, text=None, embed=None):
+        if not text and not embed:
+            return
+
+        if text:
+            await self._raw.edit(content=text)
+        elif embed:
+            await self._raw.edit(embed=embed)
+
 
 class User:
     def __init__(self, obj: nextcord.User | nextcord.Member):
@@ -927,10 +951,10 @@ class User:
         self.bot = obj.bot
 
         try:
-            self.avatar_url = obj.avatar.url
-        except:
-            # TODO
-            pass
+            if obj.avatar:
+                self.avatar_url = obj.avatar.url
+        except Exception as e:
+            print(e)
 
         self.roles: list["Role"] = []
         if hasattr(obj, "roles"):
