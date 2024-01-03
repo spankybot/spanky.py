@@ -9,6 +9,7 @@ from spanky import database
 
 class db_data:
     def __init__(self, db_path):
+        return
         self.db_engine = create_engine(
             db_path, connect_args={"check_same_thread": False}, poolclass=StaticPool
         )
