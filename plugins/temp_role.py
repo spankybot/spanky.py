@@ -550,7 +550,7 @@ def kick(
     """
     <user [reason]> - Kick someone with an optional reason
     """
-    text = text.split()
+    text = text.split(maxsplit=1)
     if len(text) == 0:
         return kick.__doc__
 
@@ -558,7 +558,7 @@ def kick(
 
     reason = "Not given"
     if len(text) > 1:
-        reason = text[1:]
+        reason = text[1]
 
     if user is None:
         return "User not found."
