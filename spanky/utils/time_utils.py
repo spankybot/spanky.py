@@ -1,6 +1,6 @@
 import datetime
 
-time_tokens = ["s", "m", "h", "d"]
+time_tokens = ["s", "m", "h", "d", "y"]
 SEC_IN_MIN = 60
 SEC_IN_HOUR = SEC_IN_MIN * 60
 SEC_IN_DAY = SEC_IN_HOUR * 24
