@@ -172,6 +172,9 @@ class Selector:
                         emoji_to_func,
                     )
                 )
+        # Append empty page
+        if len(self.embeds) == 0:
+            self.embeds.append((dutils.prepare_embed(title="No data.", description="No information provided.", footer_txt=self.footer), emoji_to_func))
 
     def has_msg_id(self, msg_id):
         if not self.msg:
@@ -209,6 +212,8 @@ class Selector:
         Builds the emoji lookup table.
         """
         try:
+            if self.shown_page >= len(self.embeds):
+                self.shown_page = 0
             _, emoji_to_func = self.embeds[self.shown_page]
             self.crt_emoji_to_func = emoji_to_func
         except:
@@ -244,6 +249,9 @@ class Selector:
     async def reset_reacts(self, bot):
         await self.msg.clear_reactions()
         await self.add_emojis()
+
+    async def update_embed(self, bot):
+        await self.msg.async_edit_message(embed=self.embeds[self.shown_page][0])
 
     async def do_send(self, event):
         await self.send_one_page(event)
@@ -310,12 +318,17 @@ class Selector:
         for react in msg.reactions():
             if react.emoji.name in self.crt_emoji_to_func.keys() or react.emoji.name in [LARROW, RARROW]:
                 async for user in react.users():
-                    # Build the react
-                    event = EventReact(EventType.reaction_add, user._raw, react._raw)
                     if user.id == bot.get_own_id():
                         continue
 
-                    await self.handle_react(event)
+                    try:
+                        # Build the react
+                        event = EventReact(EventType.reaction_add, user._raw, react._raw)
+                        await self.handle_react(event)
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc()
+
 
     # Deserialization common core
     async def finish_deserialize(self, bot: "Bot", data: dict, event):
@@ -344,7 +357,9 @@ class Selector:
         await self.scan_reacts(bot, msg)
 
         # Remove reacts from other people
-        #await self.reset_reacts(bot)
+        await self.reset_reacts(bot)
+
+        await self.update_embed(bot)
 
         # Register the react handler
         self.register_selector()
@@ -538,6 +553,9 @@ class RoleSelector(Selector):
         # Get the server and channel
         server, chan = RoleSelector.get_server_chan(bot, data)
         if not server or not chan:
+            return
+        
+        if "role_ids" not in data:
             return
 
         # Create the selector
