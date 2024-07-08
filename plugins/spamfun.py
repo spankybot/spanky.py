@@ -54,19 +54,19 @@ def chan_get(storage):
 
     return f"Channel is <#{storage['spamfun']['channel']}>"
 
-# Trivia commands
-@chanhook.subcommand()
-def start_trivia(event, storage):
-    """
-    Start trivia.
-    """
-    if "spamfun" not in storage:
-        storage["spamfun"] = {}
+# # Trivia commands
+# @chanhook.subcommand()
+# def start_trivia(event, storage):
+#     """
+#     Start trivia.
+#     """
+#     if "spamfun" not in storage:
+#         storage["spamfun"] = {}
 
-    storage["spamfun"]["trivia_started"] = tutils.tnow()
-    storage.sync()
+#     storage["spamfun"]["trivia_started"] = tutils.tnow()
+#     storage.sync()
 
-    return "Trivia started"
+#     return "Trivia started"
 
 # Duck hunt commands
 @chanhook.subcommand(permissions=Permission.admin)
