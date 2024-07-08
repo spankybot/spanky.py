@@ -58,10 +58,10 @@ from . import remote_plugins
 
 
 @hook.command()
-def e(event, send_file, send_message, send_embed):
+def e(event, send_file, send_message, send_embed, text):
     """Expand an emoji"""
 
-    text = " ".join(event.url)
+    text_url = " ".join(event.url)
 
     # TODO move tiktok to a plugin
     from urllib.parse import urlparse
@@ -75,7 +75,7 @@ def e(event, send_file, send_message, send_embed):
             return data
 
         # Delete the message
-        # event.msg.delete_message()
+        event.msg.delete_message()
 
         # Save the video to a file
         filename = dutils.fname_generator() + ".mp4"
@@ -96,7 +96,7 @@ def e(event, send_file, send_message, send_embed):
             return data
 
         # Delete the message
-        # event.msg.delete_message()
+        event.msg.delete_message()
 
         # Save the video to a file
         filename = dutils.fname_generator() + ".mp4"
@@ -110,13 +110,13 @@ def e(event, send_file, send_message, send_embed):
         os.remove(filename)
         return
 
-    # event.msg.delete_message()
+    event.msg.delete_message()
     # send_embed(
     #     title=f"Expand {text}",
     #     description=f"Author: {event.msg.author.name}",
     #     image_url=text)
 
-    return text
+    return text_url
 
 
 @hook.command()
