@@ -33,10 +33,11 @@ logger.addHandler(handler)
 # Enable intents god damn it discord
 intents = nextcord.Intents.default()
 intents.members = True
+intents.message_content = True
 # Reduce noise
 intents.typing = False
 
-allowed_mentions = nextcord.AllowedMentions(everyone=False, users=True, roles=True)
+allowed_mentions = nextcord.AllowedMentions(everyone=False, users=False, roles=False)
 
 client = nextcord.Client(intents=intents, allowed_mentions=allowed_mentions)
 bot: "Bot" = None
@@ -169,8 +170,8 @@ class Init:
         print("Done registering slashes")
 
     def decorate_command(
-        self, cmd: ac.ApplicationCommand, hook
-    ) -> ac.ApplicationCommand:
+        self, cmd: ac.ApplicationCommandType, hook
+    ) -> ac.ApplicationCommandType:
         """
         Decorates a command or subcommand with the hook properties.
         """
@@ -426,9 +427,13 @@ class DiscordUtils(abc.ABC):
         allowed_mentions=allowed_mentions,
         ephemeral=False,  # EventSlash only, no effect in other event types
         reply_to=None,
+        with_file=None,
     ):
         func_send_message = None
         channel = None
+        dfile = None
+        if with_file:
+            dfile = nextcord.File(with_file)
 
         if type(self) is EventSlash:
 
@@ -485,9 +490,14 @@ class DiscordUtils(abc.ABC):
                 # If it was replied within the same channel (no chances of this not being true)
                 if old_reply and old_reply._raw.channel.id == channel.id:
                     # TODO editing slash replies throws an exception because that's not possible
-                    await old_reply._raw.edit(
-                        content=text, embed=embed, allowed_mentions=allowed_mentions
-                    )
+                    if dfile:
+                        await old_reply._raw.edit(
+                            content=text, embed=embed, allowed_mentions=allowed_mentions, file=dfile
+                        )
+                    else:
+                        await old_reply._raw.edit(
+                            content=text, embed=embed, allowed_mentions=allowed_mentions
+                        )
                     return Message(old_reply._raw)
 
             reference = None
@@ -496,7 +506,7 @@ class DiscordUtils(abc.ABC):
 
             msg = None
             reply = await func_send_message(
-                content=text, embed=embed, allowed_mentions=allowed_mentions, reference=reference
+                content=text, embed=embed, allowed_mentions=allowed_mentions, reference=reference, file=dfile
             )
             if type(self) is EventSlash:
                 msg = SlashMessage(self._raw, timeout)
@@ -527,6 +537,7 @@ class DiscordUtils(abc.ABC):
         allowed_mentions=allowed_mentions,
         ephemeral=False,  # EventSlash only, no effect in other event types
         reply_to=None,
+        with_file=None,
     ):
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(
@@ -538,6 +549,7 @@ class DiscordUtils(abc.ABC):
                 allowed_mentions=allowed_mentions,
                 ephemeral=ephemeral,
                 reply_to=reply_to,
+                with_file=with_file,
             ),
             bot.loop,
         )
@@ -758,7 +770,7 @@ class EventMessage(DiscordUtils):
             return
 
         for emb in self.embeds:
-            yield Embed(emb).url
+            yield emb.url
             return
 
         if self.user_id_to_object(stripped) != None:
@@ -1407,7 +1419,11 @@ class Attachment:
 
 class Embed:
     def __init__(self, obj):
-        self.url = obj.url
+        if obj.image.url != nextcord.Embed.Empty:
+            self.url = obj.image.url
+        else:
+            self.url = obj.url
+
         self._raw = obj
 
 
@@ -1483,6 +1499,17 @@ class DictQueue:
     def bot_messages(self):
         for elem in reversed(self.queue):
             yield elem[1]
+
+
+class Spanky_RawReactionActionEvent:
+    def __init__(self, reaction, message, channel):
+        self._raw = reaction
+        self.message = message
+        self.channel = channel
+
+    @property
+    def emoji(self):
+        return self._raw.emoji
 
 
 def add_temporary_reply(reply):
@@ -1593,7 +1620,6 @@ async def on_reaction_remove(reaction, user):
     if user.id != client.user.id:
         await call_func(bot.on_reaction_remove, reaction, user)
 
-
 @client.event
 async def on_raw_reaction_add(reaction):
 
@@ -1611,10 +1637,9 @@ async def on_raw_reaction_add(reaction):
 
             raw_msg_cache[msg_id] = Message(msg)
 
-        reaction.message = raw_msg_cache[msg_id]._raw
-        reaction.channel = raw_msg_cache[msg_id]._raw.channel
+        spanky_reaction = Spanky_RawReactionActionEvent(reaction, raw_msg_cache[msg_id]._raw, raw_msg_cache[msg_id]._raw.channel)
 
-        await call_func(bot.on_reaction_add, reaction, reaction.member)
+        await call_func(bot.on_reaction_add, spanky_reaction, reaction.member)
     except:
         import traceback
 
