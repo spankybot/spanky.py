@@ -1,5 +1,5 @@
 import token
-from tokenize import tokenize, OP, ENDMARKER
+from tokenize import tokenize, OP, ENDMARKER, NUMBER
 from collections import OrderedDict, deque
 from io import BytesIO
 
