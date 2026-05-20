@@ -17,7 +17,7 @@ oslo.concurrency
 psycopg2-binary
 googlemaps
 forecastiopy
-idna==3.7
+idna==3.15
 pillow
 numpy
 python-whois
